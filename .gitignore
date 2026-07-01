@@ -1,0 +1,70 @@
+# # =============================================
+# # .gitignore – Files to NOT upload to GitHub
+# # =============================================
+
+# # Environment variables (contains passwords!)
+# .env
+# backend/.env
+
+# # Node.js dependencies (too big to upload)
+# node_modules/
+# backend/node_modules/
+
+# # OS generated files
+# .DS_Store
+# Thumbs.db
+
+# # IDE files
+# .vscode/
+# .idea/
+
+# # Logs
+# *.log
+# npm-debug.log*
+
+# # Build outputs
+# dist/
+# build/
+
+# =============================================
+# .gitignore – Files to NOT upload to GitHub
+# =============================================
+
+# Environment variables
+.env
+backend/.env
+
+# Node.js dependencies
+node_modules/
+backend/node_modules/
+
+# Python cache
+__pycache__/
+*.pyc
+venv/
+
+# # ML model
+# ml_model/model.pkl
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Build outputs
+dist/
+build/
+
+# Chroma Vector Database
+chroma_db/
+backend/chroma_db/
+
+# Uploaded documents
+backend/uploads/

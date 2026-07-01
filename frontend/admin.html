@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CampusBot Admin Panel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body data-theme="dark" class="admin-page">
+
+  <!-- Admin Top Nav -->
+  <nav class="admin-nav">
+    <h1>⚙️ CampusBot Admin</h1>
+    <div style="display:flex;gap:10px;align-items:center">
+      <a href="index.html" class="btn-sm">← Back to Bot</a>
+      <button class="btn-sm danger" onclick="CampusAuth.logoutAdmin()" title="Logout">🚪 Logout</button>
+      <button class="theme-toggle" id="themeToggle"><span class="theme-icon">☀️</span></button>
+    </div>
+  </nav>
+
+  <div class="admin-body">
+    <!-- Sidebar Navigation -->
+    <nav class="admin-sidebar">
+      <button class="admin-nav-btn active" onclick="showSection('dashboard', this)">📊 Dashboard</button>
+      <button class="admin-nav-btn" onclick="showSection('faqs', this)">📋 FAQs</button>
+      <button class="admin-nav-btn" onclick="showSection('add-faq', this)">➕ Add FAQ</button>
+      <button class="admin-nav-btn" onclick="showSection('logs', this)">📜 Chat Logs</button>
+      <button class="admin-nav-btn" onclick="showSection('feedback', this)">⭐ Feedback</button>
+      <button class="admin-nav-btn" onclick="showSection('users', this)">
+
+        👥 Users
+
+      </button>
+      <button class="admin-nav-btn" id="manageAdminsBtn" onclick="showSection('admins', this)" style="display:none">
+
+        🛡 Manage Admins
+
+      </button>
+      <button class="admin-nav-btn" id="addAdminNavBtn" onclick="showSection('add-admin', this)" style="display:none">
+
+        🛡 Add Admin
+
+      </button>
+      <button class="admin-nav-btn" onclick="showSection('change-password', this)">
+
+        🔐 Change Password
+
+      </button>
+
+    </nav>
+
+    <!-- Content Area -->
+    <div class="admin-content">
+
+      <!-- DASHBOARD -->
+      <div id="section-dashboard" class="admin-section active">
+        <h2>Dashboard</h2>
+        <div class="stat-grid" id="statGrid">
+          <div class="stat-card">
+            <span class="stat-num" id="statFaqs">—</span>
+            <div class="stat-label">Total FAQs</div>
+          </div>
+          <div class="stat-card">
+            <span class="stat-num" id="statConvos">—</span>
+            <div class="stat-label">Conversations</div>
+          </div>
+          <div class="stat-card">
+            <span class="stat-num" id="statFeedback">—</span>
+            <div class="stat-label">Feedback Received</div>
+          </div>
+          <div class="stat-card">
+            <span class="stat-num" id="statRating">—</span>
+            <div class="stat-label">Avg Rating</div>
+          </div>
+        </div>
+        <div class="card">
+          <h3 style="font-family:var(--font-display);margin-bottom:12px;font-size:1rem">Recent Activity</h3>
+          <div id="recentActivity">Loading…</div>
+        </div>
+      </div>
+
+      <!-- FAQ LIST -->
+      <div id="section-faqs" class="admin-section">
+        <h2>Manage FAQs</h2>
+        <div class="card">
+          <table class="faq-table" id="faqTable">
+            <thead>
+              <tr>
+                <th>Question</th>
+                <th>Category</th>
+                <th>Keywords</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="faqTableBody">
+              <tr>
+                <td colspan="4" style="text-align:center;color:var(--text-dim);padding:24px">Loading FAQs…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ADD FAQ -->
+      <div id="section-add-faq" class="admin-section">
+        <h2>Add New FAQ</h2>
+        <div class="card" style="max-width:600px">
+          <div class="form-group">
+            <label>Category</label>
+            <select id="faqCategory" class="form-control">
+              <option value="fees">Fees</option>
+              <option value="admissions">Admissions</option>
+              <option value="exams">Exams</option>
+              <option value="hostel">Hostel</option>
+              <option value="library">Library</option>
+              <option value="placements">Placements</option>
+              <option value="scholarships">Scholarships</option>
+              <option value="timetable">Timetable</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Keywords (comma separated)</label>
+            <input type="text" id="faqKeywords" class="form-control" placeholder="fee, payment, deadline, due date" />
+          </div>
+          <div class="form-group">
+            <label>Answer (English)</label>
+            <textarea id="faqAnswerEn" class="form-control" placeholder="Type the English answer here…"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Answer (Hindi – optional)</label>
+            <textarea id="faqAnswerHi" class="form-control" placeholder="हिंदी उत्तर…"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Answer (Marathi – optional)</label>
+            <textarea id="faqAnswerMr" class="form-control" placeholder="मराठी उत्तर…"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Answer (Tamil – optional)</label>
+            <textarea id="faqAnswerTa" class="form-control" placeholder="தமிழ் பதில்…">
+  </textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Answer (Telugu – optional)</label>
+            <textarea id="faqAnswerTe" class="form-control" placeholder="తెలుగు సమాధానం…">
+  </textarea>
+          </div>
+          <button class="btn-primary" style="width:100%;margin-top:8px" onclick="addFAQ()">
+            ➕ Add FAQ
+          </button>
+          <p id="addFaqMsg" style="margin-top:10px;font-size:0.82rem;color:var(--accent)"></p>
+        </div>
+      </div>
+
+      <!-- CHAT LOGS -->
+      <div id="section-logs" class="admin-section">
+        <h2>Chat Logs</h2>
+        <div class="card">
+          <div id="logsContainer">Loading logs…</div>
+        </div>
+      </div>
+
+      <!-- FEEDBACK -->
+      <div id="section-feedback" class="admin-section">
+        <h2>User Feedback</h2>
+        <div class="card">
+          <div id="feedbackContainer">Loading feedback…</div>
+        </div>
+      </div>
+      <!-- USERS -->
+      <div id="section-users" class="admin-section">
+
+        <h2>Registered Users</h2>
+
+        <div class="card">
+
+          <div id="usersContainer">
+
+            Loading users...
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- CHANGE PASSWORD -->
+      <div id="section-change-password" class="admin-section">
+
+        <h2>Change Password</h2>
+
+        <div class="card" style="max-width:500px">
+
+          <div class="form-group">
+
+            <label>Current Password</label>
+
+            <input type="password" id="currentAdminPassword" class="form-control" placeholder="Current password" />
+
+          </div>
+
+          <div class="form-group">
+
+            <label>New Password</label>
+
+            <input type="password" id="newAdminPassword" class="form-control" placeholder="New password" />
+
+          </div>
+
+          <button class="btn-primary" style="width:100%" onclick="changeAdminPassword()">
+
+            🔐 Update Password
+
+          </button>
+
+          <p id="changePasswordMsg" style="margin-top:10px">
+          </p>
+
+        </div>
+
+      </div>
+      <!-- MANAGE ADMINS -->
+      <div id="section-admins" class="admin-section">
+
+        <h2>Manage Admins</h2>
+
+        <div class="card">
+
+          <div id="adminsContainer">
+
+            Loading admins...
+
+          </div>
+
+        </div>
+
+      </div>
+      <!-- ADD ADMIN -->
+      <div id="section-add-admin" class="admin-section">
+
+        <h2>Create Admin</h2>
+
+        <div class="card" style="max-width:600px">
+
+          <div class="form-group">
+            <label>Name</label>
+            <input type="text" id="adminName" class="form-control" placeholder="Admin name" />
+          </div>
+
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="adminEmail" class="form-control" placeholder="admin@example.com" />
+          </div>
+
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="adminPassword" class="form-control" placeholder="Password" />
+          </div>
+
+          <div class="form-group">
+            <label>Role</label>
+
+            <select id="adminRole" class="form-control">
+
+              <option value="admin">
+                Admin
+              </option>
+
+              <option value="superadmin">
+                Superadmin
+              </option>
+
+            </select>
+          </div>
+
+          <button class="btn-primary" style="width:100%" onclick="createAdmin()">
+
+            ➕ Create Admin
+
+          </button>
+
+          <p id="addAdminMsg" style="margin-top:10px">
+          </p>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+  <script src="auth/auth.js"></script>
+  <script src="js/translations.js"></script>
+  <script src="js/admin-new.js"></script>
+  <script>
+    // ── Admin Route Guard ────────────────────────────────────────
+    // Redirects to admin login if no admin token found
+    CampusAuth.requireAdminLogin('auth/admin-login.html');
+
+    // ── Show admin info ──────────────────────────────────────────
+    const admin = CampusAuth.getAdmin();
+    if (admin) {
+      const nav = document.querySelector('.admin-nav h1');
+      if (nav) nav.textContent = `⚙️ CampusBot Admin  ·  ${admin.name}`;
+    }
+  </script>
+</body>
+
+</html>

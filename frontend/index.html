@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CampusBot – Your College Assistant</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body data-theme="dark">
+
+  <!-- ===== HEADER ===== -->
+  <header class="header">
+    <div class="header-left">
+
+      <button class="mobile-menu-btn" id="mobileMenuBtn">
+        ☰
+      </button>
+
+      <div class="bot-avatar">
+        <span class="bot-icon">🎓</span>
+        <span class="status-dot"></span>
+      </div>
+
+      <div class="bot-info">
+        <h1 class="bot-name">CampusBot</h1>
+        <span class="bot-status">
+          Online · Always here to help
+        </span>
+      </div>
+
+    </div>
+
+    <div class="header-right">
+      <!-- Language Selector -->
+      <div class="lang-dropdown">
+
+        <button class="lang-current" id="langCurrentBtn">
+
+          EN ⌄
+
+        </button>
+
+        <div class="lang-menu" id="langMenu">
+
+          <button class="lang-btn active" data-lang="en">
+            EN
+          </button>
+
+          <button class="lang-btn" data-lang="hi">
+            हिन्दी
+          </button>
+
+          <button class="lang-btn" data-lang="mr">
+            Marathi
+          </button>
+
+          <button class="lang-btn" data-lang="ta">
+            தமிழ்
+          </button>
+
+          <button class="lang-btn" data-lang="te">
+            తెలుగు
+          </button>
+
+        </div>
+
+      </div>
+      <!-- Theme Toggle -->
+      <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+        <span class="theme-icon">☀️</span>
+      </button>
+
+      <button class="profile-btn" onclick="openProfileModal()" title="My Profile">
+
+        👤
+
+      </button>
+
+      <!-- Admin Link (shows logout for regular users) -->
+      <a href="admin.html" class="admin-link" id="adminOrLogoutLink" title="Admin Panel">⚙️</a>
+    </div>
+
+  </header>
+
+  <!-- ===== MAIN LAYOUT ===== -->
+  <div class="app-layout">
+
+    <!-- SIDEBAR: Quick Topics -->
+    <aside class="sidebar">
+      <h3 class="sidebar-title">Quick Topics</h3>
+      <!-- Chat History -->
+      <div class="history-section">
+        <h3 class="sidebar-title">Recent Chats</h3>
+
+        <!-- NEW CHAT BUTTON -->
+
+        <button class="new-chat-btn" onclick="window.createNewChat()">
+
+          ➕ New Chat
+
+        </button>
+
+        <div id="historyList" class="history-list">
+          <!-- Injected by JS -->
+        </div>
+
+        <button id="clearHistoryBtn" class="clear-history-btn">
+          🗑 Clear History
+        </button>
+      </div>
+      <div class="topic-list" id="topicList">
+        <!-- Injected by JS -->
+      </div>
+      <button class="sidebar-profile-btn" onclick="openProfileModal()">
+
+        👤 My Profile
+
+      </button>
+      <div class="sidebar-footer">
+        <p>Need human help?</p>
+        <a href="mailto:helpdesk@college.edu" class="contact-link">📧 helpdesk@college.edu</a>
+        <a href="tel:+911234567890" class="contact-link">📞 +91 12345 67890</a>
+      </div>
+    </aside>
+
+    <!-- CHAT AREA -->
+    <main class="chat-area">
+
+      <!-- Messages Container -->
+      <div class="chat-messages" id="chatMessages">
+        <!-- Welcome message injected by JS -->
+      </div>
+
+      <!-- Suggestion Chips -->
+      <div class="chips-row" id="chipsRow">
+        <!-- Injected by JS -->
+      </div>
+
+      <!-- Input Bar -->
+      <div class="input-bar">
+        <input type="text" id="userInput" class="chat-input" placeholder="Ask me anything about your college…"
+          autocomplete="off" />
+        <button class="send-btn" id="sendBtn" title="Send">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- ===== FEEDBACK MODAL ===== -->
+  <div class="modal-overlay" id="feedbackModal" style="display:none">
+    <div class="modal">
+      <h3>Rate this answer</h3>
+      <div class="stars" id="starRating">
+        <span class="star" data-val="1">★</span>
+        <span class="star" data-val="2">★</span>
+        <span class="star" data-val="3">★</span>
+        <span class="star" data-val="4">★</span>
+        <span class="star" data-val="5">★</span>
+      </div>
+      <textarea id="feedbackText" placeholder="Any comments? (optional)"></textarea>
+      <div class="modal-actions">
+        <button class="btn-primary" id="submitFeedback">Submit</button>
+        <button class="btn-ghost" id="closeFeedback">Skip</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="auth/auth.js"></script>
+  <script src="js/translations.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    // ── Optional Login Support ─────────────────────
+    // Chatbot works even without login
+
+    const user = (typeof CampusAuth !== 'undefined')
+      ? CampusAuth.getUser()
+      : null;
+
+    // ── If logged in ───────────────────────────────
+    if (user) {
+
+      // Show user name
+      const statusEl = document.querySelector('.bot-status');
+
+      if (statusEl) {
+        statusEl.textContent = `👤 ${user.name} · Online`;
+      }
+
+      // Convert settings icon into logout button
+      const logoutLink = document.getElementById('adminOrLogoutLink');
+
+      if (logoutLink) {
+        logoutLink.innerHTML =
+          window.innerWidth <= 768
+            ? '🚪'
+            : '🚪 Logout';
+        logoutLink.href = '#';
+        logoutLink.title = 'Logout';
+
+        logoutLink.addEventListener('click', (e) => {
+          e.preventDefault();
+
+          // Clear login session
+          localStorage.clear();
+
+          // Redirect to login page
+          window.location.href = 'auth/login.html';
+        });
+      }
+
+    } else {
+
+      // If not logged in → show login button
+      const loginLink = document.getElementById('adminOrLogoutLink');
+
+      if (loginLink) {
+        loginLink.innerHTML = '🔑 Login';
+        loginLink.href = 'auth/login.html';
+        loginLink.title = 'Login';
+      }
+    }
+
+    // =============================================
+    // PROFILE MODAL
+    // =============================================
+
+
+    async function openProfileModal() {
+
+      document.getElementById(
+        'profileModal'
+      ).style.display = 'flex';
+
+      try {
+
+        const res =
+          await CampusAuth.userFetch(
+            '/auth/me'
+          );
+
+        const data =
+          await res.json();
+
+        const user =
+          data.user;
+
+        document.getElementById(
+          'profileName'
+        ).value =
+          user.name || '';
+
+        document.getElementById(
+          'profileEmail'
+        ).value =
+          user.email || '';
+
+        document.getElementById(
+          'profileRoll'
+        ).value =
+          user.rollNumber || '';
+
+        document.getElementById(
+          'profileDepartment'
+        ).value =
+          user.department || '';
+
+        document.getElementById(
+          'profileYear'
+        ).value =
+          user.year || '';
+
+      } catch (err) {
+
+        console.error(err);
+      }
+    }
+
+    function closeProfileModal() {
+
+      document.getElementById(
+        'profileModal'
+      ).style.display = 'none';
+    }
+
+    async function updateProfile() {
+
+      try {
+
+        const body = {
+
+          name:
+            document.getElementById(
+              'profileName'
+            ).value,
+
+          rollNumber:
+            document.getElementById(
+              'profileRoll'
+            ).value,
+
+          department:
+            document.getElementById(
+              'profileDepartment'
+            ).value,
+
+          year:
+            document.getElementById(
+              'profileYear'
+            ).value
+        };
+
+        const res =
+          await CampusAuth.userFetch(
+            '/auth/profile',
+            {
+
+              method: 'PUT',
+
+              headers: {
+                'Content-Type':
+                  'application/json'
+              },
+
+              body:
+                JSON.stringify(body)
+            }
+          );
+
+        const data =
+          await res.json();
+
+        alert(data.message);
+
+      } catch (err) {
+
+        console.error(err);
+
+        alert('Update failed');
+      }
+    }
+  </script>
+
+  <!-- PROFILE MODAL -->
+  <div class="modal-overlay" id="profileModal" style="display:none">
+
+    <div class="modal">
+
+      <h3>My Profile</h3>
+
+      <input type="text" id="profileName" class="form-control" placeholder="Name">
+
+      <br>
+
+      <input type="email" id="profileEmail" class="form-control" placeholder="Email" readonly>
+
+      <br>
+
+      <input type="text" id="profileRoll" class="form-control" placeholder="Roll Number">
+
+      <br>
+
+      <input type="text" id="profileDepartment" class="form-control" placeholder="Department">
+
+      <br>
+
+      <input type="number" id="profileYear" class="form-control" placeholder="Year">
+
+      <br>
+
+      <div class="modal-actions">
+
+        <button class="btn-primary" onclick="updateProfile()">
+
+          Save
+
+        </button>
+
+        <button class="btn-ghost" onclick="closeProfileModal()">
+
+          Close
+
+        </button>
+
+      </div>
+
+    </div>
+  </div>
+</body>
+
+</html>

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CampusBot – Login / Register</title>
+  <link rel="stylesheet" href="auth.css"/>
+</head>
+<body>
+
+  <!-- Back to home -->
+  <a href="../index.html" class="back-link">← Back to Chat</a>
+
+  <!-- ── Auth Card ── -->
+  <div class="auth-card">
+
+    <!-- Logo -->
+    <div class="auth-logo">
+      <div class="logo-icon">🎓</div>
+      <h1>CampusBot</h1>
+      <p class="subtitle">Your 24/7 College Assistant</p>
+    </div>
+
+    <!-- Tabs: Login | Register -->
+    <div class="auth-tabs">
+      <button class="tab-btn active" id="tabLogin"    onclick="switchTab('login')">Login</button>
+      <button class="tab-btn"        id="tabRegister" onclick="switchTab('register')">Register</button>
+    </div>
+
+    <!-- ── Alert Box (shared) ── -->
+    <div class="alert" id="authAlert"></div>
+
+    <!-- ══════════════════════════════════════
+         LOGIN FORM
+    ══════════════════════════════════════ -->
+    <form class="auth-form" id="loginForm" onsubmit="handleLogin(event)">
+
+      <div class="form-group">
+        <label>Email Address</label>
+        <div class="input-wrap">
+          <span class="input-icon">✉️</span>
+          <input type="email" id="loginEmail" class="form-input"
+                 placeholder="you@college.edu" required autocomplete="email"/>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Password</label>
+        <div class="input-wrap">
+          <span class="input-icon">🔒</span>
+          <input type="password" id="loginPassword" class="form-input"
+                 placeholder="Enter your password" required autocomplete="current-password"/>
+          <button type="button" class="pw-toggle" onclick="togglePw('loginPassword', this)">👁️</button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-submit" id="loginBtn">
+        <span class="btn-text">Login to CampusBot</span>
+        <div class="spinner"></div>
+      </button>
+
+      <p class="auth-footer">
+        Don't have an account?
+        <a href="#" onclick="switchTab('register')">Create one free →</a>
+      </p>
+    </form>
+
+    <!-- ══════════════════════════════════════
+         REGISTER FORM
+    ══════════════════════════════════════ -->
+    <form class="auth-form" id="registerForm" style="display:none"
+          onsubmit="handleRegister(event)">
+
+      <div class="form-group">
+        <label>Full Name</label>
+        <div class="input-wrap">
+          <span class="input-icon">👤</span>
+          <input type="text" id="regName" class="form-input"
+                 placeholder="Raj Sharma" required minlength="2"/>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>College Email</label>
+        <div class="input-wrap">
+          <span class="input-icon">✉️</span>
+          <input type="email" id="regEmail" class="form-input"
+                 placeholder="you@college.edu" required autocomplete="email"/>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Roll Number</label>
+          <div class="input-wrap">
+            <span class="input-icon">🪪</span>
+            <input type="text" id="regRoll" class="form-input"
+                   placeholder="21CS001" style="padding-left:38px"/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Year</label>
+          <div class="input-wrap">
+            <span class="input-icon">📅</span>
+            <select id="regYear" class="form-input" style="padding-left:38px">
+              <option value="1">1st Year</option>
+              <option value="2">2nd Year</option>
+              <option value="3">3rd Year</option>
+              <option value="4">4th Year</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Department</label>
+        <div class="input-wrap">
+          <span class="input-icon">🏫</span>
+          <input type="text" id="regDept" class="form-input"
+                 placeholder="Computer Science" style="padding-left:38px"/>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Password</label>
+        <div class="input-wrap">
+          <span class="input-icon">🔒</span>
+          <input type="password" id="regPassword" class="form-input"
+                 placeholder="Min 6 characters" required minlength="6"
+                 oninput="CampusAuth.updateStrengthBar(this.value,'strengthFill','strengthLabel')"
+                 autocomplete="new-password"/>
+          <button type="button" class="pw-toggle" onclick="togglePw('regPassword', this)">👁️</button>
+        </div>
+        <!-- Password strength indicator -->
+        <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
+        <div class="strength-label" id="strengthLabel"></div>
+      </div>
+
+      <button type="submit" class="btn-submit" id="registerBtn">
+        <span class="btn-text">Create My Account 🎓</span>
+        <div class="spinner"></div>
+      </button>
+
+      <p class="auth-footer">
+        Already have an account?
+        <a href="#" onclick="switchTab('login')">Login →</a>
+      </p>
+    </form>
+
+  </div><!-- end auth-card -->
+
+  <script src="auth.js"></script>
+  <script>
+    // ── If already logged in, redirect to chatbot ─────────────────
+    CampusAuth.redirectIfUserLoggedIn('../index.html');
+
+    // ── Tab switching ─────────────────────────────────────────────
+    function switchTab(tab) {
+      const isLogin = tab === 'login';
+      document.getElementById('loginForm').style.display    = isLogin ? 'flex' : 'none';
+      document.getElementById('registerForm').style.display = isLogin ? 'none' : 'flex';
+      document.getElementById('tabLogin').classList.toggle('active', isLogin);
+      document.getElementById('tabRegister').classList.toggle('active', !isLogin);
+      CampusAuth.hideAlert('authAlert');
+    }
+
+    // ── Password visibility toggle ────────────────────────────────
+    function togglePw(inputId, btn) {
+      const input = document.getElementById(inputId);
+      const isText = input.type === 'text';
+      input.type = isText ? 'password' : 'text';
+      btn.textContent = isText ? '👁️' : '🙈';
+    }
+
+    // ================================================================
+    // HANDLE LOGIN
+    // 1. Prevent default form submit
+    // 2. Validate inputs
+    // 3. POST to /api/auth/login
+    // 4. Save token, redirect to chatbot
+    // ================================================================
+    async function handleLogin(e) {
+      e.preventDefault();  // stop page reload
+      CampusAuth.hideAlert('authAlert');
+      CampusAuth.setLoading('loginBtn', true);
+
+      const email    = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+
+      // Basic client-side check
+      if (!email || !password) {
+        CampusAuth.showAlert('authAlert', 'Please fill in all fields.');
+        CampusAuth.setLoading('loginBtn', false);
+        return;
+      }
+
+      try {
+        // POST request to backend
+        const res  = await fetch(`${CampusAuth.API}/auth/login`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ email, password }),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          // ✅ Login successful — save token + user
+          CampusAuth.saveUserAuth(data.token, data.user);
+          CampusAuth.showAlert('authAlert', data.message, 'success');
+
+          // Redirect to chatbot after short delay
+          setTimeout(() => window.location.href = '../index.html', 800);
+        } else {
+          // ❌ Login failed — show error from server
+          CampusAuth.showAlert('authAlert', data.message || 'Login failed.');
+        }
+      } catch (err) {
+        CampusAuth.showAlert('authAlert', 'Cannot connect to server. Is it running?', 'info');
+      } finally {
+        CampusAuth.setLoading('loginBtn', false);
+      }
+    }
+
+    // ================================================================
+    // HANDLE REGISTER
+    // ================================================================
+    async function handleRegister(e) {
+      e.preventDefault();
+      CampusAuth.hideAlert('authAlert');
+      CampusAuth.setLoading('registerBtn', true);
+
+      const payload = {
+        name:       document.getElementById('regName').value.trim(),
+        email:      document.getElementById('regEmail').value.trim(),
+        password:   document.getElementById('regPassword').value,
+        rollNumber: document.getElementById('regRoll').value.trim(),
+        department: document.getElementById('regDept').value.trim(),
+        year:       parseInt(document.getElementById('regYear').value),
+      };
+
+      if (!payload.name || !payload.email || !payload.password) {
+        CampusAuth.showAlert('authAlert', 'Name, email, and password are required.');
+        CampusAuth.setLoading('registerBtn', false);
+        return;
+      }
+
+      if (payload.password.length < 6) {
+        CampusAuth.showAlert('authAlert', 'Password must be at least 6 characters.');
+        CampusAuth.setLoading('registerBtn', false);
+        return;
+      }
+
+      try {
+        const res  = await fetch(`${CampusAuth.API}/auth/register`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify(payload),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          CampusAuth.saveUserAuth(data.token, data.user);
+          CampusAuth.showAlert('authAlert', data.message, 'success');
+          setTimeout(() => window.location.href = '../index.html', 800);
+        } else {
+          CampusAuth.showAlert('authAlert', data.message || 'Registration failed.');
+        }
+      } catch (err) {
+        CampusAuth.showAlert('authAlert', 'Cannot connect to server. Is it running?', 'info');
+      } finally {
+        CampusAuth.setLoading('registerBtn', false);
+      }
+    }
+  </script>
+</body>
+</html>
