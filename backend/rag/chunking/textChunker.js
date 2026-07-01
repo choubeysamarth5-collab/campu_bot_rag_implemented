@@ -8,14 +8,16 @@ const splitter = new RecursiveCharacterTextSplitter({
 
 });
 
-async function chunkDocuments(documents){
+async function chunkDocuments(documents) {
 
-    const texts = documents.map(doc => doc.content);
-
-    const chunks = await splitter.createDocuments(texts);
+    const chunks = await splitter.createDocuments(
+        documents.map(doc => doc.content),
+        documents.map(doc => ({
+            source: doc.fileName
+        }))
+    );
 
     return chunks;
-
 }
 
 module.exports = {
