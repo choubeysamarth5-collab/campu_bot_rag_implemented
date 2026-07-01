@@ -19,14 +19,17 @@ const app = express();
 // ── Middleware ────────────────────────────────────────────────────
 app.use(cors({
   origin: [
-    'http://localhost:3000',
-    'https://campus-bot-ml2.vercel.app'
+    "http://localhost:3000",
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+    "https://campus-bot-ml2.vercel.app"
   ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
 }));
-app.use(express.json({ limit: '10kb' }));
+
+app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true }));
 
 // ── Security headers ──────────────────────────────────────────────
@@ -126,6 +129,7 @@ app.use('/api/logs', logRoutes);
 app.use('/api/feedback', feedbackRoutes);
 
 app.use('/api/ai', aiRoutes);
+
 
 // Public stats route
 app.get('/api/stats', async (req, res) => {

@@ -15,7 +15,8 @@ const state = {
 };
 
 // ── Backend API URL (change if deploying) ──
-const API_BASE = 'https://campus-bot-ml-2.onrender.com/api';
+//const API_BASE = 'https://campus-bot-ml-2.onrender.com/api';
+const API_BASE = 'http://localhost:5000/api';
 
 // ── DOM Shortcuts ──
 const $ = (id) => document.getElementById(id);
@@ -313,44 +314,46 @@ function matchIntent(userText) {
 
 // Get the bot's response for a given user message
 async function getBotResponse(userText) {
-  // 1. Try to match from local FAQ_DB first (instant)
-  const match = matchIntent(userText);
 
-  if (match) {
-    const lang = state.lang;
-    // Return the answer in current language, fallback to English
-    return match.answers[lang] || match.answers['en'];
-  }
-
-  // 2. If no local match, try backend API (with auth token)
+  // Always ask backend first
   try {
-    // Use CampusAuth.userFetch if available (adds Authorization header)
-    const fetchFn = (typeof CampusAuth !== 'undefined')
-      ? (url, opts) => CampusAuth.userFetch(url.replace(API_BASE, ''), opts)
-      : fetch;
 
-    const res = await fetchFn(`${API_BASE}/chat/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await CampusAuth.userFetch("/chat/chat", {
+      method: "POST",
       body: JSON.stringify({
         message: userText,
         lang: state.lang,
-        // Send last messages from current chat
-
-        history:
-          getCurrentChat()?.messages.slice(-6) || [],
-      }),
+        history: getCurrentChat()?.messages.slice(-6) || []
+      })
     });
+
     if (res.ok) {
       const data = await res.json();
       return data.reply;
     }
+
   } catch (err) {
-    // Backend not available - use fallback
-    console.log('Backend unavailable, using local fallback');
+    console.log("Backend unavailable");
   }
 
-  // 3. Fallback response
+  // Local FAQ only if backend unavailable
+  const match = matchIntent(userText);
+
+  if (match) {
+    return match.answers[state.lang] || match.answers.en;
+  }
+
+  return TRANSLATIONS[state.lang].fallback;
+}
+
+  // 2. Local FAQ fallback
+  const match = matchIntent(userText);
+
+  if (match) {
+    return match.answers[state.lang] || match.answers.en;
+  }
+
+  // 3. Default fallback
   return TRANSLATIONS[state.lang].fallback;
 }
 

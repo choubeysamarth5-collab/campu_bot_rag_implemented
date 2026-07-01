@@ -2,7 +2,7 @@
 // admin.js – Admin Panel Logic
 // =============================================
 
-const API_BASE = 'https://campus-bot-ml-2.onrender.com/api';
+const API_BASE = 'http://localhost:5000/api';
 
 // =============================================
 // SECTION SWITCHING

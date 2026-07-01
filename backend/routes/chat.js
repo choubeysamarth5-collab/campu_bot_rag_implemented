@@ -1,6 +1,5 @@
-const { protect } =
-  require('../middleware/auth');
-
+const { protect } = require("../middleware/auth");
+const { askRAG } = require("../rag/services/ragService");
 // =============================================
 // routes/chat.js – Chat & Log API Routes
 // =============================================
@@ -93,10 +92,50 @@ router.post('/chat', async (req, res) => {
   try {
     const { message, lang = 'en', history = [] } = req.body;
 
+
     // Validate input
     if (!message || message.trim().length === 0) {
       return res.status(400).json({ error: 'Message cannot be empty' });
     }
+
+    // =======================
+// Try RAG First
+// =======================
+
+try {
+
+    console.log("========== RAG ==========");
+    console.log("Question:", message);
+
+    const ragReply = await askRAG(message);
+
+    console.log("RAG Reply:");
+    console.log(ragReply);
+
+    if (
+        ragReply &&
+        !ragReply.includes("I couldn't find this information")
+    ) {
+
+        console.log("Returning RAG answer");
+
+        return res.json({
+            reply: ragReply,
+            intent: "rag",
+            lang,
+            timestamp: new Date().toISOString(),
+        });
+
+    }
+
+    console.log("Falling back to FAQ");
+
+} catch (err) {
+
+    console.error("RAG Error:");
+    console.error(err);
+
+}
 
     let reply = null;
     let intent = 'unknown';
