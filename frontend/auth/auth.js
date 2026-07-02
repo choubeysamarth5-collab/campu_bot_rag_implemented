@@ -24,7 +24,10 @@
 //   In production, httpOnly cookies are more secure (prevent XSS).
 // =================================================================
 
-const API = 'http://localhost:5000/api';
+const API =
+  window.location.hostname === "localhost"
+    ? "http://localhost:5000/api"
+    : `http://${window.location.hostname}:5000/api`;
 
 // ── Key names in localStorage ─────────────────────────────────────
 const TOKEN_KEY = 'campusbot_token';
@@ -133,26 +136,40 @@ function redirectIfAdminLoggedIn(destination = '/admin.html') {
 // Fetch with user token
 async function userFetch(endpoint, options = {}) {
   const token = getUserToken();
+  const isFormData = options.body instanceof FormData;
+
+  const headers = {
+    'Authorization': `Bearer ${token}`,  // ← JWT goes here
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+    ...(options.headers || {}),
+  };
+
+  // If FormData somehow still has Content-Type set, remove it so the
+  // browser can set the correct multipart boundary itself.
+  if (isFormData) delete headers['Content-Type'];
+
   return fetch(`${API}${endpoint}`, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,  // ← JWT goes here
-      ...(options.headers || {}),
-    },
+    headers,
   });
 }
 
 // Fetch with admin token
 async function adminFetch(endpoint, options = {}) {
   const token = getAdminToken();
+  const isFormData = options.body instanceof FormData;
+
+  const headers = {
+    'Authorization': `Bearer ${token}`,
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+    ...(options.headers || {}),
+  };
+
+  if (isFormData) delete headers['Content-Type'];
+
   return fetch(`${API}${endpoint}`, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-      ...(options.headers || {}),
-    },
+    headers,
   });
 }
 

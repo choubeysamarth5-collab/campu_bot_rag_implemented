@@ -1,16 +1,23 @@
 require("dotenv").config();
 
-const { loadDocuments } = require("../loaders/documentLoader");
+const {
+    loadDocuments,
+    loadSingleDocument
+} = require("../loaders/documentLoader");
 const { chunkDocuments } = require("../chunking/textChunker");
 const embeddings = require("../embeddings/geminiEmbeddings");
 
 const { Chroma } = require("@langchain/community/vectorstores/chroma");
 
-async function ingestDocuments() {
+async function ingestDocuments(filePath = null) {
 
     console.log("📄 Loading documents...");
 
-    const documents = await loadDocuments();
+    const documents = filePath
+
+    ? await loadSingleDocument(filePath)
+
+    : await loadDocuments();
 
     console.log(`✅ Loaded ${documents.length} document(s)`);
 
@@ -22,16 +29,16 @@ async function ingestDocuments() {
 
     console.log("🧠 Creating embeddings and storing in ChromaDB...");
 
-    const vectorStore = await Chroma.fromDocuments(
-        chunks,
-        embeddings,
-        {
-            collectionName: "campusbot-rag",
-            url: "http://localhost:8000"
-        }
-    );
+    const vectorStore =
+await Chroma.fromExistingCollection(
+    embeddings,
+    {
+        collectionName: "campusbot-rag",
+        url: "http://localhost:8000"
+    }
+);
 
-    console.log("✅ Documents stored successfully!");
+await vectorStore.addDocuments(chunks);
 
     return vectorStore;
 }

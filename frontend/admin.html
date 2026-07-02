@@ -30,6 +30,9 @@
       <button class="admin-nav-btn active" onclick="showSection('dashboard', this)">📊 Dashboard</button>
       <button class="admin-nav-btn" onclick="showSection('faqs', this)">📋 FAQs</button>
       <button class="admin-nav-btn" onclick="showSection('add-faq', this)">➕ Add FAQ</button>
+      <button class="admin-nav-btn" onclick="showSection('upload-pdf', this)">
+        📄 Upload PDF
+      </button>
       <button class="admin-nav-btn" onclick="showSection('logs', this)">📜 Chat Logs</button>
       <button class="admin-nav-btn" onclick="showSection('feedback', this)">⭐ Feedback</button>
       <button class="admin-nav-btn" onclick="showSection('users', this)">
@@ -156,7 +159,35 @@
             ➕ Add FAQ
           </button>
           <p id="addFaqMsg" style="margin-top:10px;font-size:0.82rem;color:var(--accent)"></p>
+
         </div>
+      </div>
+      <!-- UPLOAD PDF -->
+      <div id="section-upload-pdf" class="admin-section">
+
+        <h2>Upload PDF to RAG</h2>
+
+        <div class="card" style="max-width:600px">
+
+          <div class="form-group">
+
+            <label>Select PDF</label>
+
+            <input type="file" id="pdfFile" class="form-control" accept=".pdf" />
+
+          </div>
+
+          <button class="btn-primary" style="width:100%" onclick="uploadPDF()">
+
+            📤 Upload PDF
+
+          </button>
+
+          <p id="uploadStatus" style="margin-top:10px">
+          </p>
+
+        </div>
+
       </div>
 
       <!-- CHAT LOGS -->

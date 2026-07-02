@@ -1158,3 +1158,58 @@ async function deleteAdmin(id) {
         alert('Backend error');
     }
 }
+async function uploadPDF() {
+
+    const fileInput = document.getElementById("pdfFile");
+
+    const status = document.getElementById("uploadStatus");
+
+    if (!fileInput.files.length) {
+
+        status.innerHTML = "❌ Please select a PDF.";
+
+        return;
+
+    }
+
+    const formData = new FormData();
+
+    formData.append("pdf", fileInput.files[0]);
+
+    status.innerHTML = "Uploading...";
+
+    try {
+
+        const response = await CampusAuth.adminFetch(
+            "/rag/upload",
+            {
+                method: "POST",
+                body: formData,
+                headers: {}   // Content-Type mat dena
+            }
+        );
+
+        const data = await response.json();
+
+        if (data.success) {
+
+            status.innerHTML =
+                "✅ PDF uploaded successfully.";
+
+        } else {
+
+            status.innerHTML =
+                "❌ " + data.message;
+
+        }
+
+    } catch (err) {
+
+        console.error(err);
+
+        status.innerHTML =
+            "❌ Upload failed.";
+
+    }
+
+}

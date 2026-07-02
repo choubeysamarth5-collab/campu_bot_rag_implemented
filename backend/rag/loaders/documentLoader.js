@@ -52,9 +52,49 @@ async function loadDocuments() {
 
     return documents;
 }
+async function loadSingleDocument(filePath) {
+
+    const extension = path.extname(filePath).toLowerCase();
+
+    let content = "";
+
+    switch (extension) {
+
+        case ".pdf":
+            content = await parsePDF(filePath);
+            break;
+
+        case ".docx":
+            content = await parseDOCX(filePath);
+            break;
+
+        case ".txt":
+            content = await parseTXT(filePath);
+            break;
+
+        default:
+            throw new Error("Unsupported file type");
+
+    }
+
+    return [
+
+        {
+
+            fileName: path.basename(filePath),
+
+            content
+
+        }
+
+    ];
+
+}
 
 module.exports = {
 
-    loadDocuments
+    loadDocuments,
+
+    loadSingleDocument
 
 };

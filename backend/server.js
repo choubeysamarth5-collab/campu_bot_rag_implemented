@@ -7,12 +7,10 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const documentRoute = require("./rag/routes/document");
-
 dotenv.config();
 
 // 👇 dotenv ke BAAD
-const aiRoutes = require("./routes/ai");
+// const aiRoutes = require("./routes/ai");
 
 const app = express();
 
@@ -58,9 +56,12 @@ const faqRoutes = require('./routes/faqs');
 const logRoutes = require('./routes/logs');
 const feedbackRoutes = require('./routes/feedback');
 
-const { adminProtect } = require('./middleware/adminAuth');
-const { protect } = require('./middleware/auth');
+const aiRoutes = require("./routes/ai");
+const documentRoute = require("./rag/routes/document");
+const uploadRoutes = require("./rag/routes/upload");
 
+const { protect } = require("./middleware/auth");
+const { adminProtect } = require("./middleware/adminAuth");
 // ── Register Routes ───────────────────────────────────────────────
 // app.use('/api/auth', userAuthRoutes);
 // app.use('/api/admin', adminAuthRoutes);
@@ -129,7 +130,7 @@ app.use('/api/logs', logRoutes);
 app.use('/api/feedback', feedbackRoutes);
 
 app.use('/api/ai', aiRoutes);
-
+app.use("/api/rag", uploadRoutes);
 
 // Public stats route
 app.get('/api/stats', async (req, res) => {

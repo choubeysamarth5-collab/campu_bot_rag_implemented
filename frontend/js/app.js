@@ -346,17 +346,6 @@ async function getBotResponse(userText) {
   return TRANSLATIONS[state.lang].fallback;
 }
 
-  // 2. Local FAQ fallback
-  const match = matchIntent(userText);
-
-  if (match) {
-    return match.answers[state.lang] || match.answers.en;
-  }
-
-  // 3. Default fallback
-  return TRANSLATIONS[state.lang].fallback;
-}
-
 // ──────────────────────────────────────────
 //  SEND MESSAGE FLOW
 // ──────────────────────────────────────────

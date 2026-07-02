@@ -1,12 +1,32 @@
-/* =============================================
+/* =====================================================================
    CampusBot – style.css
-   Design: Dark-first, neon-accent, editorial
-   ============================================= */
+   ---------------------------------------------------------------------
+   Design: Dark-first, neon-accent, editorial.
 
-/* ── Google Fonts loaded in HTML ── */
+   HOW THIS FILE IS ORGANIZED (read this first!):
+     1.  Design Tokens (CSS variables)   – all colors/sizes live here
+     2.  Reset & Base                    – normalize browser defaults
+     3.  Layout Shell (Header/Sidebar/Chat) – the main app skeleton
+     4.  Components                      – buttons, bubbles, modals, etc.
+     5.  Admin Panel                     – admin-only screens
+     6.  Responsive Rules                – ONE mobile-first block per
+                                            breakpoint (no scattered
+                                            duplicate @media blocks)
 
-/* ── CSS Variables (Dark Theme Default) ── */
+   MOBILE-FIRST APPROACH:
+     Base styles below (outside any @media query) are written for
+     SMALL screens first. We then use `min-width` media queries to
+     progressively add sidebar/desktop layout as the screen grows.
+     This avoids the old pattern of many separate `max-width: 768px`
+     patches that fought each other with !important.
+   ===================================================================== */
+
+
+/* =====================================================================
+   1. DESIGN TOKENS
+   ===================================================================== */
 :root {
+  /* Colors */
   --bg: #0d0f14;
   --surface: #161923;
   --surface2: #1e2330;
@@ -20,13 +40,27 @@
   --bot-bubble: #1e2330;
   --user-bubble: linear-gradient(135deg, #6c8fff, #a78bfa);
   --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --danger: #ef4444;
+
+  /* Radii */
   --radius: 18px;
   --radius-sm: 10px;
-  --header-h: 68px;
+
+  /* Layout sizing — used by JS-free calc() everywhere so the whole
+     app stays in sync if you change a single number here. */
+  --header-h: 64px;
   --input-h: 72px;
-  --sidebar-w: 240px;
+  --sidebar-w: 260px;
+
+  /* A single "tap target" size keeps every round icon button
+     (theme toggle, admin link, profile, mobile menu) IDENTICAL,
+     which is what fixes the "buttons don't align" issue. */
+  --icon-btn: 40px;
+
+  /* Fonts */
   --font-display: 'Syne', sans-serif;
   --font-body: 'DM Sans', sans-serif;
+
   --transition: 0.2s ease;
 }
 
@@ -46,7 +80,10 @@
   --shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
 }
 
-/* ── Reset ── */
+
+/* =====================================================================
+   2. RESET & BASE
+   ===================================================================== */
 *,
 *::before,
 *::after {
@@ -57,18 +94,23 @@
 
 html {
   font-size: 16px;
-  height: 100%;
+  /* 100dvh = "dynamic viewport height". Unlike 100vh, it correctly
+     accounts for mobile browser toolbars that show/hide as you
+     scroll. This one change is the main fix for "header scrolls
+     away on mobile" — with 100vh, the page was often taller than
+     the *visible* area, so scrolling the page dragged everything,
+     header included, out of view. */
+  height: 100dvh;
 }
 
 body {
   font-family: var(--font-body);
   background: var(--bg);
   color: var(--text);
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  height: 100dvh;
+  overflow: hidden; /* the app scrolls internally, not the page */
   transition: background var(--transition), color var(--transition);
+  -webkit-text-size-adjust: 100%; /* stops iOS auto-enlarging text */
 }
 
 a {
@@ -76,7 +118,16 @@ a {
   color: inherit;
 }
 
-/* ── Scrollbar ── */
+button {
+  font-family: inherit;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+/* Custom scrollbar (WebKit browsers) */
 ::-webkit-scrollbar {
   width: 5px;
 }
@@ -90,18 +141,37 @@ a {
   border-radius: 10px;
 }
 
-/* ==============================
-   HEADER
-   ============================== */
+/* Visible keyboard focus for accessibility — never remove outline
+   without replacing it with something equally visible. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+
+/* =====================================================================
+   3. LAYOUT SHELL
+   ===================================================================== */
+
+/* ---- HEADER --------------------------------------------------------
+   Fixed to the top of the viewport at all times (desktop + mobile).
+   Because it's `position: fixed`, it is taken OUT of normal flow, so
+   we add matching top-padding to `.app-layout` below to stop content
+   sliding underneath it. This is what keeps the header from ever
+   scrolling with the chat. */
 .header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
   height: var(--header-h);
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
-  flex-shrink: 0;
+  gap: 8px;
+  padding: 0 16px;
   z-index: 100;
   box-shadow: 0 1px 0 var(--border);
 }
@@ -110,6 +180,7 @@ a {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0; /* allows text-overflow ellipsis to work inside flex */
 }
 
 .bot-avatar {
@@ -123,6 +194,7 @@ a {
   justify-content: center;
   position: relative;
   font-size: 20px;
+  flex-shrink: 0;
 }
 
 .status-dot {
@@ -138,130 +210,151 @@ a {
 }
 
 @keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+  50%      { box-shadow: 0 0 0 5px rgba(34, 197, 94, 0); }
+}
 
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
-  }
-
-  50% {
-    box-shadow: 0 0 0 5px rgba(34, 197, 94, 0);
-  }
+.bot-info {
+  min-width: 0;
+  overflow: hidden;
 }
 
 .bot-name {
   font-family: var(--font-display);
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .bot-status {
   font-size: 0.72rem;
   color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .header-right {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 
-/* Language Picker */
-.lang-picker {
-  display: flex;
-  gap: 4px;
-  background: var(--surface2);
-  border-radius: 24px;
-  padding: 3px;
-  border: 1px solid var(--border);
+/* Mobile hamburger — hidden by default, shown only under the
+   sidebar breakpoint (see Responsive section). */
+.mobile-menu-btn {
+  display: none;
 }
 
-.lang-btn {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  color: var(--text-muted);
-  font-family: var(--font-body);
-  font-size: 0.72rem;
-  font-weight: 500;
-  padding: 4px 9px;
-  border-radius: 20px;
-  transition: all var(--transition);
-}
 
-.lang-btn:hover {
-  color: var(--text);
-}
-
-.lang-btn.active {
-  background: var(--accent);
-  color: #fff;
-  box-shadow: 0 2px 8px var(--accent-glow);
-}
-
-/* Theme Toggle */
-.theme-toggle {
+/* ---- UNIFIED ICON BUTTON SYSTEM -------------------------------------
+   theme-toggle / profile-btn share this sizing so every round header
+   button lines up on the same circle, same height, same gap. Each
+   class below only adds what's DIFFERENT (usually nothing). */
+.theme-toggle,
+.profile-btn {
+  width: var(--icon-btn);
+  height: var(--icon-btn);
   background: var(--surface2);
   border: 1px solid var(--border);
-  cursor: pointer;
-  width: 36px;
-  height: 36px;
   border-radius: 50%;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 16px;
+  color: var(--text);
   transition: all var(--transition);
+  flex-shrink: 0;
 }
 
-.theme-toggle:hover {
+.theme-toggle:hover,
+.profile-btn:hover {
   border-color: var(--accent);
+  color: var(--accent);
   transform: scale(1.05);
 }
 
-/* Admin Link */
+/* Admin/Logout link is text+icon, so it's allowed to be wider than
+   the circle buttons, but it still matches their HEIGHT exactly. */
 .admin-link {
+  height: var(--icon-btn);
+  min-width: var(--icon-btn);
+  padding: 0 12px;
   background: var(--surface2);
   border: 1px solid var(--border);
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
+  border-radius: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  gap: 4px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  color: var(--text);
   transition: all var(--transition);
 }
 
 .admin-link:hover {
   border-color: var(--accent2);
-  transform: scale(1.05);
+  color: var(--accent2);
 }
 
-/* ==============================
-   APP LAYOUT
-   ============================== */
+
+/* ---- APP LAYOUT ------------------------------------------------------
+   The area below the fixed header. `padding-top` pushes content down
+   so nothing hides behind the header; total height is the full
+   viewport minus the header. */
 .app-layout {
   display: flex;
-  flex: 1;
+  width: 100%;
+  height: 100dvh;
+  padding-top: var(--header-h);
   overflow: hidden;
-  height: calc(100vh - var(--header-h));
 }
 
-/* ==============================
-   SIDEBAR
-   ============================== */
+
+/* ---- SIDEBAR ---------------------------------------------------------
+   Mobile-first: by default the sidebar is an off-canvas drawer that
+   slides in from the left. On larger screens (see Responsive) it
+   becomes a permanent column instead. */
 .sidebar {
-  width: var(--sidebar-w);
+  position: fixed;
+  top: var(--header-h);
+  left: 0;
+  width: min(var(--sidebar-w), 85vw);
+  height: calc(100dvh - var(--header-h));
   background: var(--surface);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   padding: 20px 14px;
-  flex-shrink: 0;
   overflow-y: auto;
+  transform: translateX(-100%);
+  transition: transform 0.25s ease;
+  z-index: 90;
+}
+
+.sidebar.active {
+  transform: translateX(0);
+}
+
+/* Dark overlay behind the drawer on mobile, tap to close */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  top: var(--header-h);
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 80;
+}
+
+.sidebar-overlay.active {
+  display: block;
 }
 
 .sidebar-title {
@@ -288,7 +381,6 @@ a {
   text-align: left;
   padding: 10px 12px;
   border-radius: var(--radius-sm);
-  font-family: var(--font-body);
   font-size: 0.82rem;
   color: var(--text-muted);
   display: flex;
@@ -335,54 +427,105 @@ a {
   color: var(--accent);
 }
 
-/* ==============================================
-   NEW CHAT BUTTON
-   ============================================== */
-
+/* New Chat button + chat history list */
 .new-chat-btn {
-
   width: 100%;
-
   padding: 12px;
-
   border: none;
-
   border-radius: 12px;
-
   background: var(--accent);
-
-  color: white;
-
+  color: #fff;
   cursor: pointer;
-
   margin-bottom: 12px;
-
   font-size: 0.9rem;
-
   font-weight: 600;
-
-  transition: 0.2s ease;
+  transition: var(--transition);
 }
 
 .new-chat-btn:hover {
-
   opacity: 0.9;
-
   transform: translateY(-1px);
 }
 
-/* ==============================
-   CHAT AREA
-   ============================== */
+.history-section {
+  margin-top: 24px;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.history-item {
+  background: var(--surface2);
+  border: none;
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: 10px;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.85rem;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: var(--transition);
+}
+
+.history-item:hover {
+  background: var(--accent-glow);
+}
+
+.clear-history-btn {
+  margin-top: 12px;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface2);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: var(--transition);
+}
+
+.clear-history-btn:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.sidebar-profile-btn {
+  width: 100%;
+  padding: 12px;
+  margin-top: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: var(--transition);
+}
+
+.sidebar-profile-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+
+/* ---- CHAT AREA ---------------------------------------------------- */
 .chat-area {
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   position: relative;
+  min-width: 0; /* prevents flex children from overflowing horizontally */
 }
 
-/* Background grid texture */
+/* Faint background grid texture */
 .chat-area::before {
   content: '';
   position: absolute;
@@ -395,54 +538,41 @@ a {
   pointer-events: none;
 }
 
-/* Messages */
 .chat-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 24px 20px 12px;
+  overflow-x: hidden;
+  padding: 20px 16px 12px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
   position: relative;
 }
 
-/* Message Rows */
 .msg-row {
-
   width: 100%;
-
   display: flex;
-
   align-items: flex-end;
-
   gap: 10px;
-
-  margin-bottom: 14px;
-}
-
-@keyframes msgIn {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 .msg-row.user {
-
   justify-content: flex-end;
 }
 
 .msg-row.bot {
-
   justify-content: flex-start;
 }
 
-/* Avatars */
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.msg-row {
+  animation: msgIn 0.25s ease;
+}
+
 .msg-avatar {
   width: 30px;
   height: 30px;
@@ -463,30 +593,19 @@ a {
   background: linear-gradient(135deg, var(--accent), var(--accent2));
 }
 
-/* Bubbles */
+/* Bubbles: capped with a max-width in *characters* (ch) on large
+   screens so long messages don't stretch edge-to-edge, but on
+   mobile they use a percentage of the viewport instead — this is
+   what fixes text looking too small/cramped or overflowing on
+   phones. */
 .bubble {
-
-  max-width: 520px;
-
-  min-width: fit-content;
-
-  padding: 14px 18px;
-
+  max-width: min(60ch, 80%);
+  padding: 12px 16px;
   border-radius: 18px;
-
   font-size: 0.95rem;
-
   line-height: 1.6;
-
-  position: relative;
-
-  white-space: normal;
-
   word-break: break-word;
-
   overflow-wrap: anywhere;
-
-  display: block;
 }
 
 .msg-row.bot .bubble {
@@ -504,7 +623,6 @@ a {
   box-shadow: 0 4px 20px var(--accent-glow);
 }
 
-/* Bubble meta */
 .bubble-meta {
   font-size: 0.68rem;
   color: var(--text-dim);
@@ -519,7 +637,6 @@ a {
   color: rgba(255, 255, 255, 0.55);
 }
 
-/* Feedback button on bot messages */
 .feedback-btn {
   background: transparent;
   border: none;
@@ -534,7 +651,7 @@ a {
   color: var(--accent);
 }
 
-/* Typing Indicator */
+/* Typing indicator */
 .typing-indicator {
   display: flex;
   gap: 5px;
@@ -550,35 +667,22 @@ a {
   animation: typingBounce 1.2s infinite ease-in-out;
 }
 
-.typing-dot:nth-child(2) {
-  animation-delay: 0.2s;
-}
-
-.typing-dot:nth-child(3) {
-  animation-delay: 0.4s;
-}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
 
 @keyframes typingBounce {
-
-  0%,
-  80%,
-  100% {
-    transform: translateY(0);
-    opacity: 0.4;
-  }
-
-  40% {
-    transform: translateY(-6px);
-    opacity: 1;
-  }
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40%           { transform: translateY(-6px); opacity: 1; }
 }
 
-/* Chips */
+/* Suggestion chips */
 .chips-row {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
-  padding: 0 20px 12px;
+  padding: 0 16px 12px;
+  overflow-x: auto;
+  flex-shrink: 0;
 }
 
 .chip {
@@ -589,8 +693,9 @@ a {
   font-size: 0.78rem;
   color: var(--text-muted);
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: all var(--transition);
-  font-family: var(--font-body);
 }
 
 .chip:hover {
@@ -600,13 +705,15 @@ a {
   transform: translateY(-1px);
 }
 
-/* Input Bar */
+/* Input bar — pinned to the bottom of the chat column (not the
+   whole page), so it always stays visible above the mobile
+   keyboard without needing extra JS. */
 .input-bar {
-  height: var(--input-h);
+  min-height: var(--input-h);
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 20px;
+  padding: 12px 16px;
   background: var(--surface);
   border-top: 1px solid var(--border);
   flex-shrink: 0;
@@ -614,13 +721,13 @@ a {
 
 .chat-input {
   flex: 1;
+  min-width: 0;
   background: var(--surface2);
   border: 1.5px solid var(--border);
   border-radius: 24px;
   padding: 12px 18px;
   color: var(--text);
-  font-family: var(--font-body);
-  font-size: 0.875rem;
+  font-size: 0.9rem;
   outline: none;
   transition: border-color var(--transition), box-shadow var(--transition);
 }
@@ -645,8 +752,8 @@ a {
   align-items: center;
   justify-content: center;
   color: #fff;
-  transition: all var(--transition);
   flex-shrink: 0;
+  transition: all var(--transition);
 }
 
 .send-btn:hover {
@@ -659,9 +766,78 @@ a {
   transform: scale(0.95);
 }
 
-/* ==============================
-   MODAL
-   ============================== */
+
+/* =====================================================================
+   4. LANGUAGE DROPDOWN
+   ===================================================================== */
+.lang-dropdown {
+  position: relative;
+}
+
+/* The button that shows current language + opens the dropdown.
+   Visible on ALL screen sizes now (desktop used to show a row of
+   flags instead — simplified to one consistent control so it never
+   overflows the header on narrow screens). */
+.lang-current {
+  height: var(--icon-btn);
+  padding: 0 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.lang-menu {
+  position: absolute;
+  top: calc(var(--icon-btn) + 8px);
+  right: 0;
+  min-width: 130px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 6px;
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 200;
+  box-shadow: var(--shadow);
+}
+
+.lang-menu.active {
+  display: flex;
+}
+
+.lang-btn {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 10px;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.lang-btn:hover {
+  background: var(--accent-glow);
+  color: var(--accent);
+}
+
+.lang-btn.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+
+/* =====================================================================
+   5. MODALS (Feedback / Profile)
+   ===================================================================== */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -669,19 +845,15 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 20px;
   z-index: 999;
   backdrop-filter: blur(4px);
   animation: fadeIn 0.2s ease;
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .modal {
@@ -689,21 +861,17 @@ a {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 28px;
-  width: 320px;
+  width: 100%;
+  max-width: 340px;
+  max-height: 90dvh;
+  overflow-y: auto;
   box-shadow: var(--shadow);
   animation: slideUp 0.25s ease;
 }
 
 @keyframes slideUp {
-  from {
-    transform: translateY(20px);
-    opacity: 0;
-  }
-
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
 }
 
 .modal h3 {
@@ -738,7 +906,7 @@ a {
   padding: 10px 12px;
   color: var(--text);
   font-family: var(--font-body);
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   resize: none;
   height: 80px;
   outline: none;
@@ -758,7 +926,6 @@ a {
   cursor: pointer;
   border-radius: var(--radius-sm);
   padding: 10px;
-  font-family: var(--font-body);
   font-size: 0.875rem;
   font-weight: 500;
   transition: background var(--transition);
@@ -776,7 +943,6 @@ a {
   cursor: pointer;
   border-radius: var(--radius-sm);
   padding: 10px;
-  font-family: var(--font-body);
   font-size: 0.875rem;
   transition: all var(--transition);
 }
@@ -786,17 +952,28 @@ a {
   color: var(--accent);
 }
 
-/* ==============================
-   ADMIN PANEL STYLES
-   ============================== */
+/* Profile modal form fields need consistent spacing (the HTML uses
+   plain <br> tags between inputs, so we give inputs their own
+   margin instead of relying on that markup). */
+.modal .form-control {
+  margin-bottom: 12px;
+}
+
+
+/* =====================================================================
+   6. ADMIN PANEL
+   ===================================================================== */
 .admin-page {
-  min-height: 100vh;
+  min-height: 100dvh;
   background: var(--bg);
-  font-family: var(--font-body);
   color: var(--text);
 }
 
 .admin-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   padding: 0 24px;
@@ -804,6 +981,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  z-index: 100;
 }
 
 .admin-nav h1 {
@@ -814,17 +992,23 @@ a {
 
 .admin-body {
   display: flex;
-  height: calc(100vh - var(--header-h));
+  padding-top: var(--header-h);
+  min-height: 100dvh;
 }
 
 .admin-sidebar {
   width: 220px;
+  flex-shrink: 0;
   background: var(--surface);
   border-right: 1px solid var(--border);
   padding: 20px 14px;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  height: calc(100dvh - var(--header-h));
+  position: sticky;
+  top: var(--header-h);
+  overflow-y: auto;
 }
 
 .admin-nav-btn {
@@ -850,7 +1034,7 @@ a {
 
 .admin-content {
   flex: 1;
-  overflow-y: auto;
+  min-width: 0;
   padding: 28px;
 }
 
@@ -899,7 +1083,8 @@ a {
   padding: 10px 12px;
   color: var(--text);
   font-family: var(--font-body);
-  font-size: 0.875rem;
+  font-size: 0.9rem; /* >=16px avoids iOS zoom-on-focus; kept close
+                         here and bumped explicitly on mobile below */
   outline: none;
   transition: border-color var(--transition);
 }
@@ -917,6 +1102,8 @@ select.form-control option {
   background: var(--surface);
 }
 
+/* Data table — wrapped in a horizontal-scroll container on small
+   screens instead of shrinking text illegibly. */
 .faq-table {
   width: 100%;
   border-collapse: collapse;
@@ -979,8 +1166,8 @@ select.form-control option {
 }
 
 .btn-sm.danger:hover {
-  border-color: #ef4444;
-  color: #ef4444;
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 .stat-grid {
@@ -1037,120 +1224,66 @@ select.form-control option {
   color: var(--text-muted);
 }
 
-/* ==============================
-   RESPONSIVE
-   ============================== */
-@media (max-width: 768px) {
-  .sidebar {
-    display: none;
-  }
 
-  :root {
-    --sidebar-w: 0px;
-  }
+/* =====================================================================
+   7. RESPONSIVE RULES
+   ---------------------------------------------------------------------
+   Everything above is written mobile-first. From here we ADD
+   desktop/tablet layout as the screen gets bigger — we never fight
+   earlier rules with !important. Only two breakpoints are needed:
+     - 640px  : small phone   -> larger phone/tablet
+     - 1024px : tablet        -> desktop (permanent sidebar)
+   ===================================================================== */
 
-  .lang-btn {
-    padding: 4px 7px;
-    font-size: 0.65rem;
-  }
-
-  .bubble {
-    max-width: 85%;
-  }
-
-  .admin-sidebar {
-    display: none;
-  }
-
+/* ---- Up to 639px: small phones -------------------------------------
+   Base styles above already target this size. This block only adds
+   extra tightening for VERY small screens so header text/buttons
+   never overlap or wrap awkwardly. */
+@media (max-width: 639px) {
   .header {
-    padding: 0 14px;
+    padding: 0 10px;
+    gap: 6px;
   }
 
-  .chat-messages {
-    padding: 16px 12px 8px;
+  .bot-info {
+    max-width: 120px;
   }
 
-  .chips-row {
-    padding: 0 12px 10px;
-  }
-
-  .input-bar {
-    padding: 0 12px;
-  }
-}
-
-@media (max-width: 480px) {
   .bot-name {
-    font-size: 1rem;
+    font-size: 0.95rem;
+  }
+
+  .bot-status {
+    font-size: 0.68rem;
+  }
+
+  .header-right {
+    gap: 6px;
+  }
+
+  /* Hide the secondary profile icon in the header on phones —
+     it's already reachable from the sidebar's "My Profile" button,
+     so keeping both just crowds the header. */
+  .profile-btn {
+    display: none;
+  }
+
+  .lang-current {
+    padding: 0 10px;
+    font-size: 0.72rem;
   }
 
   .bubble {
-    font-size: 0.82rem;
+    max-width: 82%;
+    font-size: 0.88rem;
   }
-}
 
-.history-section {
-  margin-top: 24px;
-}
-
-.history-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.history-item {
-
-  background: var(--surface2);
-
-  border: none;
-
-  color: var(--text);
-
-  padding: 10px 12px;
-
-  border-radius: 10px;
-
-  text-align: left;
-
-  cursor: pointer;
-
-  font-size: 0.85rem;
-
-  width: 100%;
-
-  overflow: hidden;
-
-  text-overflow: ellipsis;
-
-  white-space: nowrap;
-
-  transition: 0.2s ease;
-}
-
-.history-item:hover {
-
-  background: var(--accent-glow);
-}
-
-.clear-history-btn {
-  margin-top: 12px;
-  width: 100%;
-  padding: 10px;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-}
-
-/* ==============================================
-   EXTRA RESPONSIVE FIXES
-   ============================================== */
-
-@media (max-width: 1024px) {
+  .stat-grid {
+    grid-template-columns: 1fr 1fr;
+  }
 
   .admin-content {
-    padding: 18px;
+    padding: 14px;
   }
 
   .faq-table {
@@ -1158,53 +1291,25 @@ select.form-control option {
     overflow-x: auto;
     white-space: nowrap;
   }
-
-  .card {
-    padding: 16px;
-  }
 }
 
-@media (max-width: 768px) {
-
-  body {
-    overflow-x: hidden;
-  }
-
-  .header {
-    padding: 0 10px;
-  }
-
-  .header-right {
-    gap: 4px;
-  }
-
-  .bot-name {
-    font-size: 0.95rem;
-  }
-
-  .chat-messages {
-    padding: 12px 10px 6px;
-  }
-
-  .bubble {
-    max-width: 92%;
-    font-size: 0.82rem;
-    padding: 10px 12px;
-  }
-
-  .input-bar {
-    padding: 0 10px;
-    gap: 6px;
-  }
-
-  .chat-input {
-    font-size: 0.82rem;
-    padding: 10px 14px;
-  }
-
-  .send-btn {
-    width: 40px;
-    height: 40px;
+/* ---- Up to 1023px: phones + tablets (no permanent sidebar) -------- */
+@media (max-width: 1023px) {
+  /* Sidebar is an off-canvas drawer (see base .sidebar rules above);
+     show the hamburger button that toggles it. */
+  .mobile-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--icon-btn);
+    height: var(--icon-btn);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 18px;
+    cursor: pointer;
+    flex-shrink: 0;
   }
 
   .admin-body {
@@ -1212,657 +1317,58 @@ select.form-control option {
   }
 
   .admin-sidebar {
-    display: flex;
+    position: static;
     width: 100%;
-    overflow-x: auto;
+    height: auto;
     flex-direction: row;
-    padding: 10px;
-    gap: 8px;
+    overflow-x: auto;
     border-right: none;
     border-bottom: 1px solid var(--border);
+    padding: 10px;
   }
 
   .admin-nav-btn {
     white-space: nowrap;
     flex-shrink: 0;
   }
-
-  .admin-content {
-    padding: 12px;
-  }
-
-  .stat-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .faq-table {
-    font-size: 0.75rem;
-  }
-
-  .faq-table th,
-  .faq-table td {
-    padding: 8px;
-  }
-
-  .modal {
-    width: 92%;
-    padding: 20px;
-  }
 }
 
-@media (max-width: 480px) {
-
-  .header-left {
-    gap: 8px;
-  }
-
-  .bot-avatar {
-    width: 36px;
-    height: 36px;
-    font-size: 16px;
-  }
-
-  .bot-name {
-    font-size: 0.85rem;
-  }
-
-  .bot-status {
-    font-size: 0.65rem;
-  }
-
-  .lang-picker {
-    display: none;
-  }
-
-  .bubble {
-    max-width: 96%;
-    font-size: 0.78rem;
-  }
-
-  .stat-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .stat-num {
-    font-size: 1.5rem;
-  }
-
-  .admin-section h2 {
-    font-size: 1rem;
-  }
-
-  .card {
-    padding: 12px;
-  }
-
-  .btn-primary,
-  .btn-ghost {
-    font-size: 0.8rem;
-  }
-}
-
-/* ==============================================
-   PROFILE BUTTON
-   ============================================== */
-
-.profile-btn {
-
-  background: var(--surface2);
-
-  border: 1px solid var(--border);
-
-  width: 36px;
-
-  height: 36px;
-
-  border-radius: 50%;
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  cursor: pointer;
-
-  color: var(--text);
-
-  font-size: 16px;
-
-  transition: all 0.2s ease;
-}
-
-.profile-btn:hover {
-
-  border-color: var(--accent);
-
-  transform: scale(1.05);
-
-  color: var(--accent);
-}
-
-/* =================================
-   MOBILE SIDEBAR FIX
-================================= */
-
-.mobile-menu-btn {
-  display: none;
-}
-
-@media (max-width: 768px) {
-
-  .mobile-menu-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 38px;
-    height: 38px;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    background: var(--surface2);
-    color: var(--text);
-    font-size: 18px;
-    cursor: pointer;
-    margin-right: 8px;
+/* ---- 1024px and up: desktop ----------------------------------------
+   Sidebar becomes a permanent column instead of an overlay drawer. */
+@media (min-width: 1024px) {
+  .app-layout {
+    /* no change needed — flex handles it once sidebar stops being
+       position:fixed below */
   }
 
   .sidebar {
-    display: flex !important;
-    position: fixed;
-    left: -260px;
-    top: var(--header-h);
-    width: 240px;
-    height: calc(100vh - var(--header-h));
-    z-index: 999;
-    transition: left 0.3s ease;
-    background: var(--surface);
-  }
-
-  .sidebar.active {
-    left: 0;
-  }
-
-  .chat-area {
-    width: 100%;
-  }
-
-  .app-layout {
-    width: 100%;
-  }
-
-  .chips-row {
-    overflow-x: auto;
-    flex-wrap: nowrap;
-    padding-bottom: 12px;
-  }
-
-  .chip {
+    position: static;
+    width: var(--sidebar-w);
+    height: auto;
+    transform: none;
     flex-shrink: 0;
   }
 
-  .input-bar {
-    position: sticky;
-    bottom: 0;
-    width: 100%;
-  }
-
-  .chat-input {
-    min-width: 0;
-  }
-
-  .msg-row {
-    width: 100%;
-  }
-
-  .bubble {
-    max-width: 88%;
-  }
-}
-
-/* =================================
-   LOGIN MOBILE FIX
-================================= */
-
-@media (max-width: 768px) {
-
-  .header {
-    width: 100%;
-    overflow: visible;
-  }
-
-  .header-right {
-    overflow: visible;
-    gap: 6px;
-  }
-
-  .app-layout {
-    flex-direction: column;
-    overflow-x: hidden;
-  }
-
-  .chat-area {
-    width: 100%;
-    max-width: 100%;
-    overflow-x: hidden;
-  }
-
-  .chat-messages {
-    width: 100%;
-    overflow-x: hidden;
-    padding: 12px;
-  }
-
-  .input-bar {
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
-  }
-
-  .chat-input {
-    width: 100%;
-    min-width: 0;
-  }
-
-  .lang-picker {
-    display: none;
-  }
-
-  .bot-name {
-    font-size: 1rem;
-  }
-
-  .bot-status {
-    font-size: 0.7rem;
-  }
-}
-
-/* =================================
-   DESKTOP MODE ON MOBILE FIX
-================================= */
-
-@media (min-width: 769px) and (max-width: 1100px) {
-
-  .sidebar {
-    width: 200px;
-  }
-
-  .bubble {
-    max-width: 420px;
-  }
-
-  .chat-messages {
-    padding: 16px;
-  }
-
-  .header {
-    padding: 0 12px;
-  }
-
-  .bot-name {
-    font-size: 1rem;
-  }
-
-  .lang-picker {
-    transform: scale(0.9);
-  }
-}
-
-
-/* =================================
-   MOBILE HEADER FIX
-================================= */
-
-@media (max-width: 768px) {
-
-  .header-right {
-    gap: 6px;
-  }
-
-  .lang-dropdown {
-    position: relative;
-  }
-
-  .lang-current {
-
-    min-width: 58px;
-
-    text-align: center;
-
-    padding: 8px 10px;
-
-    border-radius: 14px;
-
-    font-size: 0.75rem;
-  }
-
-.lang-menu {
-
-    position: fixed;
-
-    top: 70px;
-
-    right: 82px;
-
-    min-width: 90px;
-
-    background: var(--surface);
-
-    border: 1px solid var(--border);
-
-    border-radius: 12px;
-
-    padding: 6px;
-
-    display: none;
-
-    flex-direction: column;
-
-    gap: 4px;
-
-    z-index: 999999;
-
-    box-shadow: var(--shadow);
-}
-.lang-menu .lang-btn {
-
-    padding: 6px 8px;
-
-    font-size: 0.78rem;
-
-    border-radius: 10px;
-}
-
- .admin-link {
-
-    height: 38px;
-
-    padding: 0 10px;
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
-
-    font-size: 0.8rem;
-
-    gap: 4px;
-
-    white-space: nowrap;
-}
-
-
-  .profile-btn,
-  .theme-toggle {
-    width: 38px;
-    height: 38px;
-    padding: 0;
-  }
-
-  .bot-info {
-    max-width: 110px;
-    overflow: hidden;
-  }
-
-  .bot-name {
-    font-size: 1rem;
-    white-space: nowrap;
-  }
-
-  .bot-status {
-    font-size: 0.72rem;
-    white-space: nowrap;
-  }
-}
-
-/* =================================
-   FINAL OVERFLOW FIX
-================================= */
-
-html,
-body {
-  width: 100%;
-  overflow-x: hidden;
-}
-
-.app-layout {
-  width: 100%;
-  max-width: 100%;
-  overflow-x: hidden;
-}
-
-.chat-area {
-  flex: 1;
-  width: 100%;
-  max-width: 100%;
-  overflow-x: hidden;
-}
-
-.chat-messages {
-  width: 100%;
-  max-width: 100%;
-}
-
-.input-bar {
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-}
-
-.chat-input {
-  min-width: 0;
-  width: 100%;
-}
-
-@media (max-width: 768px) {
-
-  .bubble {
-    max-width: calc(100vw - 90px);
-  }
-
-  .chips-row {
-    width: 100%;
-    overflow-x: auto;
-  }
-}
-
-/* =================================
-   LANGUAGE DROPDOWN
-================================= */
-
-.lang-dropdown {
-  position: relative;
-}
-
-.lang-current {
-
-  background: var(--surface2);
-
-  border: 1px solid var(--border);
-
-  color: var(--text);
-
-  padding: 8px 12px;
-
-  border-radius: 20px;
-
-  cursor: pointer;
-
-  font-size: 0.8rem;
-}
-
-.lang-menu {
-
-  position: absolute;
-
-  top: 46px;
-
-  right: 0;
-
-  background: var(--surface);
-
-  border: 1px solid var(--border);
-
-  border-radius: 14px;
-
-  padding: 8px;
-
-  display: none;
-
-  flex-direction: column;
-
-  gap: 6px;
-
-  min-width: 120px;
-
-  z-index: 9999;
-
-  box-shadow: var(--shadow);
-}
-
-.lang-menu .lang-btn {
-
-  width: 100%;
-
-  text-align: left;
-
-  border-radius: 10px;
-
-  padding: 8px 10px;
-}
-
-/* Desktop */
-@media (min-width: 769px) {
-
-  .lang-current {
-    display: none;
-  }
-
-  .lang-menu {
-    display: flex;
-    position: static;
-    flex-direction: row;
-    background: transparent;
-    border: none;
-    padding: 0;
-    box-shadow: none;
-    gap: 4px;
-  }
-}
-
-/* =================================
-   FINAL MOBILE DROPDOWN FIX
-================================= */
-
-.lang-menu.active {
-  display: flex;
-}
-
-.header {
-
-  position: sticky;
-
-  top: 0;
-
-  z-index: 9999;
-}
-
-.chat-messages {
-  overflow-y: auto;
-}
-
-/* =================================
-   FORCE MOBILE LOGOUT FIX
-================================= */
-
-@media (max-width: 768px) {
-
-  .admin-link {
-
-    width: 42px !important;
-
-    min-width: 42px !important;
-
-    height: 38px !important;
-
-    padding: 0 !important;
-
-    border-radius: 10px !important;
-
-    display: flex !important;
-
-    align-items: center !important;
-
-    justify-content: center !important;
-
-    font-size: 1rem !important;
-
-    overflow: hidden !important;
-  }
-}
-/* =================================
-   MOBILE HEADER SPACE FIX
-================================= */
-
-@media (max-width: 768px) {
-
-  .profile-btn {
-    display: none !important;
-  }
-
-  .header-right {
-    gap: 4px;
-  }
-}
-/* =================================
-   SIDEBAR PROFILE BUTTON
-================================= */
-
-.sidebar-profile-btn {
-
-  width: 100%;
-
-  padding: 12px;
-
-  margin-top: 12px;
-
-  border: 1px solid var(--border);
-
-  background: var(--surface2);
-
-  color: var(--text);
-
-  border-radius: 12px;
-
-  cursor: pointer;
-
-  font-size: 0.9rem;
-
-  transition: 0.2s ease;
-}
-
-.sidebar-profile-btn:hover {
-
-  border-color: var(--accent);
-
-  color: var(--accent);
-}
-
-/* Mobile only */
-@media (max-width: 768px) {
-
-  .profile-btn {
-    display: none !important;
+  .sidebar-overlay {
+    display: none !important; /* never needed once sidebar is static */
   }
 
   .sidebar-profile-btn {
-    display: block;
+    display: none; /* redundant with header's .profile-btn on desktop */
+  }
+
+  .bubble {
+    max-width: min(60ch, 520px);
   }
 }
 
-@media (min-width: 769px) {
+/* Extra-narrow screens (very small phones, e.g. 360px width) */
+@media (max-width: 360px) {
+  .bot-status {
+    display: none; /* keep only the bot name to save space */
+  }
 
-  .sidebar-profile-btn {
-    display: block;
+  .bubble {
+    font-size: 0.82rem;
   }
 }
