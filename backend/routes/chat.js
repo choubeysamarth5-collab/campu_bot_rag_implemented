@@ -1,5 +1,6 @@
 const { protect } = require("../middleware/auth");
 const { askRAG } = require("../rag/services/ragService");
+const { getFAQsCached } = require("../utils/faqCache");
 // =============================================
 // routes/chat.js – Chat & Log API Routes
 // =============================================
@@ -107,7 +108,7 @@ try {
     console.log("========== RAG ==========");
     console.log("Question:", message);
 
-    const ragReply = await askRAG(message);
+    const ragReply = await askRAG(message, lang);
 
     console.log("RAG Reply:");
     console.log(ragReply);
@@ -142,7 +143,7 @@ try {
 
     // Try to find answer in MongoDB
     if (FAQ) {
-      const faqs = await FAQ.find({ isActive: true });
+      const faqs = await getFAQsCached(FAQ);
       let match = null;
 
       // Try ML prediction first

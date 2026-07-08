@@ -254,7 +254,7 @@ window.createNewChat = function () {
   saveChatHistory();
 };
 
-// Show typing animation (3 bouncing dots)
+// Show typing animation (🤖 Thinking... + 3 bouncing dots)
 function showTyping() {
   const row = document.createElement('div');
   row.className = 'msg-row bot';
@@ -263,6 +263,7 @@ function showTyping() {
     <div class="msg-avatar">🎓</div>
     <div class="bubble">
       <div class="typing-indicator">
+        <span class="typing-label">🤖 Thinking...</span>
         <div class="typing-dot"></div>
         <div class="typing-dot"></div>
         <div class="typing-dot"></div>
@@ -384,18 +385,19 @@ async function sendMessage(text) {
   // Hide chips after first message
   chipsRow.style.display = 'none';
 
-  // Show typing...
-  await new Promise(r => setTimeout(r, 300));
+  // Show typing... and keep it up for as long as the REAL request
+  // takes (previously this was hidden after a fake fixed delay,
+  // BEFORE the actual network call even started — so on a slow
+  // response the user saw nothing at all while waiting).
+  await new Promise(r => setTimeout(r, 200)); // tiny delay so it doesn't flash instantly
   showTyping();
 
-  // Simulate thinking time (300-800ms) for natural feel
-  const thinkTime = 400 + Math.random() * 400;
-  await new Promise(r => setTimeout(r, thinkTime));
+  // Get and show bot response — the indicator stays visible for
+  // this entire real wait.
+  const reply = await getBotResponse(msg);
 
   hideTyping();
 
-  // Get and show bot response
-  const reply = await getBotResponse(msg);
   const msgId = appendMessage('bot', reply);
   state.lastBotMsgId = msgId;
 

@@ -77,11 +77,22 @@ async function loadSingleDocument(filePath) {
 
     }
 
+    // Multer saves uploads with a timestamp prefix (e.g.
+    // "1751533801234-time table.pdf") so two uploads of the same
+    // file never collide on disk. That's great for storage, but bad
+    // for identifying "this is the same document" later — every
+    // re-upload would look like a brand new file. We strip that
+    // prefix back off here so the metadata we store (and later use
+    // to detect/replace older versions) uses the ORIGINAL filename.
+    const originalFileName = path
+        .basename(filePath)
+        .replace(/^\d+-/, "");
+
     return [
 
         {
 
-            fileName: path.basename(filePath),
+            fileName: originalFileName,
 
             content
 

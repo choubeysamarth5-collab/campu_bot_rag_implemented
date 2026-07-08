@@ -188,6 +188,19 @@
 
         </div>
 
+        <!-- Document Manager: lists every uploaded PDF with
+             view/delete actions. Populated by loadDocuments() in
+             admin-new.js whenever this section is opened, and
+             refreshed automatically after each upload. -->
+        <div class="card" style="margin-top: 20px;">
+          <h3 style="font-family:var(--font-display);margin-bottom:12px;font-size:1rem">
+            📚 Uploaded Documents
+          </h3>
+          <div id="documentsListContainer">
+            <p style="color: var(--text-muted)">Loading documents…</p>
+          </div>
+        </div>
+
       </div>
 
       <!-- CHAT LOGS -->

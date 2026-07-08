@@ -30,6 +30,7 @@ function showSection(name) {
     if (name === 'users') loadUsers();
     if (name === 'add-admin') showAddAdmin();
     if (name === 'admins') loadAdmins();
+    if (name === 'upload-pdf') loadDocuments();
 }
 
 // =============================================
@@ -1161,55 +1162,252 @@ async function deleteAdmin(id) {
 async function uploadPDF() {
 
     const fileInput = document.getElementById("pdfFile");
-
     const status = document.getElementById("uploadStatus");
 
     if (!fileInput.files.length) {
-
         status.innerHTML = "❌ Please select a PDF.";
-
         return;
-
     }
 
+    const file = fileInput.files[0];
+
+    // ── REPLACE-EXISTING CHECK ──────────────────────────────────
+    // If a document with this same name is already in the list,
+    // confirm with the admin before overwriting it — re-uploading
+    // silently would otherwise be surprising (and previously caused
+    // duplicate/stale entries piling up in the AI's index).
+    try {
+        const listRes = await CampusAuth.adminFetch("/rag/documents");
+        const listData = await listRes.json();
+
+        const alreadyExists =
+            listData.success &&
+            listData.documents.some(doc => doc.name === file.name);
+
+        if (alreadyExists) {
+            const confirmed = confirm(
+                `"${file.name}" already exists. Replace the existing document?`
+            );
+            if (!confirmed) {
+                status.innerHTML = "Upload cancelled.";
+                return;
+            }
+        }
+    } catch (err) {
+        // If the check itself fails, don't block the upload — just
+        // proceed without the replace confirmation.
+        console.error("Could not check existing documents:", err);
+    }
+
+    uploadPDFWithProgress(file, status, fileInput);
+}
+
+// ── UPLOAD WITH REAL PROGRESS ────────────────────────────────────
+// fetch() has no upload-progress event, so we use XMLHttpRequest
+// instead (only for this one call) to show real percentages while
+// the file streams to the server, plus a visual progress bar.
+function uploadPDFWithProgress(file, status, fileInput) {
+
+    // Build (or reuse) the progress bar UI right under the status text.
+    let progressWrap = document.getElementById("uploadProgressWrap");
+    if (!progressWrap) {
+        progressWrap = document.createElement("div");
+        progressWrap.id = "uploadProgressWrap";
+        progressWrap.className = "upload-progress-wrap";
+        progressWrap.innerHTML = `
+            <div class="upload-progress-track">
+                <div class="upload-progress-fill" id="uploadProgressFill"></div>
+            </div>
+            <div class="upload-progress-text" id="uploadProgressText">0%</div>
+        `;
+        status.insertAdjacentElement("afterend", progressWrap);
+    }
+
+    const fill = document.getElementById("uploadProgressFill");
+    const text = document.getElementById("uploadProgressText");
+
+    progressWrap.style.display = "block";
+    fill.style.width = "0%";
+    text.textContent = "0%";
+    status.innerHTML = "⏳ Uploading...";
+
     const formData = new FormData();
+    formData.append("pdf", file);
 
-    formData.append("pdf", fileInput.files[0]);
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${API_BASE}/rag/upload`);
 
-    status.innerHTML = "Uploading...";
+    // Same Authorization header CampusAuth.adminFetch() would add —
+    // XHR needs it set manually since we're not using fetch here.
+    const token = CampusAuth.getAdminToken();
+    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+
+    // Live progress as the file streams to the server.
+    xhr.upload.addEventListener("progress", (e) => {
+        if (!e.lengthComputable) return;
+        const percent = Math.round((e.loaded / e.total) * 100);
+        fill.style.width = `${percent}%`;
+        text.textContent = `${percent}%`;
+    });
+
+    xhr.onload = () => {
+
+        // Upload reached the server — now it's parsing/OCR-ing/
+        // embedding, which can take a while for scanned PDFs. Reflect
+        // that so the bar doesn't look "stuck" at 100%.
+        fill.style.width = "100%";
+        text.textContent = "Processing…";
+
+        try {
+            const data = JSON.parse(xhr.responseText);
+
+            if (xhr.status >= 200 && xhr.status < 300 && data.success) {
+                status.innerHTML = "✅ PDF uploaded successfully.";
+            } else {
+                status.innerHTML = "❌ " + (data.message || "Upload failed.");
+            }
+        } catch (err) {
+            status.innerHTML = "❌ Upload failed.";
+        }
+
+        fileInput.value = "";
+        setTimeout(() => { progressWrap.style.display = "none"; }, 1500);
+        loadDocuments();
+    };
+
+    xhr.onerror = () => {
+        status.innerHTML = "❌ Upload failed (network error).";
+        progressWrap.style.display = "none";
+    };
+
+    xhr.send(formData);
+}
+
+// =============================================
+// DOCUMENT MANAGER
+// ---------------------------------------------
+// Lists every PDF that's been uploaded for RAG, and lets an admin
+// preview or delete one. Deleting removes BOTH the file on disk and
+// its indexed chunks in ChromaDB (handled server-side), so a deleted
+// document immediately stops being cited in chat answers too.
+// =============================================
+
+async function loadDocuments() {
+
+    const container = document.getElementById("documentsListContainer");
+
+    if (!container) return; // section not on this page — nothing to do
+
+    container.innerHTML = "<p style='color:var(--text-muted)'>Loading documents…</p>";
 
     try {
 
-        const response = await CampusAuth.adminFetch(
-            "/rag/upload",
-            {
-                method: "POST",
-                body: formData,
-                headers: {}   // Content-Type mat dena
-            }
-        );
+        const res = await CampusAuth.adminFetch("/rag/documents");
+        const data = await res.json();
 
-        const data = await response.json();
-
-        if (data.success) {
-
-            status.innerHTML =
-                "✅ PDF uploaded successfully.";
-
-        } else {
-
-            status.innerHTML =
-                "❌ " + data.message;
-
+        if (!data.success || data.documents.length === 0) {
+            container.innerHTML =
+                "<p style='color:var(--text-muted)'>No documents uploaded yet.</p>";
+            return;
         }
+
+        const rows = data.documents.map(doc => {
+
+            const uploadedDate = new Date(doc.uploadedAt).toLocaleDateString(
+                undefined,
+                { day: "2-digit", month: "short", year: "numeric" }
+            );
+
+            return `
+                <tr>
+                    <td>📄 ${escapeHtml(doc.name)}</td>
+                    <td><span class="tag">${doc.sizeKB} KB</span></td>
+                    <td>${uploadedDate}</td>
+                    <td>
+                        <div class="action-btns">
+                            <button class="btn-sm" onclick="viewDocument('${encodeURIComponent(doc.savedName)}')">
+                                👁 View
+                            </button>
+                            <button class="btn-sm danger" onclick="deleteDocument('${encodeURIComponent(doc.savedName)}', '${escapeHtml(doc.name)}')">
+                                🗑 Delete
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join("");
+
+        container.innerHTML = `
+            <table class="faq-table">
+                <thead>
+                    <tr>
+                        <th>Document</th>
+                        <th>Size</th>
+                        <th>Uploaded</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+        `;
 
     } catch (err) {
 
         console.error(err);
-
-        status.innerHTML =
-            "❌ Upload failed.";
+        container.innerHTML =
+            "<p style='color:var(--danger)'>Failed to load documents.</p>";
 
     }
+}
 
+function viewDocument(savedName) {
+    // Opens the PDF in a new tab. The view route itself is
+    // admin-protected, but a plain <a>/window.open can't attach an
+    // Authorization header — so instead we fetch it (with the header
+    // CampusAuth adds automatically) and open the returned blob.
+    CampusAuth.adminFetch(`/rag/documents/view/${savedName}`)
+        .then(res => res.blob())
+        .then(blob => {
+            const url = URL.createObjectURL(blob);
+            window.open(url, "_blank");
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Could not open document.");
+        });
+}
+
+async function deleteDocument(savedName, displayName) {
+
+    if (!confirm(`Delete "${displayName}"? This also removes it from the chatbot's knowledge.`)) {
+        return;
+    }
+
+    try {
+
+        const res = await CampusAuth.adminFetch(
+            `/rag/documents/${savedName}`,
+            { method: "DELETE" }
+        );
+
+        const data = await res.json();
+
+        alert(data.message);
+
+        loadDocuments(); // refresh the list
+
+    } catch (err) {
+
+        console.error(err);
+        alert("Delete failed.");
+
+    }
+}
+
+// Small helper so document names can never break the HTML we inject
+// (e.g. a filename containing < or & characters).
+function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
 }

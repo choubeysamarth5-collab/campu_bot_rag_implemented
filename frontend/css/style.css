@@ -113,6 +113,16 @@ body {
   -webkit-text-size-adjust: 100%; /* stops iOS auto-enlarging text */
 }
 
+/* Admin/Developer pages have long stacked content (many cards in a
+   row) instead of the chat page's single internal-scroll panel, so
+   they need NORMAL page scrolling — override the "no page scroll"
+   rule above just for these pages. */
+body.admin-page {
+  height: auto;
+  min-height: 100dvh;
+  overflow-y: auto;
+}
+
 a {
   text-decoration: none;
   color: inherit;
@@ -659,6 +669,12 @@ img {
   align-items: center;
 }
 
+.typing-label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-right: 4px;
+}
+
 .typing-dot {
   width: 7px;
   height: 7px;
@@ -1096,6 +1112,37 @@ img {
 textarea.form-control {
   height: 90px;
   resize: vertical;
+}
+
+/* Upload progress bar — used by the PDF upload flow in the admin
+   panel to show real upload percentage instead of a static
+   "Uploading..." message with no feedback. */
+.upload-progress-wrap {
+  margin-top: 12px;
+}
+
+.upload-progress-track {
+  width: 100%;
+  height: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.upload-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  border-radius: 20px;
+  transition: width 0.15s ease;
+}
+
+.upload-progress-text {
+  margin-top: 6px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-align: right;
 }
 
 select.form-control option {

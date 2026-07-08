@@ -62,6 +62,8 @@ const uploadRoutes = require("./rag/routes/upload");
 
 const { protect } = require("./middleware/auth");
 const { adminProtect } = require("./middleware/adminAuth");
+// Documents/routes imports ke paas
+const developerRoutes = require('./routes/developer');
 // ── Register Routes ───────────────────────────────────────────────
 // app.use('/api/auth', userAuthRoutes);
 // app.use('/api/admin', adminAuthRoutes);
@@ -118,6 +120,9 @@ const { adminProtect } = require("./middleware/adminAuth");
 app.use('/api/auth', userAuthRoutes);
 
 app.use('/api/admin', adminAuthRoutes);
+
+// Register Routes section mein (kahi bhi, before 404 handler)
+app.use('/api/dev', developerRoutes);
 
 // Chatbot protected for logged-in users only
 app.use('/api/chat', protect, chatRoutes);
