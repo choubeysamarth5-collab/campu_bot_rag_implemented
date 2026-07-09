@@ -7,9 +7,10 @@
      1.  Design Tokens (CSS variables)   – all colors/sizes live here
      2.  Reset & Base                    – normalize browser defaults
      3.  Layout Shell (Header/Sidebar/Chat) – the main app skeleton
-     4.  Components                      – buttons, bubbles, modals, etc.
-     5.  Admin Panel                     – admin-only screens
-     6.  Responsive Rules                – ONE mobile-first block per
+     4.  Language Dropdown               – language selection UI
+     5.  Modals (Feedback / Profile)     – overlay popups
+     6.  Admin Panel                     – admin-only screens (Mobile Optimized)
+     7.  Responsive Rules                – ONE mobile-first block per
                                             breakpoint (no scattered
                                             duplicate @media blocks)
 
@@ -992,18 +993,23 @@ img {
   right: 0;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
-  padding: 0 24px;
+  padding: 0 16px;
   height: var(--header-h);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   z-index: 100;
 }
 
 .admin-nav h1 {
   font-family: var(--font-display);
-  font-size: 1.15rem;
+  font-size: 1.1rem;
   font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .admin-body {
@@ -1020,7 +1026,7 @@ img {
   padding: 20px 14px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   height: calc(100dvh - var(--header-h));
   position: sticky;
   top: var(--header-h);
@@ -1032,13 +1038,14 @@ img {
   border: none;
   cursor: pointer;
   text-align: left;
-  padding: 10px 12px;
+  padding: 10px 14px;
   border-radius: var(--radius-sm);
   font-size: 0.85rem;
+  font-weight: 500;
   color: var(--text-muted);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   transition: all var(--transition);
 }
 
@@ -1051,7 +1058,7 @@ img {
 .admin-content {
   flex: 1;
   min-width: 0;
-  padding: 28px;
+  padding: 24px;
 }
 
 .admin-section {
@@ -1099,8 +1106,7 @@ img {
   padding: 10px 12px;
   color: var(--text);
   font-family: var(--font-body);
-  font-size: 0.9rem; /* >=16px avoids iOS zoom-on-focus; kept close
-                         here and bumped explicitly on mobile below */
+  font-size: 16px; /* 16px standard forces mobile browsers not to auto-zoom on focus */
   outline: none;
   transition: border-color var(--transition);
 }
@@ -1114,9 +1120,6 @@ textarea.form-control {
   resize: vertical;
 }
 
-/* Upload progress bar — used by the PDF upload flow in the admin
-   panel to show real upload percentage instead of a static
-   "Uploading..." message with no feedback. */
 .upload-progress-wrap {
   margin-top: 12px;
 }
@@ -1149,8 +1152,14 @@ select.form-control option {
   background: var(--surface);
 }
 
-/* Data table — wrapped in a horizontal-scroll container on small
-   screens instead of shrinking text illegibly. */
+.faq-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
 .faq-table {
   width: 100%;
   border-collapse: collapse;
@@ -1163,7 +1172,8 @@ select.form-control option {
   letter-spacing: 0.08em;
   color: var(--text-dim);
   border-bottom: 1px solid var(--border);
-  padding: 10px 12px;
+  padding: 12px;
+  background: var(--surface2);
 }
 
 .faq-table td {
@@ -1200,7 +1210,7 @@ select.form-control option {
   background: transparent;
   border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 5px 10px;
+  padding: 6px 12px;
   font-size: 0.75rem;
   cursor: pointer;
   color: var(--text-muted);
@@ -1219,8 +1229,8 @@ select.form-control option {
 
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
   margin-bottom: 24px;
 }
 
@@ -1228,22 +1238,24 @@ select.form-control option {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 18px;
+  padding: 20px;
   text-align: center;
+  box-shadow: var(--shadow);
 }
 
 .stat-num {
   font-family: var(--font-display);
-  font-size: 2rem;
+  font-size: 2.2rem;
   font-weight: 800;
   color: var(--accent);
   display: block;
 }
 
 .stat-label {
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
   margin-top: 4px;
+  font-weight: 500;
 }
 
 .log-item {
@@ -1274,76 +1286,37 @@ select.form-control option {
 
 /* =====================================================================
    7. RESPONSIVE RULES
-   ---------------------------------------------------------------------
-   Everything above is written mobile-first. From here we ADD
-   desktop/tablet layout as the screen gets bigger — we never fight
-   earlier rules with !important. Only two breakpoints are needed:
-     - 640px  : small phone   -> larger phone/tablet
-     - 1024px : tablet        -> desktop (permanent sidebar)
    ===================================================================== */
 
-/* ---- Up to 639px: small phones -------------------------------------
-   Base styles above already target this size. This block only adds
-   extra tightening for VERY small screens so header text/buttons
-   never overlap or wrap awkwardly. */
+/* ---- Up to 639px: Small Screens Global Adjustments ---------------- */
 @media (max-width: 639px) {
   .header {
-    padding: 0 10px;
-    gap: 6px;
+    padding: 0 12px;
+    gap: 8px;
   }
-
   .bot-info {
-    max-width: 120px;
+    max-width: 130px;
   }
-
   .bot-name {
     font-size: 0.95rem;
   }
-
   .bot-status {
     font-size: 0.68rem;
   }
-
-  .header-right {
-    gap: 6px;
-  }
-
-  /* Hide the secondary profile icon in the header on phones —
-     it's already reachable from the sidebar's "My Profile" button,
-     so keeping both just crowds the header. */
   .profile-btn {
     display: none;
   }
-
-  .lang-current {
-    padding: 0 10px;
-    font-size: 0.72rem;
-  }
-
   .bubble {
-    max-width: 82%;
+    max-width: 85%;
     font-size: 0.88rem;
   }
-
   .stat-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .admin-content {
-    padding: 14px;
-  }
-
-  .faq-table {
-    display: block;
-    overflow-x: auto;
-    white-space: nowrap;
+    grid-template-columns: 1fr; /* Stack vertically for pristine readability */
   }
 }
 
-/* ---- Up to 1023px: phones + tablets (no permanent sidebar) -------- */
+/* ---- Up to 1023px: Tablets & Phones Mobile Admin Architecture ---- */
 @media (max-width: 1023px) {
-  /* Sidebar is an off-canvas drawer (see base .sidebar rules above);
-     show the hamburger button that toggles it. */
   .mobile-menu-btn {
     display: flex;
     align-items: center;
@@ -1359,35 +1332,62 @@ select.form-control option {
     flex-shrink: 0;
   }
 
+  /* Admin Header Optimizations */
+  .admin-nav {
+    padding: 0 12px;
+  }
+  
+  .admin-nav .header-right .admin-link span {
+    display: none; /* Hide 'Logout' or text, leave just icons if cramped */
+  }
+
+  /* Core Layout Shift */
   .admin-body {
     flex-direction: column;
   }
 
+  /* Smooth Touch-Friendly Horizontal Pills Navigation */
   .admin-sidebar {
-    position: static;
+    position: sticky;
+    top: var(--header-h);
     width: 100%;
     height: auto;
     flex-direction: row;
     overflow-x: auto;
+    white-space: nowrap;
     border-right: none;
     border-bottom: 1px solid var(--border);
-    padding: 10px;
+    padding: 10px 16px;
+    gap: 8px;
+    z-index: 90;
+    scrollbar-width: none; /* Hide default scrollbar on Firefox */
+  }
+
+  .admin-sidebar::-webkit-scrollbar {
+    display: none; /* Hide default scrollbar on Chrome/Safari for sleek visual */
   }
 
   .admin-nav-btn {
-    white-space: nowrap;
+    display: inline-flex;
+    padding: 8px 16px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px; /* Smooth pill buttons */
+    font-size: 0.8rem;
     flex-shrink: 0;
+  }
+  
+  .admin-nav-btn.active {
+    border-color: var(--accent);
+  }
+
+  .admin-content {
+    padding: 16px;
   }
 }
 
-/* ---- 1024px and up: desktop ----------------------------------------
-   Sidebar becomes a permanent column instead of an overlay drawer. */
+/* ---- 1024px and up: Desktop Viewports ------------------------------ */
 @media (min-width: 1024px) {
-  .app-layout {
-    /* no change needed — flex handles it once sidebar stops being
-       position:fixed below */
-  }
-
   .sidebar {
     position: static;
     width: var(--sidebar-w);
@@ -1395,26 +1395,22 @@ select.form-control option {
     transform: none;
     flex-shrink: 0;
   }
-
   .sidebar-overlay {
-    display: none !important; /* never needed once sidebar is static */
+    display: none !important;
   }
-
   .sidebar-profile-btn {
-    display: none; /* redundant with header's .profile-btn on desktop */
+    display: none;
   }
-
   .bubble {
     max-width: min(60ch, 520px);
   }
 }
 
-/* Extra-narrow screens (very small phones, e.g. 360px width) */
+/* Screen widths under 360px */
 @media (max-width: 360px) {
   .bot-status {
-    display: none; /* keep only the bot name to save space */
+    display: none;
   }
-
   .bubble {
     font-size: 0.82rem;
   }
