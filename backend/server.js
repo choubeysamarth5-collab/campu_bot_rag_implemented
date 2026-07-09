@@ -16,13 +16,17 @@ const app = express();
 
 // ── Middleware ────────────────────────────────────────────────────
 app.use(cors({
-  origin: [
-    "http://localhost:3000",
-    "http://localhost:8080",
-    "http://127.0.0.1:8080",
-    "https://campus-bot-ml2.vercel.app",
-    "https://campu-bot-rag-implemented.vercel.app"   // ← Naya domain add kiya
-  ],
+origin: [
+  "http://localhost:3000",
+  "http://localhost:8080",
+  "http://127.0.0.1:8080",
+
+  "https://campus-bot-ml2.vercel.app",
+
+  "https://campu-bot-rag-implemented.vercel.app",
+
+  "https://campu-bot-rag-implemented-b0xtvg7pf-samarth-s-projects8.vercel.app"
+],
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
