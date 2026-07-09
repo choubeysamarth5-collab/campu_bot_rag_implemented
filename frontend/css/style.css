@@ -3,15 +3,25 @@
    ---------------------------------------------------------------------
    Design: Dark-first, neon-accent, editorial.
 
-   ORGANIZATION:
-     1. Design Tokens (CSS variables)
-     2. Reset & Base
-     3. Layout Shell (Header/Sidebar/Chat)
-     4. Language Dropdown
-     5. Modals (Feedback / Profile)
-     6. Admin Panel (Mobile Optimized)
-     7. Responsive Rules
+   HOW THIS FILE IS ORGANIZED (read this first!):
+     1.  Design Tokens (CSS variables)   – all colors/sizes live here
+     2.  Reset & Base                    – normalize browser defaults
+     3.  Layout Shell (Header/Sidebar/Chat) – the main app skeleton
+     4.  Language Dropdown               – language selection UI
+     5.  Modals (Feedback / Profile)     – overlay popups
+     6.  Admin Panel                     – admin-only screens (Mobile Optimized)
+     7.  Responsive Rules                – ONE mobile-first block per
+                                            breakpoint (no scattered
+                                            duplicate @media blocks)
+
+   MOBILE-FIRST APPROACH:
+     Base styles below (outside any @media query) are written for
+     SMALL screens first. We then use `min-width` media queries to
+     progressively add sidebar/desktop layout as the screen grows.
+     This avoids the old pattern of many separate `max-width: 768px`
+     patches that fought each other with !important.
    ===================================================================== */
+
 
 /* =====================================================================
    1. DESIGN TOKENS
@@ -37,10 +47,15 @@
   --radius: 18px;
   --radius-sm: 10px;
 
-  /* Layout sizing */
+  /* Layout sizing — used by JS-free calc() everywhere so the whole
+     app stays in sync if you change a single number here. */
   --header-h: 64px;
   --input-h: 72px;
   --sidebar-w: 260px;
+
+  /* A single "tap target" size keeps every round icon button
+     (theme toggle, admin link, profile, mobile menu) IDENTICAL,
+     which is what fixes the "buttons don't align" issue. */
   --icon-btn: 40px;
 
   /* Fonts */
@@ -66,10 +81,13 @@
   --shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
 }
 
+
 /* =====================================================================
    2. RESET & BASE
    ===================================================================== */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -77,6 +95,12 @@
 
 html {
   font-size: 16px;
+  /* 100dvh = "dynamic viewport height". Unlike 100vh, it correctly
+     accounts for mobile browser toolbars that show/hide as you
+     scroll. This one change is the main fix for "header scrolls
+     away on mobile" — with 100vh, the page was often taller than
+     the *visible* area, so scrolling the page dragged everything,
+     header included, out of view. */
   height: 100dvh;
 }
 
@@ -85,11 +109,15 @@ body {
   background: var(--bg);
   color: var(--text);
   height: 100dvh;
-  overflow: hidden;
+  overflow: hidden; /* the app scrolls internally, not the page */
   transition: background var(--transition), color var(--transition);
-  -webkit-text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%; /* stops iOS auto-enlarging text */
 }
 
+/* Admin/Developer pages have long stacked content (many cards in a
+   row) instead of the chat page's single internal-scroll panel, so
+   they need NORMAL page scrolling — override the "no page scroll"
+   rule above just for these pages. */
 body.admin-page {
   height: auto;
   min-height: 100dvh;
@@ -101,7 +129,7 @@ a {
   color: inherit;
 }
 
-button, input, select, textarea {
+button {
   font-family: inherit;
 }
 
@@ -110,26 +138,38 @@ img {
   display: block;
 }
 
+/* Custom scrollbar (WebKit browsers) */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 10px;
 }
 
+/* Visible keyboard focus for accessibility — never remove outline
+   without replacing it with something equally visible. */
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
+
 /* =====================================================================
    3. LAYOUT SHELL
    ===================================================================== */
+
+/* ---- HEADER --------------------------------------------------------
+   Fixed to the top of the viewport at all times (desktop + mobile).
+   Because it's `position: fixed`, it is taken OUT of normal flow, so
+   we add matching top-padding to `.app-layout` below to stop content
+   sliding underneath it. This is what keeps the header from ever
+   scrolling with the chat. */
 .header {
   position: fixed;
   top: 0;
@@ -151,22 +191,7 @@ img {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-width: 0;
-}
-
-.mobile-menu-btn {
-  display: none;
-  align-items: center;
-  justify-content: center;
-  width: var(--icon-btn);
-  height: var(--icon-btn);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  background: var(--surface2);
-  color: var(--text);
-  font-size: 18px;
-  cursor: pointer;
-  flex-shrink: 0;
+  min-width: 0; /* allows text-overflow ellipsis to work inside flex */
 }
 
 .bot-avatar {
@@ -231,37 +256,58 @@ img {
   flex-shrink: 0;
 }
 
-/* UI Controls Element Styling */
-.theme-toggle, .profile-btn, .admin-link {
+/* Mobile hamburger — hidden by default, shown only under the
+   sidebar breakpoint (see Responsive section). */
+.mobile-menu-btn {
+  display: none;
+}
+
+
+/* ---- UNIFIED ICON BUTTON SYSTEM -------------------------------------
+   theme-toggle / profile-btn share this sizing so every round header
+   button lines up on the same circle, same height, same gap. Each
+   class below only adds what's DIFFERENT (usually nothing). */
+.theme-toggle,
+.profile-btn {
+  width: var(--icon-btn);
   height: var(--icon-btn);
   background: var(--surface2);
   border: 1px solid var(--border);
-  color: var(--text);
-  transition: all var(--transition);
-  display: inline-flex;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-}
-
-.theme-toggle, .profile-btn {
-  width: var(--icon-btn);
-  border-radius: 50%;
   font-size: 16px;
+  color: var(--text);
+  transition: all var(--transition);
+  flex-shrink: 0;
 }
 
-.admin-link {
-  padding: 0 14px;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  gap: 6px;
-  font-weight: 500;
-}
-
-.theme-toggle:hover, .profile-btn:hover {
+.theme-toggle:hover,
+.profile-btn:hover {
   border-color: var(--accent);
   color: var(--accent);
   transform: scale(1.05);
+}
+
+/* Admin/Logout link is text+icon, so it's allowed to be wider than
+   the circle buttons, but it still matches their HEIGHT exactly. */
+.admin-link {
+  height: var(--icon-btn);
+  min-width: var(--icon-btn);
+  padding: 0 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  color: var(--text);
+  transition: all var(--transition);
 }
 
 .admin-link:hover {
@@ -269,7 +315,11 @@ img {
   color: var(--accent2);
 }
 
-/* App Framework Layout */
+
+/* ---- APP LAYOUT ------------------------------------------------------
+   The area below the fixed header. `padding-top` pushes content down
+   so nothing hides behind the header; total height is the full
+   viewport minus the header. */
 .app-layout {
   display: flex;
   width: 100%;
@@ -278,7 +328,11 @@ img {
   overflow: hidden;
 }
 
-/* Sidebar & Desktop Panel Core Layout */
+
+/* ---- SIDEBAR ---------------------------------------------------------
+   Mobile-first: by default the sidebar is an off-canvas drawer that
+   slides in from the left. On larger screens (see Responsive) it
+   becomes a permanent column instead. */
 .sidebar {
   position: fixed;
   top: var(--header-h);
@@ -292,7 +346,7 @@ img {
   padding: 20px 14px;
   overflow-y: auto;
   transform: translateX(-100%);
-  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.25s ease;
   z-index: 90;
 }
 
@@ -300,13 +354,13 @@ img {
   transform: translateX(0);
 }
 
+/* Dark overlay behind the drawer on mobile, tap to close */
 .sidebar-overlay {
   display: none;
   position: fixed;
   inset: 0;
   top: var(--header-h);
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(2px);
+  background: rgba(0, 0, 0, 0.5);
   z-index: 80;
 }
 
@@ -321,39 +375,75 @@ img {
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: var(--text-dim);
-  margin-bottom: 12px;
-  padding-left: 4px;
+  margin-bottom: 14px;
+  padding-left: 6px;
 }
 
-/* Control area in Sidebar */
-.sidebar-controls {
+.topic-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 20px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--border);
+  gap: 4px;
 }
 
-.sidebar-controls .theme-toggle,
-.sidebar-controls .admin-link {
-  width: 100%;
+.topic-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  padding: 10px 12px;
   border-radius: var(--radius-sm);
-  justify-content: flex-start;
-  padding: 0 14px;
-  font-size: 0.88rem;
-  gap: 10px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all var(--transition);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.sidebar-controls .theme-toggle .theme-icon {
-  font-size: 16px;
+.topic-btn:hover {
+  background: var(--accent-glow);
+  color: var(--accent);
 }
 
+.topic-btn.active {
+  background: var(--accent-glow);
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.sidebar-footer p {
+  margin-bottom: 8px;
+}
+
+.contact-link {
+  display: block;
+  padding: 6px 0;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  transition: color var(--transition);
+}
+
+.contact-link:hover {
+  color: var(--accent);
+}
+
+/* New Chat button + chat history list */
 .new-chat-btn {
   width: 100%;
   padding: 12px;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: 12px;
   background: var(--accent);
   color: #fff;
   cursor: pointer;
@@ -369,22 +459,22 @@ img {
 }
 
 .history-section {
-  margin-bottom: 20px;
+  margin-top: 24px;
 }
 
 .history-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin: 10px 0;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .history-item {
   background: var(--surface2);
-  border: 1px solid transparent;
+  border: none;
   color: var(--text);
   padding: 10px 12px;
-  border-radius: 8px;
+  border-radius: 10px;
   text-align: left;
   cursor: pointer;
   font-size: 0.85rem;
@@ -397,18 +487,18 @@ img {
 
 .history-item:hover {
   background: var(--accent-glow);
-  border-color: var(--border);
 }
 
 .clear-history-btn {
+  margin-top: 12px;
   width: 100%;
-  padding: 9px;
+  padding: 10px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--surface2);
   color: var(--text-muted);
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   transition: var(--transition);
 }
 
@@ -417,47 +507,16 @@ img {
   color: var(--danger);
 }
 
-.topic-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-bottom: 20px;
-}
-
-.topic-btn {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  text-align: left;
-  padding: 10px 12px;
-  border-radius: var(--radius-sm);
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: all var(--transition);
-}
-
-.topic-btn:hover, .topic-btn.active {
-  background: var(--accent-glow);
-  color: var(--accent);
-}
-
 .sidebar-profile-btn {
   width: 100%;
-  padding: 11px;
+  padding: 12px;
+  margin-top: 12px;
   border: 1px solid var(--border);
   background: var(--surface2);
   color: var(--text);
-  border-radius: var(--radius-sm);
+  border-radius: 12px;
   cursor: pointer;
-  font-size: 0.88rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 16px;
+  font-size: 0.9rem;
   transition: var(--transition);
 }
 
@@ -466,35 +525,18 @@ img {
   color: var(--accent);
 }
 
-.sidebar-footer {
-  margin-top: auto;
-  padding-top: 16px;
-  border-top: 1px solid var(--border);
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
 
-.contact-link {
-  display: block;
-  padding: 4px 0;
-  color: var(--text-muted);
-  transition: color var(--transition);
-}
-
-.contact-link:hover {
-  color: var(--accent);
-}
-
-/* ---- CHAT CONTAINER AREA ---- */
+/* ---- CHAT AREA ---------------------------------------------------- */
 .chat-area {
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   position: relative;
-  min-width: 0;
+  min-width: 0; /* prevents flex children from overflowing horizontally */
 }
 
+/* Faint background grid texture */
 .chat-area::before {
   content: '';
   position: absolute;
@@ -503,17 +545,19 @@ img {
     linear-gradient(var(--border) 1px, transparent 1px),
     linear-gradient(90deg, var(--border) 1px, transparent 1px);
   background-size: 40px 40px;
-  opacity: 0.15;
+  opacity: 0.2;
   pointer-events: none;
 }
 
 .chat-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 20px 16px;
+  overflow-x: hidden;
+  padding: 20px 16px 12px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
+  position: relative;
 }
 
 .msg-row {
@@ -521,20 +565,28 @@ img {
   display: flex;
   align-items: flex-end;
   gap: 10px;
-  animation: msgIn 0.25s ease forwards;
 }
 
-.msg-row.user { justify-content: flex-end; }
-.msg-row.bot { justify-content: flex-start; }
+.msg-row.user {
+  justify-content: flex-end;
+}
+
+.msg-row.bot {
+  justify-content: flex-start;
+}
 
 @keyframes msgIn {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(14px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
+.msg-row {
+  animation: msgIn 0.25s ease;
+}
+
 .msg-avatar {
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -552,12 +604,17 @@ img {
   background: linear-gradient(135deg, var(--accent), var(--accent2));
 }
 
+/* Bubbles: capped with a max-width in *characters* (ch) on large
+   screens so long messages don't stretch edge-to-edge, but on
+   mobile they use a percentage of the viewport instead — this is
+   what fixes text looking too small/cramped or overflowing on
+   phones. */
 .bubble {
-  max-width: 78%;
+  max-width: min(60ch, 80%);
   padding: 12px 16px;
-  border-radius: var(--radius);
-  font-size: 0.92rem;
-  line-height: 1.55;
+  border-radius: 18px;
+  font-size: 0.95rem;
+  line-height: 1.6;
   word-break: break-word;
   overflow-wrap: anywhere;
 }
@@ -565,7 +622,7 @@ img {
 .msg-row.bot .bubble {
   background: var(--bot-bubble);
   border: 1px solid var(--border);
-  border-bottom-left-radius: 4px;
+  border-bottom-left-radius: 5px;
   box-shadow: var(--shadow);
   color: var(--text);
 }
@@ -573,7 +630,8 @@ img {
 .msg-row.user .bubble {
   background: var(--user-bubble);
   color: #fff;
-  border-bottom-right-radius: 4px;
+  border-bottom-right-radius: 5px;
+  box-shadow: 0 4px 20px var(--accent-glow);
 }
 
 .bubble-meta {
@@ -587,7 +645,7 @@ img {
 
 .msg-row.user .bubble-meta {
   justify-content: flex-end;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.55);
 }
 
 .feedback-btn {
@@ -595,27 +653,61 @@ img {
   border: none;
   cursor: pointer;
   color: var(--text-dim);
+  font-size: 13px;
   transition: color var(--transition);
+  padding: 0;
 }
 
-.feedback-btn:hover { color: var(--accent); }
+.feedback-btn:hover {
+  color: var(--accent);
+}
 
+/* Typing indicator */
+.typing-indicator {
+  display: flex;
+  gap: 5px;
+  padding: 14px 16px;
+  align-items: center;
+}
+
+.typing-label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-right: 4px;
+}
+
+.typing-dot {
+  width: 7px;
+  height: 7px;
+  background: var(--accent);
+  border-radius: 50%;
+  animation: typingBounce 1.2s infinite ease-in-out;
+}
+
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typingBounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40%           { transform: translateY(-6px); opacity: 1; }
+}
+
+/* Suggestion chips */
 .chips-row {
   display: flex;
+  flex-wrap: nowrap;
   gap: 8px;
   padding: 0 16px 12px;
   overflow-x: auto;
   flex-shrink: 0;
-  scrollbar-width: none;
 }
-.chips-row::-webkit-scrollbar { display: none; }
 
 .chip {
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: 20px;
-  padding: 6px 14px;
-  font-size: 0.8rem;
+  padding: 7px 14px;
+  font-size: 0.78rem;
   color: var(--text-muted);
   cursor: pointer;
   white-space: nowrap;
@@ -627,8 +719,12 @@ img {
   background: var(--accent-glow);
   border-color: var(--accent);
   color: var(--accent);
+  transform: translateY(-1px);
 }
 
+/* Input bar — pinned to the bottom of the chat column (not the
+   whole page), so it always stays visible above the mobile
+   keyboard without needing extra JS. */
 .input-bar {
   min-height: var(--input-h);
   display: flex;
@@ -648,13 +744,18 @@ img {
   border-radius: 24px;
   padding: 12px 18px;
   color: var(--text);
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   outline: none;
-  transition: border-color var(--transition);
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.chat-input::placeholder {
+  color: var(--text-dim);
 }
 
 .chat-input:focus {
   border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-glow);
 }
 
 .send-btn {
@@ -674,8 +775,14 @@ img {
 
 .send-btn:hover {
   background: var(--accent2);
-  transform: scale(1.04);
+  transform: scale(1.06);
+  box-shadow: 0 4px 16px var(--accent-glow);
 }
+
+.send-btn:active {
+  transform: scale(0.95);
+}
+
 
 /* =====================================================================
    4. LANGUAGE DROPDOWN
@@ -684,27 +791,31 @@ img {
   position: relative;
 }
 
+/* The button that shows current language + opens the dropdown.
+   Visible on ALL screen sizes now (desktop used to show a row of
+   flags instead — simplified to one consistent control so it never
+   overflows the header on narrow screens). */
 .lang-current {
   height: var(--icon-btn);
-  padding: 0 14px;
+  padding: 0 12px;
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: 20px;
   color: var(--text);
   cursor: pointer;
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.78rem;
+  font-weight: 500;
 }
 
 .lang-menu {
   position: absolute;
-  top: calc(var(--icon-btn) + 6px);
+  top: calc(var(--icon-btn) + 8px);
   right: 0;
-  min-width: 120px;
+  min-width: 130px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 4px;
+  border-radius: 14px;
+  padding: 6px;
   display: none;
   flex-direction: column;
   gap: 2px;
@@ -712,18 +823,22 @@ img {
   box-shadow: var(--shadow);
 }
 
-.lang-menu.active { display: flex; }
+.lang-menu.active {
+  display: flex;
+}
 
 .lang-btn {
   width: 100%;
   text-align: left;
   background: transparent;
   border: none;
-  border-radius: 8px;
-  padding: 8px 12px;
+  border-radius: 10px;
+  padding: 8px 10px;
   color: var(--text-muted);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 500;
   cursor: pointer;
+  transition: all var(--transition);
 }
 
 .lang-btn:hover {
@@ -736,97 +851,141 @@ img {
   color: #fff;
 }
 
+
 /* =====================================================================
    5. MODALS (Feedback / Profile)
    ===================================================================== */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.55);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
   z-index: 999;
   backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .modal {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 24px;
+  padding: 28px;
   width: 100%;
-  max-width: 360px;
+  max-width: 340px;
   max-height: 90dvh;
   overflow-y: auto;
   box-shadow: var(--shadow);
+  animation: slideUp 0.25s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
 }
 
 .modal h3 {
   font-family: var(--font-display);
-  margin-bottom: 14px;
-  font-size: 1.15rem;
-}
-
-.modal .form-control {
-  margin-bottom: 12px;
+  font-size: 1.1rem;
+  margin-bottom: 16px;
 }
 
 .stars {
   display: flex;
   gap: 6px;
-  font-size: 26px;
+  font-size: 28px;
   margin-bottom: 14px;
   cursor: pointer;
 }
-.star { color: var(--text-dim); }
-.star.active { color: #fbbf24; }
+
+.star {
+  color: var(--text-dim);
+  transition: color var(--transition);
+}
+
+.star.active,
+.star:hover {
+  color: #fbbf24;
+}
 
 .modal textarea {
   width: 100%;
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 10px;
+  padding: 10px 12px;
   color: var(--text);
+  font-family: var(--font-body);
   font-size: 0.85rem;
   resize: none;
-  height: 75px;
+  height: 80px;
   outline: none;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
-.modal-actions { display: flex; gap: 10px; }
-
-.btn-primary, .btn-ghost {
-  flex: 1;
-  padding: 11px;
-  border-radius: var(--radius-sm);
-  font-size: 0.88rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: var(--transition);
-  text-align: center;
+.modal-actions {
+  display: flex;
+  gap: 10px;
 }
 
 .btn-primary {
+  flex: 1;
   background: var(--accent);
   color: #fff;
   border: none;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background var(--transition);
 }
-.btn-primary:hover { background: var(--accent2); }
+
+.btn-primary:hover {
+  background: var(--accent2);
+}
 
 .btn-ghost {
+  flex: 1;
   background: var(--surface2);
   color: var(--text-muted);
   border: 1px solid var(--border);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  font-size: 0.875rem;
+  transition: all var(--transition);
 }
-.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+.btn-ghost:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Profile modal form fields need consistent spacing (the HTML uses
+   plain <br> tags between inputs, so we give inputs their own
+   margin instead of relying on that markup). */
+.modal .form-control {
+  margin-bottom: 12px;
+}
+
 
 /* =====================================================================
    6. ADMIN PANEL
    ===================================================================== */
+.admin-page {
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--text);
+}
+
 .admin-nav {
   position: fixed;
   top: 0;
@@ -845,11 +1004,12 @@ img {
 
 .admin-nav h1 {
   font-family: var(--font-display);
-  font-size: 1.05rem;
+  font-size: 1.1rem;
   font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .admin-body {
@@ -859,11 +1019,11 @@ img {
 }
 
 .admin-sidebar {
-  width: 230px;
+  width: 220px;
   flex-shrink: 0;
   background: var(--surface);
   border-right: 1px solid var(--border);
-  padding: 20px 12px;
+  padding: 20px 14px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -878,7 +1038,7 @@ img {
   border: none;
   cursor: pointer;
   text-align: left;
-  padding: 10px 12px;
+  padding: 10px 14px;
   border-radius: var(--radius-sm);
   font-size: 0.85rem;
   font-weight: 500;
@@ -889,7 +1049,8 @@ img {
   transition: all var(--transition);
 }
 
-.admin-nav-btn:hover, .admin-nav-btn.active {
+.admin-nav-btn:hover,
+.admin-nav-btn.active {
   background: var(--accent-glow);
   color: var(--accent);
 }
@@ -900,13 +1061,19 @@ img {
   padding: 24px;
 }
 
-.admin-section { display: none; }
-.admin-section.active { display: block; }
+.admin-section {
+  display: none;
+}
+
+.admin-section.active {
+  display: block;
+}
 
 .admin-section h2 {
   font-family: var(--font-display);
-  font-size: 1.3rem;
-  margin-bottom: 18px;
+  font-size: 1.25rem;
+  margin-bottom: 20px;
+  font-weight: 700;
 }
 
 .card {
@@ -915,28 +1082,94 @@ img {
   border-radius: var(--radius);
   padding: 20px;
   margin-bottom: 16px;
-  width: 100%;
 }
 
-/* Horizontal Responsive Table Scroller Fix */
-.table-responsive {
+.form-group {
+  margin-bottom: 14px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.form-control {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 16px; /* 16px standard forces mobile browsers not to auto-zoom on focus */
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+.form-control:focus {
+  border-color: var(--accent);
+}
+
+textarea.form-control {
+  height: 90px;
+  resize: vertical;
+}
+
+.upload-progress-wrap {
+  margin-top: 12px;
+}
+
+.upload-progress-track {
+  width: 100%;
+  height: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.upload-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  border-radius: 20px;
+  transition: width 0.15s ease;
+}
+
+.upload-progress-text {
+  margin-top: 6px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+select.form-control option {
+  background: var(--surface);
+}
+
+.faq-table-wrapper {
   width: 100%;
   overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  margin: 8px 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
 }
 
 .faq-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 650px; /* Forces readable spacing layout on mobile */
 }
 
 .faq-table th {
   text-align: left;
   font-size: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   color: var(--text-dim);
   border-bottom: 1px solid var(--border);
   padding: 12px;
@@ -947,40 +1180,58 @@ img {
   padding: 12px;
   border-bottom: 1px solid var(--border);
   font-size: 0.85rem;
+  vertical-align: top;
+}
+
+.faq-table tr:last-child td {
+  border-bottom: none;
 }
 
 .faq-table tr:hover td {
   background: var(--accent-glow);
 }
 
-.form-group { margin-bottom: 14px; }
-.form-group label {
-  display: block;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  margin-bottom: 6px;
+.tag {
+  display: inline-block;
+  background: var(--accent-glow);
+  color: var(--accent);
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 0.72rem;
   font-weight: 500;
 }
 
-.form-control {
-  width: 100%;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 10px 12px;
-  color: var(--text);
-  font-size: 16px; /* Prevents auto zoom-in on iOS devices */
-  outline: none;
+.action-btns {
+  display: flex;
+  gap: 6px;
 }
-.form-control:focus { border-color: var(--accent); }
 
-textarea.form-control { height: 85px; resize: vertical; }
+.btn-sm {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: all var(--transition);
+}
+
+.btn-sm:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btn-sm.danger:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
 
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .stat-card {
@@ -989,91 +1240,153 @@ textarea.form-control { height: 85px; resize: vertical; }
   border-radius: var(--radius);
   padding: 20px;
   text-align: center;
+  box-shadow: var(--shadow);
 }
 
 .stat-num {
   font-family: var(--font-display);
-  font-size: 2rem;
+  font-size: 2.2rem;
   font-weight: 800;
   color: var(--accent);
+  display: block;
 }
 
 .stat-label {
   font-size: 0.8rem;
   color: var(--text-muted);
   margin-top: 4px;
+  font-weight: 500;
 }
 
+.log-item {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.82rem;
+}
+
+.log-item:last-child {
+  border-bottom: none;
+}
+
+.log-time {
+  color: var(--text-dim);
+  font-size: 0.72rem;
+  margin-bottom: 4px;
+}
+
+.log-q {
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.log-a {
+  color: var(--text-muted);
+}
+
+
 /* =====================================================================
-   7. RESPONSIVE RULES (Clean Breakpoints)
+   7. RESPONSIVE RULES
    ===================================================================== */
 
-/* Mobile Breakpoint Optimization Layouts */
+/* ---- Up to 639px: Small Screens Global Adjustments ---------------- */
+@media (max-width: 639px) {
+  .header {
+    padding: 0 12px;
+    gap: 8px;
+  }
+  .bot-info {
+    max-width: 130px;
+  }
+  .bot-name {
+    font-size: 0.95rem;
+  }
+  .bot-status {
+    font-size: 0.68rem;
+  }
+  .profile-btn {
+    display: none;
+  }
+  .bubble {
+    max-width: 85%;
+    font-size: 0.88rem;
+  }
+  .stat-grid {
+    grid-template-columns: 1fr; /* Stack vertically for pristine readability */
+  }
+}
+
+/* ---- Up to 1023px: Tablets & Phones Mobile Admin Architecture ---- */
 @media (max-width: 1023px) {
   .mobile-menu-btn {
     display: flex;
-  }
-  
-  .sidebar {
-    /* Kept as drawer on mobile screens */
+    align-items: center;
+    justify-content: center;
+    width: var(--icon-btn);
+    height: var(--icon-btn);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 18px;
+    cursor: pointer;
+    flex-shrink: 0;
   }
 
-  /* Admin Layout Conversion to Horizontal Subbar Flow */
+  /* Admin Header Optimizations */
+  .admin-nav {
+    padding: 0 12px;
+  }
+  
+  .admin-nav .header-right .admin-link span {
+    display: none; /* Hide 'Logout' or text, leave just icons if cramped */
+  }
+
+  /* Core Layout Shift */
   .admin-body {
     flex-direction: column;
   }
 
+  /* Smooth Touch-Friendly Horizontal Pills Navigation */
   .admin-sidebar {
+    position: sticky;
+    top: var(--header-h);
     width: 100%;
     height: auto;
     flex-direction: row;
     overflow-x: auto;
+    white-space: nowrap;
     border-right: none;
     border-bottom: 1px solid var(--border);
     padding: 10px 16px;
     gap: 8px;
-    position: sticky;
-    top: var(--header-h);
-    scrollbar-width: none;
+    z-index: 90;
+    scrollbar-width: none; /* Hide default scrollbar on Firefox */
   }
-  .admin-sidebar::-webkit-scrollbar { display: none; }
+
+  .admin-sidebar::-webkit-scrollbar {
+    display: none; /* Hide default scrollbar on Chrome/Safari for sleek visual */
+  }
 
   .admin-nav-btn {
-    white-space: nowrap;
+    display: inline-flex;
+    padding: 8px 16px;
     background: var(--surface2);
     border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 8px 14px;
+    border-radius: 20px; /* Smooth pill buttons */
+    font-size: 0.8rem;
+    flex-shrink: 0;
+  }
+  
+  .admin-nav-btn.active {
+    border-color: var(--accent);
   }
 
   .admin-content {
     padding: 16px;
   }
-
-  .stat-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
 }
 
-@media (max-width: 639px) {
-  .bot-status { display: none; }
-  .bot-name { font-size: 1rem; }
-  
-  .bubble {
-    max-width: 88%;
-    font-size: 0.88rem;
-  }
-  
-  .stat-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .admin-nav .btn-sm span {
-    display: none; /* Hide button descriptive words if crowded */
-  }
-}
-
-/* Desktop Viewport Adjustments */
+/* ---- 1024px and up: Desktop Viewports ------------------------------ */
 @media (min-width: 1024px) {
   .sidebar {
     position: static;
@@ -1082,6 +1395,23 @@ textarea.form-control { height: 85px; resize: vertical; }
     transform: none;
     flex-shrink: 0;
   }
-  .sidebar-overlay { display: none !important; }
-  .sidebar-controls { display: none; } /* Hide duplicate actions on desktop sidebar */
+  .sidebar-overlay {
+    display: none !important;
+  }
+  .sidebar-profile-btn {
+    display: none;
+  }
+  .bubble {
+    max-width: min(60ch, 520px);
+  }
+}
+
+/* Screen widths under 360px */
+@media (max-width: 360px) {
+  .bot-status {
+    display: none;
+  }
+  .bubble {
+    font-size: 0.82rem;
+  }
 }

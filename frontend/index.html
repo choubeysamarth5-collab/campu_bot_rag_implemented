@@ -14,6 +14,7 @@
 
 <body data-theme="dark">
 
+  <!-- ===== HEADER ===== -->
   <header class="header">
     <div class="header-left">
 
@@ -36,57 +37,91 @@
     </div>
 
     <div class="header-right">
+      <!-- Language Selector -->
       <div class="lang-dropdown">
+
         <button class="lang-current" id="langCurrentBtn">
+
           EN ⌄
+
         </button>
 
         <div class="lang-menu" id="langMenu">
-          <button class="lang-btn active" data-lang="en">EN</button>
-          <button class="lang-btn" data-lang="hi">हिन्दी</button>
-          <button class="lang-btn" data-lang="mr">Marathi</button>
-          <button class="lang-btn" data-lang="ta">தமிழ்</button>
-          <button class="lang-btn" data-lang="te">తెలుగు</button>
+
+          <button class="lang-btn active" data-lang="en">
+            EN
+          </button>
+
+          <button class="lang-btn" data-lang="hi">
+            हिन्दी
+          </button>
+
+          <button class="lang-btn" data-lang="mr">
+            Marathi
+          </button>
+
+          <button class="lang-btn" data-lang="ta">
+            தமிழ்
+          </button>
+
+          <button class="lang-btn" data-lang="te">
+            తెలుగు
+          </button>
+
         </div>
+
       </div>
+      <!-- Theme Toggle -->
+      <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+        <span class="theme-icon">☀️</span>
+      </button>
+
+      <button class="profile-btn" onclick="openProfileModal()" title="My Profile">
+
+        👤
+
+      </button>
+
+      <!-- Admin Link (shows logout for regular users) -->
+      <a href="admin.html" class="admin-link" id="adminOrLogoutLink" title="Admin Panel">⚙️</a>
     </div>
 
   </header>
 
+  <!-- ===== MAIN LAYOUT ===== -->
   <div class="app-layout">
 
+    <!-- SIDEBAR: Quick Topics -->
     <aside class="sidebar">
-      
-      <div class="sidebar-controls">
-        <button class="theme-toggle" id="themeToggle" title="Toggle theme">
-          <span class="theme-icon">☀️</span> Theme Mode
-        </button>
-        <a href="admin.html" class="admin-link" id="adminOrLogoutLink" title="Admin Panel">⚙️ Controls</a>
-      </div>
-
       <h3 class="sidebar-title">Quick Topics</h3>
+      <!-- Chat History -->
       <div class="history-section">
         <h3 class="sidebar-title">Recent Chats</h3>
 
+        <!-- NEW CHAT BUTTON -->
+
         <button class="new-chat-btn" onclick="window.createNewChat()">
+
           ➕ New Chat
+
         </button>
 
         <div id="historyList" class="history-list">
-          </div>
+          <!-- Injected by JS -->
+        </div>
 
         <button id="clearHistoryBtn" class="clear-history-btn">
           🗑 Clear History
         </button>
       </div>
-      
       <div class="topic-list" id="topicList">
-        </div>
-      
+        <!-- Injected by JS -->
+      </div>
       <button class="sidebar-profile-btn" onclick="openProfileModal()">
+
         👤 My Profile
+
       </button>
-      
       <div class="sidebar-footer">
         <p>Need human help?</p>
         <a href="mailto:helpdesk@college.edu" class="contact-link">📧 helpdesk@college.edu</a>
@@ -94,14 +129,20 @@
       </div>
     </aside>
 
+    <!-- CHAT AREA -->
     <main class="chat-area">
 
+      <!-- Messages Container -->
       <div class="chat-messages" id="chatMessages">
-        </div>
+        <!-- Welcome message injected by JS -->
+      </div>
 
+      <!-- Suggestion Chips -->
       <div class="chips-row" id="chipsRow">
-        </div>
+        <!-- Injected by JS -->
+      </div>
 
+      <!-- Input Bar -->
       <div class="input-bar">
         <input type="text" id="userInput" class="chat-input" placeholder="Ask me anything about your college…"
           autocomplete="off" />
@@ -117,6 +158,7 @@
 
   </div>
 
+  <!-- ===== FEEDBACK MODAL ===== -->
   <div class="modal-overlay" id="feedbackModal" style="display:none">
     <div class="modal">
       <h3>Rate this answer</h3>
@@ -135,48 +177,54 @@
     </div>
   </div>
 
-  <div class="modal-overlay" id="profileModal" style="display:none">
-    <div class="modal">
-      <h3>My Profile</h3>
-      <div class="form-control-wrap"><input type="text" id="profileName" class="form-control" placeholder="Name"></div>
-      <div class="form-control-wrap"><input type="email" id="profileEmail" class="form-control" placeholder="Email" readonly></div>
-      <div class="form-control-wrap"><input type="text" id="profileRoll" class="form-control" placeholder="Roll Number"></div>
-      <div class="form-control-wrap"><input type="text" id="profileDepartment" class="form-control" placeholder="Department"></div>
-      <div class="form-control-wrap"><input type="number" id="profileYear" class="form-control" placeholder="Year"></div>
-
-      <div class="modal-actions" style="margin-top:14px">
-        <button class="btn-primary" onclick="updateProfile()">Save</button>
-        <button class="btn-ghost" onclick="closeProfileModal()">Close</button>
-      </div>
-    </div>
-  </div>
-
   <script src="auth/auth.js"></script>
   <script src="js/translations.js"></script>
   <script src="js/app.js"></script>
   <script>
-    const user = (typeof CampusAuth !== 'undefined') ? CampusAuth.getUser() : null;
+    // ── Optional Login Support ─────────────────────
+    // Chatbot works even without login
 
+    const user = (typeof CampusAuth !== 'undefined')
+      ? CampusAuth.getUser()
+      : null;
+
+    // ── If logged in ───────────────────────────────
     if (user) {
+
+      // Show user name
       const statusEl = document.querySelector('.bot-status');
+
       if (statusEl) {
         statusEl.textContent = `👤 ${user.name} · Online`;
       }
 
+      // Convert settings icon into logout button
       const logoutLink = document.getElementById('adminOrLogoutLink');
+
       if (logoutLink) {
-        logoutLink.innerHTML = '🚪 Logout';
+        logoutLink.innerHTML =
+          window.innerWidth <= 768
+            ? '🚪'
+            : '🚪 Logout';
         logoutLink.href = '#';
         logoutLink.title = 'Logout';
 
         logoutLink.addEventListener('click', (e) => {
           e.preventDefault();
+
+          // Clear login session
           localStorage.clear();
+
+          // Redirect to login page
           window.location.href = 'auth/login.html';
         });
       }
+
     } else {
+
+      // If not logged in → show login button
       const loginLink = document.getElementById('adminOrLogoutLink');
+
       if (loginLink) {
         loginLink.innerHTML = '🔑 Login';
         loginLink.href = 'auth/login.html';
@@ -184,50 +232,171 @@
       }
     }
 
-    async function openProfileModal() {
-      document.getElementById('profileModal').style.display = 'flex';
-      try {
-        const res = await CampusAuth.userFetch('/auth/me');
-        const data = await res.json();
-        const user = data.user;
+    // =============================================
+    // PROFILE MODAL
+    // =============================================
 
-        document.getElementById('profileName').value = user.name || '';
-        document.getElementById('profileEmail').value = user.email || '';
-        document.getElementById('profileRoll').value = user.rollNumber || '';
-        document.getElementById('profileDepartment').value = user.department || '';
-        document.getElementById('profileYear').value = user.year || '';
+
+    async function openProfileModal() {
+
+      document.getElementById(
+        'profileModal'
+      ).style.display = 'flex';
+
+      try {
+
+        const res =
+          await CampusAuth.userFetch(
+            '/auth/me'
+          );
+
+        const data =
+          await res.json();
+
+        const user =
+          data.user;
+
+        document.getElementById(
+          'profileName'
+        ).value =
+          user.name || '';
+
+        document.getElementById(
+          'profileEmail'
+        ).value =
+          user.email || '';
+
+        document.getElementById(
+          'profileRoll'
+        ).value =
+          user.rollNumber || '';
+
+        document.getElementById(
+          'profileDepartment'
+        ).value =
+          user.department || '';
+
+        document.getElementById(
+          'profileYear'
+        ).value =
+          user.year || '';
+
       } catch (err) {
+
         console.error(err);
       }
     }
 
     function closeProfileModal() {
-      document.getElementById('profileModal').style.display = 'none';
+
+      document.getElementById(
+        'profileModal'
+      ).style.display = 'none';
     }
 
     async function updateProfile() {
+
       try {
+
         const body = {
-          name: document.getElementById('profileName').value,
-          rollNumber: document.getElementById('profileRoll').value,
-          department: document.getElementById('profileDepartment').value,
-          year: document.getElementById('profileYear').value
+
+          name:
+            document.getElementById(
+              'profileName'
+            ).value,
+
+          rollNumber:
+            document.getElementById(
+              'profileRoll'
+            ).value,
+
+          department:
+            document.getElementById(
+              'profileDepartment'
+            ).value,
+
+          year:
+            document.getElementById(
+              'profileYear'
+            ).value
         };
 
-        const res = await CampusAuth.userFetch('/auth/profile', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
-        });
+        const res =
+          await CampusAuth.userFetch(
+            '/auth/profile',
+            {
 
-        const data = await res.json();
+              method: 'PUT',
+
+              headers: {
+                'Content-Type':
+                  'application/json'
+              },
+
+              body:
+                JSON.stringify(body)
+            }
+          );
+
+        const data =
+          await res.json();
+
         alert(data.message);
+
       } catch (err) {
+
         console.error(err);
+
         alert('Update failed');
       }
     }
   </script>
+
+  <!-- PROFILE MODAL -->
+  <div class="modal-overlay" id="profileModal" style="display:none">
+
+    <div class="modal">
+
+      <h3>My Profile</h3>
+
+      <input type="text" id="profileName" class="form-control" placeholder="Name">
+
+      <br>
+
+      <input type="email" id="profileEmail" class="form-control" placeholder="Email" readonly>
+
+      <br>
+
+      <input type="text" id="profileRoll" class="form-control" placeholder="Roll Number">
+
+      <br>
+
+      <input type="text" id="profileDepartment" class="form-control" placeholder="Department">
+
+      <br>
+
+      <input type="number" id="profileYear" class="form-control" placeholder="Year">
+
+      <br>
+
+      <div class="modal-actions">
+
+        <button class="btn-primary" onclick="updateProfile()">
+
+          Save
+
+        </button>
+
+        <button class="btn-ghost" onclick="closeProfileModal()">
+
+          Close
+
+        </button>
+
+      </div>
+
+    </div>
+  </div>
 </body>
 
 </html>
