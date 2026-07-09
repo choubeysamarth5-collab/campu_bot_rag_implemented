@@ -24,11 +24,10 @@
 //   In production, httpOnly cookies are more secure (prevent XSS).
 // =================================================================
 
-const API =
-  window.location.hostname === "localhost"
+const API = 
+  window.location.hostname === "localhost" 
     ? "http://localhost:5000/api"
-    : `http://${window.location.hostname}:5000/api`;
-
+    : "https://campu-bot-rag-implemented.onrender.com/api";
 // ── Key names in localStorage ─────────────────────────────────────
 const TOKEN_KEY = 'campusbot_token';
 const USER_KEY = 'campusbot_user';
