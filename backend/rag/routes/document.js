@@ -21,8 +21,7 @@ const path = require("path");
 const router = express.Router();
 
 const { adminProtect } = require("../../middleware/adminAuth");
-const embeddings = require("../embeddings/geminiEmbeddings");
-const { Chroma } = require("@langchain/community/vectorstores/chroma");
+const { getVectorStore } = require("../config/mongoVectorStore");
 
 // Same folder multer's upload.js saves into (rag/routes/../../uploads
 // => backend/uploads).
@@ -148,28 +147,23 @@ router.delete("/:savedName", adminProtect, async (req, res) => {
             fs.unlinkSync(fullPath);
         }
 
-        // 2. Delete its chunks from ChromaDB so chat stops citing it.
+        // 2. Delete its chunks from MongoDB Atlas Vector Search so
+        // chat stops citing it.
         let chunksRemoved = true;
         try {
-            const vectorStore = await Chroma.fromExistingCollection(
-                embeddings,
-                {
-                    collectionName: "campusbot-rag",
-                    url: "http://localhost:8000",
-                }
-            );
+            const vectorStore = getVectorStore();
 
             await vectorStore.delete({
                 filter: { source: originalName },
             });
 
         } catch (err) {
-            // Don't fail the whole request just because ChromaDB
+            // Don't fail the whole request just because vector-store
             // cleanup had trouble — the file is already gone from
             // disk either way — but DO tell the admin so it isn't
             // silently swallowed like our earlier bug was.
             chunksRemoved = false;
-            console.log("   ⚠️  Chroma cleanup failed:", err.message);
+            console.log("   ⚠️  Vector store cleanup failed:", err.message);
         }
 
         res.json({

@@ -1,31 +1,14 @@
 require("dotenv").config();
 
-const { Chroma } = require("@langchain/community/vectorstores/chroma");
-const embeddings = require("../embeddings/geminiEmbeddings");
+const { getVectorStore } = require("../config/mongoVectorStore");
 
 async function retrieveDocuments(query) {
 
-    const vectorStore = await Chroma.fromExistingCollection(
-        embeddings,
-        {
-            collectionName: "campusbot-rag",
-            url: "http://localhost:8000",
-        }
-    );
+    const vectorStore = getVectorStore();
 
-    // TEMP DEBUG: print the full chunk text so we can inspect OCR
-    // quality after the sharp preprocessing change. Remove once
-    // satisfied with accuracy.
-    const scoredDocs = await vectorStore.similaritySearchWithScore(query, 5);
-
-    console.log("---- RAG DEBUG: full chunk content ----");
-    scoredDocs.forEach(([doc, score], i) => {
-        console.log(`\n[${i + 1}] score=${score}`);
-        console.log(doc.pageContent);
-    });
-    console.log("---- END RAG DEBUG ----\n");
-
-    const docs = scoredDocs.map(([doc]) => doc);
+    // k=5 — a little more context helps the LLM piece together an
+    // answer when OCR text is split awkwardly across chunks.
+    const docs = await vectorStore.similaritySearch(query, 5);
 
     return docs;
 }

@@ -60,7 +60,7 @@ function renderSystemInfo(data) {
         data.mongo?.connected ? "✅ Up" : "❌ Down";
 
     document.getElementById("statChroma").textContent =
-        data.chroma?.connected ? "✅ Up" : "❌ Down";
+        data.vectorDb?.connected ? "✅ Up" : "❌ Down";
 
     const envRows = Object.entries(data.env || {}).map(([key, value]) => {
         const display = typeof value === "boolean"
@@ -111,8 +111,8 @@ function renderStorage(data) {
 
     const rows = [
         `<tr><td>📁 Uploaded PDFs</td><td>${data.uploads.fileCount} files — ${data.uploads.sizeKB} KB</td></tr>`,
-        `<tr><td>🧠 ChromaDB (indexed chunks)</td><td>${
-            data.chroma.connected ? `${data.chroma.chunkCount} chunks` : "⚠️ Not connected"
+        `<tr><td>🧠 Vector Store (indexed chunks)</td><td>${
+            data.vectorDb.connected ? `${data.vectorDb.totalChunks} chunks across ${data.vectorDb.documents.length} document(s)` : "⚠️ Not connected"
         }</td></tr>`,
         `<tr><td>🗄️ MongoDB Data Size</td><td>${
             data.mongoStats && !data.mongoStats.error ? `${data.mongoStats.dataSizeMB} MB (indexes: ${data.mongoStats.indexSizeMB} MB)` : "—"
@@ -129,7 +129,7 @@ function renderStorage(data) {
 
 async function clearEverything() {
     if (!confirm(
-        "This clears uploaded PDFs, the ChromaDB knowledge base, chat logs, " +
+        "This clears uploaded PDFs, the vector-search knowledge base, chat logs, " +
         "and feedback entries — everything except FAQs, Users, and Admins. " +
         "This cannot be undone. Continue?"
     )) return;
@@ -151,7 +151,7 @@ async function clearEverything() {
 async function clearUploads() {
     if (!confirm(
         "This will permanently delete EVERY uploaded PDF and wipe the entire " +
-        "ChromaDB knowledge base. The chatbot will lose all document-based " +
+        "vector-search knowledge base. The chatbot will lose all document-based " +
         "answers until documents are re-uploaded. Continue?"
     )) return;
 
@@ -197,21 +197,21 @@ async function loadVectorDB() {
         const data = await res.json();
 
         if (!data.connected) {
-            body.innerHTML = `<tr><td colspan="3" style="color:var(--danger)">⚠️ ChromaDB not reachable.</td></tr>`;
+            body.innerHTML = `<tr><td colspan="3" style="color:var(--danger)">⚠️ Vector store not reachable.</td></tr>`;
             return;
         }
 
-        if (data.collections.length === 0) {
-            body.innerHTML = `<tr><td colspan="3" style="color:var(--text-dim)">No collections found.</td></tr>`;
+        if (data.documents.length === 0) {
+            body.innerHTML = `<tr><td colspan="3" style="color:var(--text-dim)">No documents indexed yet.</td></tr>`;
             return;
         }
 
-        body.innerHTML = data.collections.map(c => `
+        body.innerHTML = data.documents.map(d => `
             <tr>
-                <td>${c.name}</td>
-                <td>${c.chunkCount ?? "—"}</td>
+                <td>${d.source}</td>
+                <td>${d.chunkCount}</td>
                 <td>
-                    <button class="btn-sm danger" onclick="deleteCollection('${c.name}')">🗑 Delete Collection</button>
+                    <button class="btn-sm danger" onclick="deleteVectorSource('${encodeURIComponent(d.source)}')">🗑 Delete</button>
                 </td>
             </tr>
         `).join("");
@@ -222,21 +222,24 @@ async function loadVectorDB() {
     }
 }
 
-async function deleteCollection(name) {
-    if (!confirm(`Permanently delete the entire "${name}" collection from ChromaDB?`)) return;
+async function deleteVectorSource(source) {
+    const decoded = decodeURIComponent(source);
+    if (!confirm(`Permanently delete all indexed chunks for "${decoded}"?`)) return;
 
     try {
-        const res = await CampusAuth.adminFetch(`/dev/vectordb/${encodeURIComponent(name)}`, { method: "DELETE" });
+        const res = await CampusAuth.adminFetch(`/dev/vectordb/${source}`, { method: "DELETE" });
         const data = await res.json();
         alert(data.message || data.error);
         loadVectorDB();
     } catch (err) {
         console.error(err);
-        alert("Failed to delete collection.");
+        alert("Failed to delete.");
     }
 }
 
 // ── AI PROVIDER STATUS ───────────────────────────────────────────────
+// Shows BOTH providers since the chatbot tries Groq first, falling
+// back to Gemini automatically if Groq fails.
 async function loadAiStatus() {
 
     const el = document.getElementById("aiStatusBody");
@@ -245,10 +248,12 @@ async function loadAiStatus() {
         const res = await CampusAuth.adminFetch("/dev/ai-status");
         const data = await res.json();
 
-        el.innerHTML = `
-            <tr><td>Provider</td><td>${data.provider}</td></tr>
-            <tr><td>API Key Configured</td><td>${data.apiKeyConfigured ? "✅ Yes" : "❌ No"}</td></tr>
-        `;
+        el.innerHTML = data.providers.map(p => `
+            <tr>
+                <td>${p.name}</td>
+                <td>${p.apiKeyConfigured ? "✅ Configured" : "❌ Missing"}</td>
+            </tr>
+        `).join("");
     } catch (err) {
         console.error(err);
         el.innerHTML = `<tr><td colspan="2" style="color:var(--danger)">Failed to load.</td></tr>`;
@@ -258,7 +263,7 @@ async function loadAiStatus() {
 async function testAiProvider() {
 
     const resultEl = document.getElementById("aiTestResult");
-    resultEl.textContent = "Testing… (this makes one real API call)";
+    resultEl.textContent = "Testing Gemini… (this makes one real API call)";
 
     try {
         const res = await CampusAuth.adminFetch("/dev/ai-status/test", { method: "POST" });
