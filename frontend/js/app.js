@@ -16,7 +16,10 @@ const state = {
 
 // ── Backend API URL (change if deploying) ──
 //const API_BASE = 'https://campus-bot-ml-2.onrender.com/api';
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE =
+    window.location.hostname === "localhost"
+        ? "http://localhost:5000/api"
+        : "https://campu-bot-rag-implemented.onrender.com/api";
 
 // ── DOM Shortcuts ──
 const $ = (id) => document.getElementById(id);
