@@ -25,6 +25,7 @@ const {
     getVectorCollection,
     COLLECTION_NAME,
 } = require("../rag/config/mongoVectorStore");
+const { getBucket } = require("../rag/config/gridfs");
 
 const UPLOADS_PATH = path.join(__dirname, "../uploads");
 
@@ -33,28 +34,29 @@ const UPLOADS_PATH = path.join(__dirname, "../uploads");
 const SERVER_STARTED_AT = new Date().toISOString();
 
 
-// ── Helper: total size + file count of a folder ─────────────────────
-function getFolderStats(folderPath) {
-    if (!fs.existsSync(folderPath)) return { sizeKB: 0, fileCount: 0 };
+// ── Helper: total size + file count of GridFS-stored PDFs (replaces
+// the old local-disk folder stats, since PDFs now live in MongoDB
+// Atlas via GridFS instead of the ephemeral local disk) ────────────
+async function getUploadsStats() {
+    try {
+        const bucket = getBucket();
+        const files = await bucket.find({}).toArray();
 
-    const files = fs.readdirSync(folderPath);
-    let totalBytes = 0;
+        const totalBytes = files.reduce((sum, f) => sum + f.length, 0);
 
-    files.forEach(name => {
-        const stat = fs.statSync(path.join(folderPath, name));
-        if (stat.isFile()) totalBytes += stat.size;
-    });
-
-    return {
-        sizeKB: Math.round(totalBytes / 1024),
-        fileCount: files.length,
-    };
+        return {
+            sizeKB: Math.round(totalBytes / 1024),
+            fileCount: files.length,
+        };
+    } catch (err) {
+        return { sizeKB: 0, fileCount: 0, error: err.message };
+    }
 }
 
 // ── Helper: real disk space stats for the drive the uploads folder
 // lives on (Node's fs.statfsSync works on Windows/Mac/Linux since
 // Node 18.15+) ────────────────────────────────────────────────────
-function getDiskStats(folderPath) {
+function getDiskStats(folderPath = __dirname) {
     try {
         const target = fs.existsSync(folderPath) ? folderPath : __dirname;
         const stats = fs.statfsSync(target);
@@ -170,9 +172,9 @@ router.get("/storage", adminProtect, requireSuperAdmin, async (req, res) => {
 
     try {
 
-        const uploads = getFolderStats(UPLOADS_PATH);
+        const uploads = await getUploadsStats();
         const vectorStats = await getVectorStats();
-        const disk = getDiskStats(UPLOADS_PATH);
+        const disk = getDiskStats();
 
         const FAQ = require("../models/FAQ");
         const Log = require("../models/Log");
@@ -236,10 +238,9 @@ router.delete("/storage/all", adminProtect, requireSuperAdmin, async (req, res) 
     const results = {};
 
     try {
-        if (fs.existsSync(UPLOADS_PATH)) {
-            const files = fs.readdirSync(UPLOADS_PATH);
-            files.forEach(name => fs.unlinkSync(path.join(UPLOADS_PATH, name)));
-        }
+        const bucket = getBucket();
+        const files = await bucket.find({}).toArray();
+        await Promise.all(files.map(f => bucket.delete(f._id)));
         results.uploads = "cleared";
     } catch (err) {
         results.uploads = `failed: ${err.message}`;
@@ -292,10 +293,9 @@ router.delete("/storage/uploads", adminProtect, requireSuperAdmin, async (req, r
 
     try {
 
-        if (fs.existsSync(UPLOADS_PATH)) {
-            const files = fs.readdirSync(UPLOADS_PATH);
-            files.forEach(name => fs.unlinkSync(path.join(UPLOADS_PATH, name)));
-        }
+        const bucket = getBucket();
+        const files = await bucket.find({}).toArray();
+        await Promise.all(files.map(f => bucket.delete(f._id)));
 
         try {
             const collection = getVectorCollection();

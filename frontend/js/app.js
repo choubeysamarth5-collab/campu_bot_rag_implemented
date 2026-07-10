@@ -16,6 +16,8 @@ const state = {
 
 // ── Backend API URL (change if deploying) ──
 //const API_BASE = 'https://campus-bot-ml-2.onrender.com/api';
+// Automatically uses localhost while developing, and the deployed
+// backend URL once the site is live — no manual toggling needed.
 const API_BASE =
     window.location.hostname === "localhost"
         ? "http://localhost:5000/api"

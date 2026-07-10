@@ -1306,9 +1306,26 @@ async function loadDocuments() {
     try {
 
         const res = await CampusAuth.adminFetch("/rag/documents");
+
+        // Token expired/invalid — don't show "no documents", since
+        // the documents are still there; the request just failed.
+        if (res.status === 401 || res.status === 403) {
+            container.innerHTML =
+                "<p style='color:var(--danger)'>⚠️ Your admin session expired. Please refresh the page and log in again to see your documents.</p>";
+            return;
+        }
+
         const data = await res.json();
 
-        if (!data.success || data.documents.length === 0) {
+        if (!data.success) {
+            // A real server-side error — show it plainly instead of
+            // silently claiming there are no documents.
+            container.innerHTML =
+                `<p style='color:var(--danger)'>⚠️ Could not load documents: ${escapeHtml(data.error || "Unknown error")}. <a href="#" onclick="loadDocuments();return false;" style="color:var(--accent)">Retry</a></p>`;
+            return;
+        }
+
+        if (data.documents.length === 0) {
             container.innerHTML =
                 "<p style='color:var(--text-muted)'>No documents uploaded yet.</p>";
             return;
@@ -1328,10 +1345,10 @@ async function loadDocuments() {
                     <td>${uploadedDate}</td>
                     <td>
                         <div class="action-btns">
-                            <button class="btn-sm" onclick="viewDocument('${encodeURIComponent(doc.savedName)}')">
+                            <button class="btn-sm" onclick="viewDocument('${doc.fileId}')">
                                 👁 View
                             </button>
-                            <button class="btn-sm danger" onclick="deleteDocument('${encodeURIComponent(doc.savedName)}', '${escapeHtml(doc.name)}')">
+                            <button class="btn-sm danger" onclick="deleteDocument('${doc.fileId}', '${escapeHtml(doc.name)}')">
                                 🗑 Delete
                             </button>
                         </div>
@@ -1363,24 +1380,33 @@ async function loadDocuments() {
     }
 }
 
-function viewDocument(savedName) {
+function viewDocument(fileId) {
     // Opens the PDF in a new tab. The view route itself is
     // admin-protected, but a plain <a>/window.open can't attach an
     // Authorization header — so instead we fetch it (with the header
     // CampusAuth adds automatically) and open the returned blob.
-    CampusAuth.adminFetch(`/rag/documents/view/${savedName}`)
-        .then(res => res.blob())
+    CampusAuth.adminFetch(`/rag/documents/view/${fileId}`)
+        .then(async res => {
+            if (!res.ok) {
+                // Something went wrong server-side (auth failure,
+                // file missing, etc.) — read the real error message
+                // instead of silently opening it as if it were a PDF.
+                const errorData = await res.json().catch(() => null);
+                throw new Error(errorData?.message || `Request failed (status ${res.status})`);
+            }
+            return res.blob();
+        })
         .then(blob => {
             const url = URL.createObjectURL(blob);
             window.open(url, "_blank");
         })
         .catch(err => {
             console.error(err);
-            alert("Could not open document.");
+            alert(`Could not open document: ${err.message}`);
         });
 }
 
-async function deleteDocument(savedName, displayName) {
+async function deleteDocument(fileId, displayName) {
 
     if (!confirm(`Delete "${displayName}"? This also removes it from the chatbot's knowledge.`)) {
         return;
@@ -1389,7 +1415,7 @@ async function deleteDocument(savedName, displayName) {
     try {
 
         const res = await CampusAuth.adminFetch(
-            `/rag/documents/${savedName}`,
+            `/rag/documents/${fileId}`,
             { method: "DELETE" }
         );
 

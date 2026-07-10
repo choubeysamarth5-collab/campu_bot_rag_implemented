@@ -1,20 +1,12 @@
 const multer = require("multer");
 const path = require("path");
 
-// Decide where the uploaded PDF will be stored
-const storage = multer.diskStorage({
-
-    // Folder where files will be saved
-    destination: function (req, file, cb) {
-        cb(null, "uploads/");
-    },
-
-    // Name of the uploaded file
-    filename: function (req, file, cb) {
-        cb(null, Date.now() + "-" + file.originalname);
-    }
-
-});
+// CHANGED: memoryStorage instead of diskStorage. Files are now kept
+// in memory as a Buffer (req.file.buffer) instead of being written
+// to the local disk — the local disk is ephemeral on free hosting
+// (wiped on every restart), so we upload the buffer to GridFS
+// (MongoDB Atlas) ourselves in the route handler instead.
+const storage = multer.memoryStorage();
 
 // Accept only PDF files
 const upload = multer({
