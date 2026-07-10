@@ -191,13 +191,24 @@ router.get("/storage", adminProtect, requireSuperAdmin, async (req, res) => {
                 Admin.countDocuments(),
             ]);
 
+        // MongoDB Atlas's free tier (M0) caps total storage at 512MB
+        // — this covers EVERYTHING in the database: FAQs, users, chat
+        // logs, vector chunks, AND uploaded PDFs (via GridFS). We
+        // calculate usage against that limit so the admin can see
+        // how close they are to needing a paid tier.
+        const ATLAS_FREE_TIER_MB = 512;
+
         let mongoStats = null;
         try {
             const stats = await mongoose.connection.db.stats();
+            const storageSizeMB = +(stats.storageSize / (1024 ** 2)).toFixed(2);
+
             mongoStats = {
                 dataSizeMB: +(stats.dataSize / (1024 ** 2)).toFixed(2),
-                storageSizeMB: +(stats.storageSize / (1024 ** 2)).toFixed(2),
+                storageSizeMB,
                 indexSizeMB: +(stats.indexSize / (1024 ** 2)).toFixed(2),
+                freeTierLimitMB: ATLAS_FREE_TIER_MB,
+                usedPercent: Math.min(100, Math.round((storageSizeMB / ATLAS_FREE_TIER_MB) * 100)),
             };
         } catch (err) {
             mongoStats = { error: err.message };

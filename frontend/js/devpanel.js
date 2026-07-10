@@ -94,6 +94,24 @@ function renderServerInfo(data) {
 // ── STORAGE MANAGEMENT ───────────────────────────────────────────────
 function renderStorage(data) {
 
+    // MongoDB Atlas free-tier (512MB) storage bar
+    const mongoBar = document.getElementById("mongoUsageBar");
+    if (data.mongoStats && !data.mongoStats.error) {
+        const m = data.mongoStats;
+        const nearLimit = m.usedPercent >= 80;
+        mongoBar.innerHTML = `
+            <div class="upload-progress-track">
+                <div class="upload-progress-fill" style="width:${m.usedPercent}%; ${nearLimit ? 'background:linear-gradient(90deg, #f59e0b, var(--danger));' : ''}"></div>
+            </div>
+            <div class="upload-progress-text">
+                ${m.storageSizeMB} MB used of ${m.freeTierLimitMB} MB free-tier limit — ${m.usedPercent}%
+                ${nearLimit ? ' ⚠️ Getting close to the free-tier cap' : ''}
+            </div>
+        `;
+    } else {
+        mongoBar.innerHTML = `<p style="color:var(--text-dim)">MongoDB stats unavailable.</p>`;
+    }
+
     // Disk space bar
     const diskBar = document.getElementById("diskUsageBar");
     if (data.disk && !data.disk.error) {
