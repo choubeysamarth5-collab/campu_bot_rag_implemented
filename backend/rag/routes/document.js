@@ -10,9 +10,16 @@
 const express = require("express");
 const router = express.Router();
 
+const mongoose = require("mongoose");
 const { adminProtect } = require("../../middleware/adminAuth");
 const { getVectorCollection } = require("../config/mongoVectorStore");
 const { getBucket } = require("../config/gridfs");
+
+// Reuse Mongoose's own bundled ObjectId (mongoose.mongo.ObjectId)
+// instead of importing a separate top-level `mongodb` package —
+// mixing the two causes a BSON version mismatch (see gridfs.js for
+// the full explanation).
+const { ObjectId } = mongoose.mongo;
 
 // Multer prefixes saved files with a timestamp, e.g.
 // "1751533801234-time table.pdf". This turns that back into the
@@ -67,7 +74,6 @@ router.get("/view/:fileId", adminProtect, async (req, res) => {
 
     try {
 
-        const { ObjectId } = require("mongodb");
         const bucket = getBucket();
 
         const files = await bucket.find({ _id: new ObjectId(req.params.fileId) }).toArray();
@@ -111,7 +117,6 @@ router.delete("/:fileId", adminProtect, async (req, res) => {
 
     try {
 
-        const { ObjectId } = require("mongodb");
         const bucket = getBucket();
 
         const files = await bucket.find({ _id: new ObjectId(req.params.fileId) }).toArray();

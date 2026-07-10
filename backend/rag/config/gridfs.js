@@ -13,7 +13,19 @@
 // =====================================================================
 
 const mongoose = require("mongoose");
-const { GridFSBucket } = require("mongodb");
+
+// IMPORTANT: We deliberately do NOT `require("mongodb")` directly.
+// Mongoose ships its own bundled copy of the mongodb driver (with
+// its own bson version) at node_modules/mongoose/node_modules/mongodb.
+// If we import a second, separate `mongodb` package instead, its
+// GridFSBucket/ObjectId come from a DIFFERENT bson instance than the
+// one Mongoose's internal driver uses — even matching versions won't
+// recognize each other's objects, causing:
+//   "BSONVersionError: Unsupported BSON version, bson types must be
+//    from bson 6.x.x"
+// `mongoose.mongo` is Mongoose's own driver instance — reusing it
+// avoids this "dual package hazard" entirely.
+const { GridFSBucket } = mongoose.mongo;
 
 const BUCKET_NAME = "pdfUploads";
 
