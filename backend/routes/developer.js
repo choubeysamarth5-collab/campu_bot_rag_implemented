@@ -390,6 +390,10 @@ router.delete("/vectordb/:source", adminProtect, requireSuperAdmin, async (req, 
 
     try {
 
+        const originalName = req.params.source;
+
+        // 1. Delete the vector chunks (as before).
+        //
         // NOTE: @langchain/mongodb's vectorStore.delete({filter}) is
         // documented as "delete by ids" and internally expects an
         // `ids` array — passing only a filter crashes with "Cannot
@@ -398,11 +402,39 @@ router.delete("/vectordb/:source", adminProtect, requireSuperAdmin, async (req, 
         // underlying MongoDB collection instead, which works
         // reliably.
         const collection = getVectorCollection();
-        const result = await collection.deleteMany({ source: req.params.source });
+        const chunkResult = await collection.deleteMany({ source: originalName });
 
-        logger.info(`Vector chunks deleted for source: ${req.params.source} (${result.deletedCount} removed)`);
+        // 2. ALSO delete the matching GridFS file(s) — otherwise the
+        // physical PDF stays in storage and keeps showing up in the
+        // Admin Panel's Document Manager even though its chunks (and
+        // therefore its chat answers) are gone. This keeps both
+        // panels in sync no matter which one you delete from.
+        const bucket = getBucket();
+        const files = await bucket.find({ "metadata.originalName": originalName }).toArray();
 
-        res.json({ success: true, message: `Deleted ${result.deletedCount} chunk(s) for "${req.params.source}".` });
+        // Fallback: older uploads may not have metadata.originalName
+        // set, so also match by stripping the timestamp prefix off
+        // the stored filename.
+        const allFiles = await bucket.find({}).toArray();
+        const matchingByName = allFiles.filter(
+            f => f.filename.replace(/^\d+-/, "") === originalName
+        );
+
+        const filesToDelete = [
+            ...files,
+            ...matchingByName.filter(f => !files.some(existing => existing._id.equals(f._id))),
+        ];
+
+        await Promise.all(filesToDelete.map(f => bucket.delete(f._id)));
+
+        logger.info(
+            `Deleted "${originalName}": ${chunkResult.deletedCount} chunk(s), ${filesToDelete.length} GridFS file(s)`
+        );
+
+        res.json({
+            success: true,
+            message: `Deleted ${chunkResult.deletedCount} chunk(s) and ${filesToDelete.length} file(s) for "${originalName}".`,
+        });
 
     } catch (err) {
 
