@@ -94,10 +94,19 @@
         </div>
 
         <div class="card">
-          <h3 style="margin-bottom: 10px; font-size: 0.95rem;">Disk Space</h3>
-          <div id="diskUsageBar">
-            <p style="color:var(--text-dim)">Loading…</p>
-          </div>
+          <h3 style="margin-bottom: 10px; font-size: 0.95rem;">What's Stored — Full Breakdown</h3>
+          <table class="faq-table">
+            <thead>
+              <tr>
+                <th>Collection</th>
+                <th>Documents</th>
+                <th>Storage Size</th>
+              </tr>
+            </thead>
+            <tbody id="collectionBreakdownBody">
+              <tr><td colspan="3" style="text-align:center;color:var(--text-dim)">Loading…</td></tr>
+            </tbody>
+          </table>
         </div>
 
         <div class="card">
@@ -175,6 +184,23 @@
             🧪 Test Now (makes 1 real API call)
           </button>
           <p id="aiTestResult" style="margin-top: 10px; font-size: 0.85rem; color: var(--text-muted);"></p>
+
+          <hr style="border-color:var(--border); margin: 16px 0;">
+
+          <h4 style="margin-bottom: 8px; font-size: 0.85rem; color: var(--text-muted);">Manual Override</h4>
+          <p style="font-size: 0.78rem; color: var(--text-dim); margin-bottom: 10px;">
+            By default the chatbot tries Groq first and falls back to Gemini automatically ("Auto").
+            Force one provider only if you want to test or temporarily bypass one.
+          </p>
+          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <select id="aiProviderMode" class="form-control" style="max-width:220px;">
+              <option value="auto">Auto (Groq → Gemini fallback)</option>
+              <option value="groq_only">Groq only</option>
+              <option value="gemini_only">Gemini only</option>
+            </select>
+            <button class="btn-sm" onclick="setAiProviderMode()">Save</button>
+          </div>
+          <p id="aiModeMsg" style="margin-top: 10px; font-size: 0.85rem; color: var(--text-muted);"></p>
         </div>
 
         <!-- CACHE MANAGEMENT -->
@@ -239,7 +265,7 @@
   </div>
 
   <script src="auth/auth.js"></script>
-  <script src="js/devpanel.js"></script>
+  <script src="js/devPanel.js"></script>
   <script>
     // Same login guard as admin.html — must be logged in as SOME
     // admin at all. Whether they're specifically a superadmin is
