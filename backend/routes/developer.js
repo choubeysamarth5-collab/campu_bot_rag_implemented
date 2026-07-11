@@ -390,12 +390,19 @@ router.delete("/vectordb/:source", adminProtect, requireSuperAdmin, async (req, 
 
     try {
 
-        const vectorStore = getVectorStore();
-        await vectorStore.delete({ filter: { source: req.params.source } });
+        // NOTE: @langchain/mongodb's vectorStore.delete({filter}) is
+        // documented as "delete by ids" and internally expects an
+        // `ids` array — passing only a filter crashes with "Cannot
+        // read properties of undefined (reading 'reduce')". We
+        // bypass that buggy wrapper and delete directly on the
+        // underlying MongoDB collection instead, which works
+        // reliably.
+        const collection = getVectorCollection();
+        const result = await collection.deleteMany({ source: req.params.source });
 
-        logger.info(`Vector chunks deleted for source: ${req.params.source}`);
+        logger.info(`Vector chunks deleted for source: ${req.params.source} (${result.deletedCount} removed)`);
 
-        res.json({ success: true, message: `Chunks for "${req.params.source}" deleted.` });
+        res.json({ success: true, message: `Deleted ${result.deletedCount} chunk(s) for "${req.params.source}".` });
 
     } catch (err) {
 
