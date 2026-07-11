@@ -19,6 +19,7 @@ const router = express.Router();
 const { adminProtect, requireSuperAdmin } = require("../middleware/adminAuth");
 const logger = require("../utils/logger");
 const faqCache = require("../utils/faqCache");
+const { getProviderMode, setProviderMode, VALID_MODES } = require("../utils/aiProviderConfig");
 const geminiModel = require("../rag/config/gemini");
 const {
     getVectorStore,
@@ -53,26 +54,41 @@ async function getUploadsStats() {
     }
 }
 
-// ── Helper: real disk space stats for the drive the uploads folder
-// lives on (Node's fs.statfsSync works on Windows/Mac/Linux since
-// Node 18.15+) ────────────────────────────────────────────────────
-function getDiskStats(folderPath = __dirname) {
+// (Disk-space tracking removed — with GridFS + MongoDB Atlas for
+// everything, local disk usage isn't meaningful data anymore. See
+// getCollectionBreakdown() below for the real storage picture.)
+
+// ── Helper: per-collection size breakdown across the whole database
+// — gives a genuinely complete "what is stored, and how big is it"
+// view, instead of just document counts. ───────────────────────────
+async function getCollectionBreakdown() {
     try {
-        const target = fs.existsSync(folderPath) ? folderPath : __dirname;
-        const stats = fs.statfsSync(target);
+        const db = mongoose.connection.db;
+        const collections = await db.listCollections().toArray();
 
-        const totalBytes = stats.blocks * stats.bsize;
-        const freeBytes = stats.bfree * stats.bsize;
-        const usedBytes = totalBytes - freeBytes;
+        const breakdown = await Promise.all(
+            collections.map(async (col) => {
+                try {
+                    const stats = await db.command({ collStats: col.name });
+                    return {
+                        name: col.name,
+                        documentCount: stats.count || 0,
+                        sizeKB: Math.round((stats.size || 0) / 1024),
+                        storageSizeKB: Math.round((stats.storageSize || 0) / 1024),
+                    };
+                } catch (err) {
+                    return { name: col.name, documentCount: 0, sizeKB: 0, storageSizeKB: 0 };
+                }
+            })
+        );
 
-        return {
-            totalGB: +(totalBytes / (1024 ** 3)).toFixed(1),
-            usedGB: +(usedBytes / (1024 ** 3)).toFixed(1),
-            freeGB: +(freeBytes / (1024 ** 3)).toFixed(1),
-            usedPercent: Math.round((usedBytes / totalBytes) * 100),
-        };
+        // Largest first — the admin usually cares most about what's
+        // taking the most space.
+        breakdown.sort((a, b) => b.storageSizeKB - a.storageSizeKB);
+
+        return breakdown;
     } catch (err) {
-        return { error: err.message };
+        return [];
     }
 }
 
@@ -174,7 +190,7 @@ router.get("/storage", adminProtect, requireSuperAdmin, async (req, res) => {
 
         const uploads = await getUploadsStats();
         const vectorStats = await getVectorStats();
-        const disk = getDiskStats();
+        const collectionBreakdown = await getCollectionBreakdown();
 
         const FAQ = require("../models/FAQ");
         const Log = require("../models/Log");
@@ -216,10 +232,10 @@ router.get("/storage", adminProtect, requireSuperAdmin, async (req, res) => {
 
         res.json({
             success: true,
-            disk,
             uploads,
             vectorDb: vectorStats,
             mongoStats,
+            collectionBreakdown,
             mongoCollections: {
                 faqs: faqCount,
                 chatLogs: logCount,
@@ -401,6 +417,7 @@ router.get("/ai-status", adminProtect, requireSuperAdmin, async (req, res) => {
 
     res.json({
         success: true,
+        mode: getProviderMode(),
         providers: [
             {
                 name: "Groq (primary)",
@@ -412,6 +429,26 @@ router.get("/ai-status", adminProtect, requireSuperAdmin, async (req, res) => {
             },
         ],
     });
+
+});
+
+// POST /api/dev/ai-status/mode — manually force a provider, or set
+// back to "auto" (Groq first, falls back to Gemini automatically).
+router.post("/ai-status/mode", adminProtect, requireSuperAdmin, async (req, res) => {
+
+    try {
+        const { mode } = req.body;
+        const updated = setProviderMode(mode);
+
+        logger.info(`AI provider mode manually changed to: ${updated}`);
+
+        res.json({ success: true, mode: updated });
+
+    } catch (err) {
+
+        res.status(400).json({ success: false, error: err.message });
+
+    }
 
 });
 

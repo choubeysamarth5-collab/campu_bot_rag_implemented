@@ -112,19 +112,20 @@ function renderStorage(data) {
         mongoBar.innerHTML = `<p style="color:var(--text-dim)">MongoDB stats unavailable.</p>`;
     }
 
-    // Disk space bar
-    const diskBar = document.getElementById("diskUsageBar");
-    if (data.disk && !data.disk.error) {
-        diskBar.innerHTML = `
-            <div class="upload-progress-track">
-                <div class="upload-progress-fill" style="width:${data.disk.usedPercent}%"></div>
-            </div>
-            <div class="upload-progress-text">
-                ${data.disk.usedGB} GB used of ${data.disk.totalGB} GB (${data.disk.freeGB} GB free) — ${data.disk.usedPercent}%
-            </div>
-        `;
+    // Detailed per-collection breakdown — shows exactly what's
+    // stored (every MongoDB collection, including GridFS chunks/
+    // files) and how much space each one takes.
+    const breakdownBody = document.getElementById("collectionBreakdownBody");
+    if (data.collectionBreakdown && data.collectionBreakdown.length > 0) {
+        breakdownBody.innerHTML = data.collectionBreakdown.map(c => `
+            <tr>
+                <td>${c.name}</td>
+                <td>${c.documentCount}</td>
+                <td>${c.storageSizeKB} KB</td>
+            </tr>
+        `).join("");
     } else {
-        diskBar.innerHTML = `<p style="color:var(--text-dim)">Disk stats unavailable.</p>`;
+        breakdownBody.innerHTML = `<tr><td colspan="3" style="color:var(--text-dim)">No data.</td></tr>`;
     }
 
     const rows = [
@@ -272,9 +273,39 @@ async function loadAiStatus() {
                 <td>${p.apiKeyConfigured ? "✅ Configured" : "❌ Missing"}</td>
             </tr>
         `).join("");
+
+        // Reflect the current mode in the dropdown so it doesn't
+        // silently reset to "auto" on every page load.
+        const modeSelect = document.getElementById("aiProviderMode");
+        if (modeSelect) modeSelect.value = data.mode;
+
     } catch (err) {
         console.error(err);
         el.innerHTML = `<tr><td colspan="2" style="color:var(--danger)">Failed to load.</td></tr>`;
+    }
+}
+
+async function setAiProviderMode() {
+
+    const mode = document.getElementById("aiProviderMode").value;
+    const msgEl = document.getElementById("aiModeMsg");
+    msgEl.textContent = "Saving…";
+
+    try {
+        const res = await CampusAuth.adminFetch("/dev/ai-status/mode", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ mode }),
+        });
+        const data = await res.json();
+
+        msgEl.textContent = data.success
+            ? `✅ Mode set to "${data.mode}". This applies immediately to new chat requests.`
+            : `❌ ${data.error}`;
+
+    } catch (err) {
+        console.error(err);
+        msgEl.textContent = "❌ Failed to update mode.";
     }
 }
 
