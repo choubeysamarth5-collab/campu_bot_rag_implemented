@@ -24,7 +24,7 @@ const LANGUAGE_NAMES = {
 const MAX_HISTORY_MESSAGES = 6;
 
 // Turns the frontend's history array into a simple transcript the
-// AI can read. Expected shape per entry: { sender: 'user'|'bot',
+// AI can read. Expected shape per entry: { role: 'user'|'bot',
 // text: '...' } — matches what app.js already stores per message.
 function formatHistory(history = []) {
     if (!Array.isArray(history) || history.length === 0) return "";
@@ -96,8 +96,11 @@ Answer:
             console.log("✅ Gemini Success");
             return answer;
         } catch (err) {
-            console.log("❌ Gemini Failed (forced mode, no fallback):", err.message);
-            return `AI service is temporarily unavailable.\n\nRelevant information from uploaded documents:\n\n${context}`;
+            console.log("❌ Gemini Failed (forced mode) — falling back to FAQ:", err.message);
+            // Throwing here lets chat.js's existing try/catch around
+            // askRAG() catch this and fall through to FAQ matching,
+            // instead of us trying to answer directly.
+            throw new Error("AI_PROVIDER_UNAVAILABLE");
         }
     }
 
@@ -108,40 +111,18 @@ Answer:
             console.log("✅ Groq Success");
             return answer;
         } catch (err) {
-            console.log("❌ Groq Failed (forced mode, no fallback):", err.message);
-            return `AI service is temporarily unavailable.\n\nRelevant information from uploaded documents:\n\n${context}`;
+            console.log("❌ Groq Failed (forced mode) — falling back to FAQ:", err.message);
+            throw new Error("AI_PROVIDER_UNAVAILABLE");
         }
     }
 
     // ===============================
-    // mode === "auto" — Try Groq First
+    // mode === "auto" — Try Gemini First
     // ===============================
 
     try {
 
-        console.log("🚀 Using Groq...");
-
-        const answer = await askGroq(prompt);
-
-        console.log("✅ Groq Success");
-
-        return answer;
-
-    } catch (err) {
-
-        console.log("❌ Groq Failed");
-
-        console.log(err.message);
-
-    }
-
-    // ===============================
-    // Try Gemini
-    // ===============================
-
-    try {
-
-        console.log("🤖 Switching to Gemini...");
+        console.log("🤖 Using Gemini...");
 
         const answer = await askGemini(prompt);
 
@@ -158,16 +139,35 @@ Answer:
     }
 
     // ===============================
-    // Final Fallback
+    // Try Groq
     // ===============================
 
-    console.log("⚠️ Returning Retrieved Context");
+    try {
 
-    return `AI service is temporarily unavailable.
+        console.log("🚀 Switching to Groq...");
 
-Relevant information from uploaded documents:
+        const answer = await askGroq(prompt);
 
-${context}`;
+        console.log("✅ Groq Success");
+
+        return answer;
+
+    } catch (err) {
+
+        console.log("❌ Groq Failed");
+
+        console.log(err.message);
+
+    }
+
+    // ===============================
+    // Both AI providers failed — fall through to FAQ matching in
+    // chat.js instead of returning a raw context dump.
+    // ===============================
+
+    console.log("⚠️ Both providers failed — falling back to FAQ");
+
+    throw new Error("AI_PROVIDER_UNAVAILABLE");
 }
 
 module.exports = {
