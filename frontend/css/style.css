@@ -369,40 +369,175 @@ img {
 
 .sidebar-title {
   font-family: var(--font-display);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   color: var(--text-dim);
-  margin-bottom: 14px;
-  padding-left: 6px;
+  margin: 18px 0 6px;
+  padding-left: 10px;
 }
 
-.topic-list {
+.sidebar-section:first-of-type .sidebar-title {
+  margin-top: 4px;
+}
+
+.sidebar-list,
+.topic-list,
+.history-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 1px;
 }
 
-.topic-btn {
+/* Safety net: whatever app.js injects inside these lists (divs,
+   buttons, wrappers) should never carry its own margin — otherwise
+   rows drift apart and the list stops looking like one tight group. */
+.sidebar-list > *,
+.topic-list > *,
+.history-list > * {
+  margin: 0 !important;
+}
+
+/* ---- UNIFIED SIDEBAR ROW ---------------------------------------------
+   Every clickable line in the sidebar (New Chat, history items, quick
+   topics, profile, theme, admin/logout) shares this one flat, no-box
+   style: transparent at rest, a soft highlight on hover/active, one
+   line of text, icon on the left. This is what makes the sidebar read
+   as a single clean list instead of a stack of separate boxes. */
+.sidebar-row {
+  width: 100%;
   background: transparent;
   border: none;
   cursor: pointer;
   text-align: left;
-  padding: 10px 12px;
+  padding: 9px 10px;
   border-radius: var(--radius-sm);
-  font-size: 0.82rem;
+  font-size: 0.85rem;
+  font-family: inherit;
   color: var(--text-muted);
   display: flex;
   align-items: center;
-  gap: 8px;
-  transition: all var(--transition);
+  gap: 10px;
+  transition: background var(--transition), color var(--transition);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.topic-btn:hover {
+.sidebar-row-icon {
+  flex-shrink: 0;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.sidebar-row:hover {
+  background: var(--accent-glow);
+  color: var(--accent);
+}
+
+.sidebar-row.active {
+  background: var(--accent-glow);
+  color: var(--accent);
+  font-weight: 500;
+}
+
+/* New Chat gets a touch of emphasis (accent text) so it stands out
+   as the primary action, without becoming a heavy filled button. */
+.sidebar-row-accent {
+  color: var(--accent);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.sidebar-row-accent:hover {
+  background: var(--accent-glow);
+}
+
+/* Clear History reads as a quiet, secondary line */
+.sidebar-row-muted {
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  margin-top: 2px;
+}
+
+.sidebar-row-muted:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger);
+}
+
+.sidebar-section {
+  flex-shrink: 0;
+}
+
+/* Pushes the bottom controls + footer down to the bottom of the
+   sidebar, same as Claude's pinned account row. */
+.sidebar-spacer {
+  flex: 1;
+}
+
+.sidebar-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.sidebar-footer {
+  padding-top: 14px;
+  margin-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.sidebar-footer p {
+  margin-bottom: 8px;
+  padding-left: 10px;
+}
+
+.contact-link {
+  display: block;
+  padding: 6px 10px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition), background var(--transition);
+}
+
+.contact-link:hover {
+  color: var(--accent);
+  background: var(--accent-glow);
+}
+
+/* Compatibility: history items and quick-topic buttons are injected
+   by app.js with these class names. Give them the exact same flat,
+   systematic row look as .sidebar-row above, so the whole sidebar
+   reads as one consistent list. */
+.topic-btn,
+.history-item {
+  width: 100%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background var(--transition), color var(--transition);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topic-btn:hover,
+.history-item:hover {
   background: var(--accent-glow);
   color: var(--accent);
 }
@@ -411,117 +546,6 @@ img {
   background: var(--accent-glow);
   color: var(--accent);
   font-weight: 500;
-}
-
-.sidebar-footer {
-  margin-top: auto;
-  padding-top: 20px;
-  border-top: 1px solid var(--border);
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-.sidebar-footer p {
-  margin-bottom: 8px;
-}
-
-.contact-link {
-  display: block;
-  padding: 6px 0;
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  transition: color var(--transition);
-}
-
-.contact-link:hover {
-  color: var(--accent);
-}
-
-/* New Chat button + chat history list */
-.new-chat-btn {
-  width: 100%;
-  padding: 12px;
-  border: none;
-  border-radius: 12px;
-  background: var(--accent);
-  color: #fff;
-  cursor: pointer;
-  margin-bottom: 12px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  transition: var(--transition);
-}
-
-.new-chat-btn:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
-}
-
-.history-section {
-  margin-top: 24px;
-}
-
-.history-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.history-item {
-  background: var(--surface2);
-  border: none;
-  color: var(--text);
-  padding: 10px 12px;
-  border-radius: 10px;
-  text-align: left;
-  cursor: pointer;
-  font-size: 0.85rem;
-  width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  transition: var(--transition);
-}
-
-.history-item:hover {
-  background: var(--accent-glow);
-}
-
-.clear-history-btn {
-  margin-top: 12px;
-  width: 100%;
-  padding: 10px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface2);
-  color: var(--text-muted);
-  cursor: pointer;
-  font-size: 0.85rem;
-  transition: var(--transition);
-}
-
-.clear-history-btn:hover {
-  border-color: var(--danger);
-  color: var(--danger);
-}
-
-.sidebar-profile-btn {
-  width: 100%;
-  padding: 12px;
-  margin-top: 12px;
-  border: 1px solid var(--border);
-  background: var(--surface2);
-  color: var(--text);
-  border-radius: 12px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  transition: var(--transition);
-}
-
-.sidebar-profile-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
 }
 
 
@@ -997,13 +1021,42 @@ img {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   z-index: 100;
+}
+
+.admin-nav-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
 }
 
 .admin-nav h1 {
   font-family: var(--font-display);
   font-size: 1.15rem;
   font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+/* Header actions (Back to Bot / Logout / Theme) — on mobile these
+   move into the sidebar drawer instead, so the header only ever
+   shows a hamburger + title and never overlaps or wraps. */
+.admin-nav-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* Mirror of .admin-nav-actions, rendered inside the drawer. Hidden
+   on desktop where the header already has room for these. */
+.admin-sidebar-actions {
+  display: none;
 }
 
 .admin-body {
@@ -1359,24 +1412,70 @@ select.form-control option {
     flex-shrink: 0;
   }
 
+  /* Header actions live in the drawer instead on mobile — keeps the
+     top bar to just hamburger + title, so nothing ever wraps. */
+  .admin-nav-actions {
+    display: none;
+  }
+
+  /* Chat page: only the language dropdown stays in the header on
+     mobile/tablet — theme, profile, admin/login move into the
+     sidebar drawer instead (see .sidebar-bottom). */
+  .header-only {
+    display: none;
+  }
+
   .admin-body {
     flex-direction: column;
   }
 
+  /* Off-canvas drawer, same slide-in pattern as the main chat
+     sidebar — not a horizontal scroll bar, so nothing is ever cut
+     off or hidden without a hint that it's scrollable. */
   .admin-sidebar {
-    position: static;
-    width: 100%;
-    height: auto;
-    flex-direction: row;
-    overflow-x: auto;
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-    padding: 10px;
+    position: fixed;
+    top: var(--header-h);
+    left: 0;
+    width: min(var(--sidebar-w), 85vw);
+    height: calc(100dvh - var(--header-h));
+    flex-direction: column;
+    overflow-x: hidden;
+    overflow-y: auto;
+    border-right: 1px solid var(--border);
+    border-bottom: none;
+    padding: 16px 12px;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: 90;
+  }
+
+  .admin-sidebar.active {
+    transform: translateX(0);
   }
 
   .admin-nav-btn {
-    white-space: nowrap;
+    white-space: normal;
     flex-shrink: 0;
+    font-size: 0.9rem;
+    padding: 12px 14px;
+  }
+
+  /* Back to Bot / Logout / Theme — shown here instead of the header */
+  .admin-sidebar-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .admin-sidebar-actions .danger-text {
+    color: var(--danger);
+  }
+
+  .admin-content {
+    padding: 16px;
   }
 }
 
@@ -1400,8 +1499,8 @@ select.form-control option {
     display: none !important; /* never needed once sidebar is static */
   }
 
-  .sidebar-profile-btn {
-    display: none; /* redundant with header's .profile-btn on desktop */
+  .sidebar-bottom {
+    display: none; /* redundant with header's profile/theme/admin controls on desktop */
   }
 
   .bubble {

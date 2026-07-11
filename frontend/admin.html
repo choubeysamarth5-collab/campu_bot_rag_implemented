@@ -14,19 +14,37 @@
 
 <body data-theme="dark" class="admin-page">
 
-  <!-- Admin Top Nav -->
+  <!-- Admin Top Nav: kept minimal on mobile (hamburger + title only).
+       Back to Bot / Logout / Theme move into the sidebar drawer on
+       mobile so the header never overlaps or wraps. On desktop they
+       still show inline in the header (see .admin-nav-actions rules). -->
   <nav class="admin-nav">
-    <h1>⚙️ CampusBot Admin</h1>
-    <div style="display:flex;gap:10px;align-items:center">
+    <div class="admin-nav-left">
+      <button class="mobile-menu-btn" id="adminMobileMenuBtn" aria-label="Open menu">☰</button>
+      <h1>⚙️ CampusBot Admin</h1>
+    </div>
+    <div class="admin-nav-actions">
       <a href="index.html" class="btn-sm">← Back to Bot</a>
       <button class="btn-sm danger" onclick="CampusAuth.logoutAdmin()" title="Logout">🚪 Logout</button>
       <button class="theme-toggle" id="themeToggle"><span class="theme-icon">☀️</span></button>
     </div>
   </nav>
 
+  <!-- Dark overlay behind the drawer on mobile, tap to close -->
+  <div class="sidebar-overlay" id="adminSidebarOverlay"></div>
+
   <div class="admin-body">
     <!-- Sidebar Navigation -->
-    <nav class="admin-sidebar">
+    <nav class="admin-sidebar" id="adminSidebar">
+      <!-- These three actions only render here (as visible items) on
+           mobile, where they're hidden from the top nav. On desktop
+           this whole block is hidden since the header already shows
+           them. -->
+      <div class="admin-sidebar-actions">
+        <a href="index.html" class="admin-nav-btn">← Back to Bot</a>
+        <button class="admin-nav-btn danger-text" onclick="CampusAuth.logoutAdmin()">🚪 Logout</button>
+        <button class="admin-nav-btn" id="themeToggleMobile">🌗 Toggle Theme</button>
+      </div>
       <button class="admin-nav-btn active" onclick="showSection('dashboard', this)">📊 Dashboard</button>
       <button class="admin-nav-btn" onclick="showSection('faqs', this)">📋 FAQs</button>
       <button class="admin-nav-btn" onclick="showSection('add-faq', this)">➕ Add FAQ</button>
@@ -354,6 +372,44 @@
       const nav = document.querySelector('.admin-nav h1');
       if (nav) nav.textContent = `⚙️ CampusBot Admin  ·  ${admin.name}`;
     }
+
+    // ── Mobile drawer (hamburger) ──────────────────────────────────
+    const adminSidebar = document.getElementById('adminSidebar');
+    const adminOverlay = document.getElementById('adminSidebarOverlay');
+    const adminMenuBtn = document.getElementById('adminMobileMenuBtn');
+
+    function openAdminDrawer() {
+      adminSidebar.classList.add('active');
+      adminOverlay.classList.add('active');
+    }
+    function closeAdminDrawer() {
+      adminSidebar.classList.remove('active');
+      adminOverlay.classList.remove('active');
+    }
+    adminMenuBtn?.addEventListener('click', openAdminDrawer);
+    adminOverlay?.addEventListener('click', closeAdminDrawer);
+    // Close the drawer automatically after picking a section on mobile
+    document.querySelectorAll('.admin-sidebar .admin-nav-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (window.innerWidth <= 1023) closeAdminDrawer();
+      });
+    });
+
+    // ── Theme toggle (shared by header + mobile drawer buttons) ────
+    function applyTheme(theme) {
+      document.body.setAttribute('data-theme', theme);
+      localStorage.setItem('theme', theme);
+      document.querySelectorAll('.theme-icon').forEach(i => i.textContent = theme === 'dark' ? '☀️' : '🌙');
+    }
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    applyTheme(savedTheme);
+
+    function toggleTheme() {
+      const current = document.body.getAttribute('data-theme');
+      applyTheme(current === 'dark' ? 'light' : 'dark');
+    }
+    document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
+    document.getElementById('themeToggleMobile')?.addEventListener('click', toggleTheme);
   </script>
 </body>
 

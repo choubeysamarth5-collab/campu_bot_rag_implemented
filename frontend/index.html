@@ -37,7 +37,10 @@
     </div>
 
     <div class="header-right">
-      <!-- Language Selector -->
+      <!-- Language Selector — the only control that stays in the
+           header on mobile. Theme/Profile/Admin move into the
+           sidebar drawer below var(1024px) so the header never
+           crowds or wraps. -->
       <div class="lang-dropdown">
 
         <button class="lang-current" id="langCurrentBtn">
@@ -72,18 +75,18 @@
 
       </div>
       <!-- Theme Toggle -->
-      <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+      <button class="theme-toggle header-only" id="themeToggle" title="Toggle theme">
         <span class="theme-icon">☀️</span>
       </button>
 
-      <button class="profile-btn" onclick="openProfileModal()" title="My Profile">
+      <button class="profile-btn header-only" onclick="openProfileModal()" title="My Profile">
 
         👤
 
       </button>
 
       <!-- Admin Link (shows logout for regular users) -->
-      <a href="admin.html" class="admin-link" id="adminOrLogoutLink" title="Admin Panel">⚙️</a>
+      <a href="admin.html" class="admin-link header-only" id="adminOrLogoutLink" title="Admin Panel">⚙️</a>
     </div>
 
   </header>
@@ -93,35 +96,51 @@
 
     <!-- SIDEBAR: Quick Topics -->
     <aside class="sidebar">
-      <h3 class="sidebar-title">Quick Topics</h3>
+
+      <!-- New Chat -->
+      <button class="sidebar-row sidebar-row-accent" onclick="window.createNewChat()">
+        <span class="sidebar-row-icon">➕</span> New Chat
+      </button>
+
       <!-- Chat History -->
-      <div class="history-section">
+      <div class="sidebar-section">
         <h3 class="sidebar-title">Recent Chats</h3>
-
-        <!-- NEW CHAT BUTTON -->
-
-        <button class="new-chat-btn" onclick="window.createNewChat()">
-
-          ➕ New Chat
-
-        </button>
-
-        <div id="historyList" class="history-list">
+        <div id="historyList" class="sidebar-list history-list">
           <!-- Injected by JS -->
         </div>
-
-        <button id="clearHistoryBtn" class="clear-history-btn">
-          🗑 Clear History
+        <button id="clearHistoryBtn" class="sidebar-row sidebar-row-muted">
+          <span class="sidebar-row-icon">🗑</span> Clear History
         </button>
       </div>
-      <div class="topic-list" id="topicList">
-        <!-- Injected by JS -->
+
+      <!-- Quick Topics -->
+      <div class="sidebar-section">
+        <h3 class="sidebar-title">Quick Topics</h3>
+        <div class="sidebar-list topic-list" id="topicList">
+          <!-- Injected by JS -->
+        </div>
       </div>
-      <button class="sidebar-profile-btn" onclick="openProfileModal()">
 
-        👤 My Profile
+      <!-- Spacer pushes everything below to the bottom, like Claude's
+           pinned account/settings row -->
+      <div class="sidebar-spacer"></div>
 
-      </button>
+      <!-- Bottom pinned controls — shown here only on mobile (header
+           already has these on desktop). Every row is the same flat,
+           systematic list style: icon + label, full width, one line. -->
+      <div class="sidebar-bottom">
+        <button class="sidebar-row" onclick="openProfileModal()">
+          <span class="sidebar-row-icon">👤</span> My Profile
+        </button>
+        <button class="sidebar-row" id="themeToggleMobile">
+          <span class="sidebar-row-icon theme-icon">☀️</span> Toggle Theme
+        </button>
+        <a href="admin.html" class="sidebar-row" id="adminOrLogoutLinkMobile">
+          <span class="sidebar-row-icon">⚙️</span> Admin Panel
+        </a>
+      </div>
+
+      <!-- Contact / help footer -->
       <div class="sidebar-footer">
         <p>Need human help?</p>
         <a href="mailto:helpdesk@college.edu" class="contact-link">📧 helpdesk@college.edu</a>
@@ -198,18 +217,20 @@
         statusEl.textContent = `👤 ${user.name} · Online`;
       }
 
-      // Convert settings icon into logout button
+      // Convert settings icon into logout button (header + sidebar clone)
       const logoutLink = document.getElementById('adminOrLogoutLink');
+      const logoutLinkMobile = document.getElementById('adminOrLogoutLinkMobile');
 
-      if (logoutLink) {
-        logoutLink.innerHTML =
-          window.innerWidth <= 768
-            ? '🚪'
-            : '🚪 Logout';
-        logoutLink.href = '#';
-        logoutLink.title = 'Logout';
+      [logoutLink, logoutLinkMobile].forEach((el, i) => {
+        if (!el) return;
 
-        logoutLink.addEventListener('click', (e) => {
+        el.innerHTML = i === 0
+          ? (window.innerWidth <= 768 ? '🚪' : '🚪 Logout')
+          : '🚪 Logout';
+        el.href = '#';
+        el.title = 'Logout';
+
+        el.addEventListener('click', (e) => {
           e.preventDefault();
 
           // Clear login session
@@ -218,19 +239,36 @@
           // Redirect to login page
           window.location.href = 'auth/login.html';
         });
-      }
+      });
 
     } else {
 
-      // If not logged in → show login button
+      // If not logged in → show login button (header + sidebar clone)
       const loginLink = document.getElementById('adminOrLogoutLink');
+      const loginLinkMobile = document.getElementById('adminOrLogoutLinkMobile');
 
-      if (loginLink) {
-        loginLink.innerHTML = '🔑 Login';
-        loginLink.href = 'auth/login.html';
-        loginLink.title = 'Login';
-      }
+      [loginLink, loginLinkMobile].forEach(el => {
+        if (!el) return;
+        el.innerHTML = '🔑 Login';
+        el.href = 'auth/login.html';
+        el.title = 'Login';
+      });
     }
+
+    // ── Theme toggle (shared by header + sidebar drawer buttons) ───
+    function applyTheme(theme) {
+      document.body.setAttribute('data-theme', theme);
+      localStorage.setItem('theme', theme);
+      document.querySelectorAll('.theme-icon').forEach(i => i.textContent = theme === 'dark' ? '☀️' : '🌙');
+    }
+    applyTheme(localStorage.getItem('theme') || 'dark');
+
+    function toggleTheme() {
+      const current = document.body.getAttribute('data-theme');
+      applyTheme(current === 'dark' ? 'light' : 'dark');
+    }
+    document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
+    document.getElementById('themeToggleMobile')?.addEventListener('click', toggleTheme);
 
     // =============================================
     // PROFILE MODAL
