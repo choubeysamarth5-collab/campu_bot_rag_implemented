@@ -3,6 +3,8 @@ require("dotenv").config();
 const { retrieveDocuments } = require("./retriever");
 const { askGroq } = require("./groqService");
 const { askGemini } = require("./geminiService");
+const { getProviderMode } = require("../../utils/aiProviderConfig");
+
 // Maps the short language codes used by the frontend's language
 // switcher to a full name Gemini can understand in plain English
 // instructions.
@@ -14,13 +16,39 @@ const LANGUAGE_NAMES = {
     te: "Telugu",
 };
 
-async function askRAG(question, lang = "en") {
+// How many past messages (user + bot combined) to include as
+// conversation context. 6 messages ≈ last 3 back-and-forth turns —
+// enough for the AI to understand follow-up questions like "what
+// about hostel 2?" without bloating the prompt with the entire
+// conversation on every request.
+const MAX_HISTORY_MESSAGES = 6;
+
+// Turns the frontend's history array into a simple transcript the
+// AI can read. Expected shape per entry: { sender: 'user'|'bot',
+// text: '...' } — matches what app.js already stores per message.
+function formatHistory(history = []) {
+    if (!Array.isArray(history) || history.length === 0) return "";
+
+    const recent = history.slice(-MAX_HISTORY_MESSAGES);
+
+    const transcript = recent
+        .map(turn => {
+            const speaker = turn.role === "user" ? "Student" : "CampusBot";
+            return `${speaker}: ${turn.text}`;
+        })
+        .join("\n");
+
+    return `\nRecent conversation so far (for context on follow-up questions):\n${transcript}\n`;
+}
+
+async function askRAG(question, lang = "en", history = []) {
 
     const docs = await retrieveDocuments(question);
 
     const context = docs.map(doc => doc.pageContent).join("\n\n");
 
     const languageName = LANGUAGE_NAMES[lang] || "English";
+    const historyBlock = formatHistory(history);
 
     const prompt = `
 You are CampusBot.
@@ -34,6 +62,12 @@ the answer from the context, answer directly and confidently.
 Only reply with "I couldn't find this information in the uploaded
 documents." if the context truly does not contain anything related
 to the question — not merely because the formatting is imperfect.
+${historyBlock}
+Use the recent conversation above ONLY to understand what the student
+is referring to (e.g. pronouns, follow-up questions like "what about
+the second one?"). Do not treat earlier conversation turns as a
+substitute for the Context section — every factual claim in your
+answer must still come from the Context below.
 
 IMPORTANT: Always reply in ${languageName}, regardless of what
 language or script the question itself was written in. Do not switch
@@ -49,57 +83,87 @@ ${question}
 Answer:
 `;
 
+    // Manual override from the Developer Panel — lets a superadmin
+    // force one provider only (e.g. for testing, or if a provider is
+    // down and they don't want to wait for the automatic fallback on
+    // every single request).
+    const mode = getProviderMode();
+
+    if (mode === "gemini_only") {
+        try {
+            console.log("🤖 Using Gemini (manually forced)...");
+            const answer = await askGemini(prompt);
+            console.log("✅ Gemini Success");
+            return answer;
+        } catch (err) {
+            console.log("❌ Gemini Failed (forced mode, no fallback):", err.message);
+            return `AI service is temporarily unavailable.\n\nRelevant information from uploaded documents:\n\n${context}`;
+        }
+    }
+
+    if (mode === "groq_only") {
+        try {
+            console.log("🚀 Using Groq (manually forced)...");
+            const answer = await askGroq(prompt);
+            console.log("✅ Groq Success");
+            return answer;
+        } catch (err) {
+            console.log("❌ Groq Failed (forced mode, no fallback):", err.message);
+            return `AI service is temporarily unavailable.\n\nRelevant information from uploaded documents:\n\n${context}`;
+        }
+    }
+
     // ===============================
-// Try Groq First
-// ===============================
+    // mode === "auto" — Try Groq First
+    // ===============================
 
-try {
+    try {
 
-    console.log("🚀 Using Groq...");
+        console.log("🚀 Using Groq...");
 
-    const answer = await askGroq(prompt);
+        const answer = await askGroq(prompt);
 
-    console.log("✅ Groq Success");
+        console.log("✅ Groq Success");
 
-    return answer;
+        return answer;
 
-} catch (err) {
+    } catch (err) {
 
-    console.log("❌ Groq Failed");
+        console.log("❌ Groq Failed");
 
-    console.log(err.message);
+        console.log(err.message);
 
-}
+    }
 
-// ===============================
-// Try Gemini
-// ===============================
+    // ===============================
+    // Try Gemini
+    // ===============================
 
-try {
+    try {
 
-    console.log("🤖 Switching to Gemini...");
+        console.log("🤖 Switching to Gemini...");
 
-    const answer = await askGemini(prompt);
+        const answer = await askGemini(prompt);
 
-    console.log("✅ Gemini Success");
+        console.log("✅ Gemini Success");
 
-    return answer;
+        return answer;
 
-} catch (err) {
+    } catch (err) {
 
-    console.log("❌ Gemini Failed");
+        console.log("❌ Gemini Failed");
 
-    console.log(err.message);
+        console.log(err.message);
 
-}
+    }
 
-// ===============================
-// Final Fallback
-// ===============================
+    // ===============================
+    // Final Fallback
+    // ===============================
 
-console.log("⚠️ Returning Retrieved Context");
+    console.log("⚠️ Returning Retrieved Context");
 
-return `AI service is temporarily unavailable.
+    return `AI service is temporarily unavailable.
 
 Relevant information from uploaded documents:
 
