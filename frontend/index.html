@@ -91,6 +91,10 @@
 
   </header>
 
+  <!-- Dark overlay behind the sidebar drawer on mobile — tapping
+       anywhere on it (i.e. outside the sidebar) closes the drawer. -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
   <!-- ===== MAIN LAYOUT ===== -->
   <div class="app-layout">
 
@@ -200,6 +204,28 @@
   <script src="js/translations.js"></script>
   <script src="js/app.js"></script>
   <script>
+    // ── Sidebar drawer overlay (mobile) ─────────────────────────
+    // app.js already toggles the .sidebar's "active" class from the
+    // hamburger button — we don't touch that here to avoid double
+    // toggling. We just: (1) keep the dark overlay in sync with the
+    // sidebar's open/closed state automatically, and (2) close the
+    // sidebar when the overlay itself is tapped (i.e. anywhere
+    // outside the sidebar).
+    const sidebarEl = document.querySelector('.sidebar');
+    const sidebarOverlayEl = document.getElementById('sidebarOverlay');
+
+    if (sidebarEl && sidebarOverlayEl) {
+      const syncOverlay = () => {
+        sidebarOverlayEl.classList.toggle('active', sidebarEl.classList.contains('active'));
+      };
+      new MutationObserver(syncOverlay).observe(sidebarEl, { attributes: true, attributeFilter: ['class'] });
+      syncOverlay();
+
+      sidebarOverlayEl.addEventListener('click', () => {
+        sidebarEl.classList.remove('active');
+      });
+    }
+
     // ── Optional Login Support ─────────────────────
     // Chatbot works even without login
 
