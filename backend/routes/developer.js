@@ -20,6 +20,7 @@ const { adminProtect, requireSuperAdmin } = require("../middleware/adminAuth");
 const logger = require("../utils/logger");
 const faqCache = require("../utils/faqCache");
 const { getProviderMode, setProviderMode, VALID_MODES } = require("../utils/aiProviderConfig");
+const { getGroqUsage, getGeminiUsage } = require("../utils/apiUsageTracker");
 const geminiModel = require("../rag/config/gemini");
 const {
     getVectorStore,
@@ -420,14 +421,29 @@ router.get("/ai-status", adminProtect, requireSuperAdmin, async (req, res) => {
         mode: getProviderMode(),
         providers: [
             {
-                name: "Groq (primary)",
-                apiKeyConfigured: !!process.env.GROQ_API_KEY,
-            },
-            {
-                name: "Google Gemini (fallback)",
+                name: "Google Gemini (primary)",
                 apiKeyConfigured: !!process.env.GEMINI_API_KEY,
             },
+            {
+                name: "Groq (fallback)",
+                apiKeyConfigured: !!process.env.GROQ_API_KEY,
+            },
         ],
+    });
+
+});
+
+// GET /api/dev/ai-status/usage — live rate-limit / usage numbers for
+// both providers. Groq's numbers come straight from its response
+// headers (real, accurate, updated on every chat request). Gemini
+// has no such headers, so its numbers are just a running count of
+// calls WE'VE made — an approximation, not an official reading.
+router.get("/ai-status/usage", adminProtect, requireSuperAdmin, async (req, res) => {
+
+    res.json({
+        success: true,
+        groq: getGroqUsage(),
+        gemini: getGeminiUsage(),
     });
 
 });

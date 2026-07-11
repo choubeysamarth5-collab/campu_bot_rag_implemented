@@ -38,6 +38,7 @@ async function loadDeveloperPanel() {
         // ChromaDB down) doesn't block the rest of the page.
         loadVectorDB();
         loadAiStatus();
+        loadAiUsage();
         loadLogs("all");
         loadCacheStatus();
 
@@ -282,6 +283,38 @@ async function loadAiStatus() {
     } catch (err) {
         console.error(err);
         el.innerHTML = `<tr><td colspan="2" style="color:var(--danger)">Failed to load.</td></tr>`;
+    }
+}
+
+async function loadAiUsage() {
+
+    const el = document.getElementById("aiUsageBody");
+    if (!el) return;
+
+    try {
+        const res = await CampusAuth.adminFetch("/dev/ai-status/usage");
+        const data = await res.json();
+
+        const g = data.groq;
+        const gem = data.gemini;
+
+        el.innerHTML = `
+            <tr><td colspan="2" style="font-weight:600;color:var(--accent)">Groq (live from API headers)</td></tr>
+            <tr><td>Requests Remaining</td><td>${g.remainingRequests ?? "—"} / ${g.limitRequests ?? "—"}</td></tr>
+            <tr><td>Tokens Remaining (this window)</td><td>${g.remainingTokens ?? "—"} / ${g.limitTokens ?? "—"}</td></tr>
+            <tr><td>Requests Reset In</td><td>${g.resetRequests ?? "—"}</td></tr>
+            <tr><td>Tokens Reset In</td><td>${g.resetTokens ?? "—"}</td></tr>
+            <tr><td>Last Updated</td><td>${g.lastUpdatedAt ? new Date(g.lastUpdatedAt).toLocaleTimeString() : "No Groq calls made yet"}</td></tr>
+
+            <tr><td colspan="2" style="font-weight:600;color:var(--accent);padding-top:14px;">Gemini (approximate — no official quota API)</td></tr>
+            <tr><td>Calls Today</td><td>${gem.callsToday}</td></tr>
+            <tr><td>Calls Since Server Start</td><td>${gem.callsAllTime}</td></tr>
+            <tr><td>Last Call</td><td>${gem.lastCallAt ? new Date(gem.lastCallAt).toLocaleTimeString() : "No Gemini calls made yet"}</td></tr>
+        `;
+
+    } catch (err) {
+        console.error(err);
+        el.innerHTML = `<tr><td colspan="2" style="color:var(--danger)">Failed to load usage data.</td></tr>`;
     }
 }
 

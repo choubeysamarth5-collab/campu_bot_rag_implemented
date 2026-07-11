@@ -189,18 +189,36 @@
 
           <h4 style="margin-bottom: 8px; font-size: 0.85rem; color: var(--text-muted);">Manual Override</h4>
           <p style="font-size: 0.78rem; color: var(--text-dim); margin-bottom: 10px;">
-            By default the chatbot tries Groq first and falls back to Gemini automatically ("Auto").
-            Force one provider only if you want to test or temporarily bypass one.
+            By default the chatbot tries Gemini first, falls back to Groq if that fails, and
+            falls back to FAQ answers if both fail ("Auto"). Force one provider only if you
+            want to test or temporarily bypass one — if the forced provider fails, it falls
+            straight through to FAQ answers.
           </p>
           <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
             <select id="aiProviderMode" class="form-control" style="max-width:220px;">
-              <option value="auto">Auto (Groq → Gemini fallback)</option>
-              <option value="groq_only">Groq only</option>
+              <option value="auto">Auto (Gemini → Groq → FAQ)</option>
               <option value="gemini_only">Gemini only</option>
+              <option value="groq_only">Groq only</option>
             </select>
             <button class="btn-sm" onclick="setAiProviderMode()">Save</button>
           </div>
           <p id="aiModeMsg" style="margin-top: 10px; font-size: 0.85rem; color: var(--text-muted);"></p>
+        </div>
+
+        <!-- AI USAGE / LIMITS -->
+        <h2 style="margin: 28px 0 14px;">AI Usage &amp; Limits</h2>
+        <div class="card">
+          <table class="faq-table">
+            <tbody id="aiUsageBody">
+              <tr><td colspan="2" style="text-align:center;color:var(--text-dim)">Loading…</td></tr>
+            </tbody>
+          </table>
+          <button class="btn-sm" style="margin-top: 12px;" onclick="loadAiUsage()">🔄 Refresh</button>
+          <p style="margin-top: 10px; font-size: 0.75rem; color: var(--text-dim);">
+            Groq numbers come directly from its API response headers (accurate, updates on
+            every chat request). Gemini has no such headers, so its numbers are just a count
+            of calls this server has made — an approximation, not an official quota reading.
+          </p>
         </div>
 
         <!-- CACHE MANAGEMENT -->
