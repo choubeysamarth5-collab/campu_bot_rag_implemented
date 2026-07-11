@@ -587,7 +587,7 @@ img {
   width: 100%;
   display: flex;
   align-items: flex-end;
-  gap: 10px;
+  gap: 0;
 }
 
 .msg-row.user {
@@ -607,24 +607,11 @@ img {
   animation: msgIn 0.25s ease;
 }
 
+/* No per-message avatars, ChatGPT-style — they only ate up side
+   space without adding value once the header already shows the bot
+   identity. */
 .msg-avatar {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  flex-shrink: 0;
-}
-
-.msg-row.bot .msg-avatar {
-  background: var(--accent-glow);
-  border: 1px solid var(--accent);
-}
-
-.msg-row.user .msg-avatar {
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  display: none;
 }
 
 /* Bubbles: capped with a max-width in *characters* (ch) on large
@@ -633,7 +620,7 @@ img {
    what fixes text looking too small/cramped or overflowing on
    phones. */
 .bubble {
-  max-width: min(60ch, 80%);
+  max-width: min(60ch, 88%);
   padding: 12px 16px;
   border-radius: 18px;
   font-size: 0.95rem;
@@ -642,12 +629,17 @@ img {
   overflow-wrap: anywhere;
 }
 
+/* Bot replies: plain text, no card/border/shadow — just like
+   ChatGPT, so the chat reads as flowing text rather than stacked
+   boxes with wasted space on either side. */
 .msg-row.bot .bubble {
-  background: var(--bot-bubble);
-  border: 1px solid var(--border);
-  border-bottom-left-radius: 5px;
-  box-shadow: var(--shadow);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
   color: var(--text);
+  padding: 4px 2px;
+  max-width: min(68ch, 92%);
 }
 
 .msg-row.user .bubble {
