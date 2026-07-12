@@ -28,6 +28,13 @@ const {
     COLLECTION_NAME,
 } = require("../rag/config/mongoVectorStore");
 const { getBucket } = require("../rag/config/gridfs");
+const { parseCsv } = require("../utils/csvParser");
+const multer = require("multer");
+
+// CSV files are small (a few KB to a few hundred KB even for
+// hundreds of FAQ rows), so memory storage is fine — no need to
+// touch disk or GridFS for this.
+const csvUpload = multer({ storage: multer.memoryStorage() });
 
 const UPLOADS_PATH = path.join(__dirname, "../uploads");
 
@@ -589,6 +596,149 @@ router.delete("/cache", adminProtect, requireSuperAdmin, async (req, res) => {
     res.json({ success: true, message: "FAQ cache cleared." });
 
 });
+
+
+// =====================================================================
+// FAQ BULK TRAINING (CSV)
+// ---------------------------------------------------------------------
+// Lets the developer upload a CSV of FAQs and add them all in one go,
+// instead of typing each one into the "Add FAQ" form individually.
+// This directly strengthens the FAQ fallback layer — the safety net
+// that answers a question when BOTH Gemini and Groq fail (see
+// ragService.js).
+//
+// EXPECTED CSV FORMAT (header row required):
+//   category,keywords,answer_en,answer_hi,answer_mr,answer_ta,answer_te
+//
+//   - category: one of fees, admissions, exams, hostel, library,
+//     placements, scholarships, timetable, other (matches the
+//     dropdown in the "Add FAQ" admin form)
+//   - keywords: multiple keywords separated by a SEMICOLON (;), e.g.
+//     "fee;payment;due date"  — semicolons are used (not commas)
+//     because commas already separate CSV columns.
+//   - answer_en is required; the other language columns are optional
+//     (English is used as the fallback if a language is missing).
+//
+// Wrap any field containing a comma in double quotes, e.g.:
+//   hostel,"hostel;room;mess","Hostel fee is 45,000/year",,,,
+// =====================================================================
+
+router.post(
+    "/faq-train",
+    adminProtect,
+    requireSuperAdmin,
+    csvUpload.single("csv"),
+    async (req, res) => {
+
+        try {
+
+            if (!req.file) {
+                return res.status(400).json({
+                    success: false,
+                    message: "No CSV file was uploaded.",
+                });
+            }
+
+            const text = req.file.buffer.toString("utf-8");
+            const rows = parseCsv(text);
+
+            if (rows.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: "The CSV file appears to be empty or has no data rows.",
+                });
+            }
+
+            const FAQ = require("../models/FAQ");
+
+            const validCategories = [
+                "fees", "admissions", "exams", "hostel", "library",
+                "placements", "scholarships", "timetable", "other",
+            ];
+
+            const toInsert = [];
+            const skipped = [];
+
+            rows.forEach((row, index) => {
+
+                const rowNumber = index + 2; // +2: 1-indexed + header row
+
+                const category = (row.category || "").toLowerCase().trim();
+                const keywordsRaw = row.keywords || "";
+                const answerEn = row.answer_en || "";
+
+                // Basic validation — skip clearly broken rows instead
+                // of letting one bad row fail the entire upload.
+                if (!validCategories.includes(category)) {
+                    skipped.push(`Row ${rowNumber}: invalid category "${category}"`);
+                    return;
+                }
+
+                if (!keywordsRaw.trim()) {
+                    skipped.push(`Row ${rowNumber}: missing keywords`);
+                    return;
+                }
+
+                if (!answerEn.trim()) {
+                    skipped.push(`Row ${rowNumber}: missing answer_en (required)`);
+                    return;
+                }
+
+                const keywords = keywordsRaw
+                    .split(";")
+                    .map(k => k.trim())
+                    .filter(Boolean);
+
+                toInsert.push({
+                    category,
+                    keywords,
+                    answers: {
+                        en: answerEn,
+                        hi: row.answer_hi || "",
+                        mr: row.answer_mr || "",
+                        ta: row.answer_ta || "",
+                        te: row.answer_te || "",
+                    },
+                    isActive: true,
+                });
+
+            });
+
+            if (toInsert.length > 0) {
+                await FAQ.insertMany(toInsert);
+            }
+
+            // The FAQ fallback reads from a cache (see
+            // utils/faqCache.js) so newly trained FAQs would
+            // otherwise not show up until the cache's normal 5-minute
+            // TTL expires — clear it now so they're usable
+            // immediately.
+            faqCache.clearFaqCache();
+
+            logger.info(
+                `FAQ bulk training: ${toInsert.length} added, ${skipped.length} skipped from "${req.file.originalname}"`
+            );
+
+            res.json({
+                success: true,
+                message: `Training complete: ${toInsert.length} FAQ(s) added${skipped.length ? `, ${skipped.length} row(s) skipped` : ""}.`,
+                added: toInsert.length,
+                skipped,
+            });
+
+        } catch (err) {
+
+            logger.error(`FAQ training failed: ${err.message}`);
+
+            res.status(500).json({
+                success: false,
+                message: "Training failed: " + err.message,
+            });
+
+        }
+
+    }
+);
 
 
 module.exports = router;

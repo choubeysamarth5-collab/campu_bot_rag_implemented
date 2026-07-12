@@ -260,6 +260,49 @@ async function deleteVectorSource(source) {
 // ── AI PROVIDER STATUS ───────────────────────────────────────────────
 // Shows BOTH providers since the chatbot tries Groq first, falling
 // back to Gemini automatically if Groq fails.
+// ── FAQ BULK TRAINING (CSV) ──────────────────────────────────────────
+async function trainFaqFromCsv() {
+
+    const fileInput = document.getElementById("faqCsvFile");
+    const status = document.getElementById("faqTrainStatus");
+
+    if (!fileInput.files.length) {
+        status.innerHTML = "❌ Please select a CSV file first.";
+        return;
+    }
+
+    const file = fileInput.files[0];
+    status.innerHTML = "⏳ Training…";
+
+    const formData = new FormData();
+    formData.append("csv", file);
+
+    try {
+        const res = await CampusAuth.adminFetch("/dev/faq-train", {
+            method: "POST",
+            body: formData,
+            headers: {}, // let the browser set the multipart boundary
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            let html = `✅ ${data.message}`;
+            if (data.skipped && data.skipped.length > 0) {
+                html += `<br><span style="color:var(--text-dim); font-size:0.78rem;">${data.skipped.join("<br>")}</span>`;
+            }
+            status.innerHTML = html;
+            fileInput.value = "";
+        } else {
+            status.innerHTML = `❌ ${data.message || "Training failed."}`;
+        }
+
+    } catch (err) {
+        console.error(err);
+        status.innerHTML = "❌ Training request failed.";
+    }
+}
+
 async function loadAiStatus() {
 
     const el = document.getElementById("aiStatusBody");

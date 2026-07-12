@@ -173,6 +173,33 @@
         </div>
 
         <!-- AI PROVIDER STATUS -->
+        <!-- FAQ BULK TRAINING (CSV) -->
+        <h2 style="margin: 28px 0 14px;">FAQ Training (CSV)</h2>
+        <div class="card">
+          <p style="color: var(--text-muted); font-size: 0.82rem; margin-bottom: 12px;">
+            Bulk-add FAQs to strengthen the fallback that answers questions when
+            both Gemini and Groq fail. CSV columns (header row required):
+          </p>
+          <pre style="background: var(--surface2); padding: 10px 12px; border-radius: 8px; font-size: 0.75rem; overflow-x:auto; margin-bottom: 12px; color: var(--text-muted);">category,keywords,answer_en,answer_hi,answer_mr,answer_ta,answer_te</pre>
+          <p style="color: var(--text-dim); font-size: 0.75rem; margin-bottom: 14px;">
+            • <strong>category</strong> must be one of: fees, admissions, exams, hostel, library, placements, scholarships, timetable, other<br>
+            • <strong>keywords</strong>: separate multiple keywords with a semicolon, e.g. <code>fee;payment;due date</code><br>
+            • <strong>answer_en</strong> is required; other language columns are optional<br>
+            • wrap any field containing a comma in double quotes
+          </p>
+
+          <div class="form-group">
+            <label>Select CSV File</label>
+            <input type="file" id="faqCsvFile" class="form-control" accept=".csv" />
+          </div>
+
+          <button class="btn-primary" onclick="trainFaqFromCsv()">
+            🎓 Train
+          </button>
+
+          <p id="faqTrainStatus" style="margin-top: 12px; font-size: 0.85rem;"></p>
+        </div>
+
         <h2 style="margin: 28px 0 14px;">AI Provider Status</h2>
         <div class="card">
           <table class="faq-table">
@@ -283,7 +310,7 @@
   </div>
 
   <script src="auth/auth.js"></script>
-  <script src="js/devpanel.js"></script>
+  <script src="js/devPanel.js"></script>
   <script>
     // Same login guard as admin.html — must be logged in as SOME
     // admin at all. Whether they're specifically a superadmin is
