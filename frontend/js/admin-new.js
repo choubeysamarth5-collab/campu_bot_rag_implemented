@@ -240,8 +240,17 @@ function renderStudyNotesTable() {
         </th>
     `;
 
+    // Wrapped in its own horizontally-scrollable container so a wide
+    // table (6 columns + action buttons) scrolls sideways ON MOBILE
+    // without forcing the whole admin page to overflow horizontally.
+    // The table gets a min-width so columns keep breathing room
+    // instead of squishing/wrapping into each other — the scroll
+    // container is what makes that safe on narrow screens.
+    // Desktop is unaffected: at normal admin-panel widths the table
+    // fits within the container and no scrollbar appears.
     container.innerHTML = `
-        <table style="width:100%;border-collapse:collapse">
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%">
+        <table style="width:100%;min-width:640px;border-collapse:collapse">
             <thead>
                 <tr style="text-align:left;border-bottom:1px solid var(--border,#333)">
                     ${th("Title", "title")}
@@ -259,7 +268,7 @@ function renderStudyNotesTable() {
                         <td style="padding:8px 6px">${escapeHtml(note.subject)}</td>
                         <td style="padding:8px 6px">${escapeHtml(note.semester || "-")}</td>
                         <td style="padding:8px 6px">${note.chunkCount}</td>
-                        <td style="padding:8px 6px">${new Date(note.createdAt).toLocaleDateString()}</td>
+                        <td style="padding:8px 6px;white-space:nowrap">${new Date(note.createdAt).toLocaleDateString()}</td>
                         <td style="padding:8px 6px;white-space:nowrap">
                             <button class="btn-primary" style="padding:4px 12px;font-size:0.85rem;margin-right:6px" onclick="viewStudyNote('${note._id}', '${escapeHtml(note.sourceFileName || note.title)}')">View</button>
                             <button class="btn-primary" style="background:var(--danger);padding:4px 12px;font-size:0.85rem" onclick="deleteStudyNote('${note._id}')">Delete</button>
@@ -268,6 +277,7 @@ function renderStudyNotesTable() {
                 `).join("")}
             </tbody>
         </table>
+        </div>
     `;
 }
 
