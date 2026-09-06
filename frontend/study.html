@@ -60,15 +60,23 @@
       font-size: 1.3rem;
       flex-shrink: 0;
     }
+    .study-title { min-width: 0; }
     .study-title h1 {
       margin: 0;
       font-family: var(--font-display);
       font-weight: 700;
       font-size: 1.15rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .study-title span {
       font-size: 0.8rem;
       color: var(--text-muted);
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .back-link {
       margin-left: auto;
@@ -79,34 +87,29 @@
       padding: 6px 12px;
       border-radius: 999px;
       white-space: nowrap;
+      flex-shrink: 0;
     }
     .back-link:hover { color: var(--text); border-color: var(--accent); }
 
-    /* ── Subject tabs ── */
-    .subject-tabs {
-      display: flex;
-      gap: 8px;
-      padding: 12px 20px;
-      overflow-x: auto;
+    /* ── Subject dropdown ── */
+    .subject-bar {
+      padding: 10px 20px;
       background: var(--bg-elevated);
       border-bottom: 1px solid var(--border);
-      scrollbar-width: none;
     }
-    .subject-tabs::-webkit-scrollbar { display: none; }
-    .tab {
+    .subject-select {
+      background: var(--bg);
+      color: var(--text);
       border: 1px solid var(--border);
-      background: transparent;
-      color: var(--text-muted);
       border-radius: 999px;
-      padding: 7px 16px;
-      font-size: 0.82rem;
+      padding: 8px 14px;
       font-family: var(--font-body);
-      white-space: nowrap;
+      font-size: 0.85rem;
+      outline: none;
       cursor: pointer;
-      transition: all 0.15s ease;
+      max-width: 260px;
     }
-    .tab:hover { border-color: var(--accent); color: var(--text); }
-    .tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+    .subject-select:focus { border-color: var(--accent); }
 
     /* ── Chat area ── */
     .chat-messages {
@@ -233,6 +236,33 @@
       .study-app { max-width: 100%; }
       .chat-messages { padding: 14px; }
       .msg-row { max-width: 92%; }
+
+      /* Compact header on mobile — smaller avatar, tighter padding,
+         single-line title, subtitle hidden (it repeats what the
+         empty-state already says, so no info is lost). */
+      .study-header {
+        padding: 10px 14px;
+        gap: 10px;
+      }
+      .study-avatar {
+        width: 34px; height: 34px;
+        font-size: 1.05rem;
+      }
+      .study-title h1 { font-size: 0.98rem; }
+      .study-title span { display: none; }
+      .back-link {
+        font-size: 0; /* hide text, icon-only */
+        padding: 8px;
+        width: 32px; height: 32px;
+        display: flex; align-items: center; justify-content: center;
+      }
+      .back-link::before {
+        content: "←";
+        font-size: 1rem;
+      }
+
+      .subject-bar { padding: 8px 14px; }
+      .subject-select { max-width: 100%; width: 100%; }
     }
   </style>
 </head>
@@ -249,8 +279,10 @@
       <a href="index.html" class="back-link">← Back to Chat</a>
     </header>
 
-    <div class="subject-tabs" id="subjectTabs">
-      <button class="tab active" data-subject="">All Subjects</button>
+    <div class="subject-bar">
+      <select class="subject-select" id="subjectSelect">
+        <option value="">All Subjects</option>
+      </select>
     </div>
 
     <div class="chat-messages" id="chatMessages">
@@ -279,7 +311,7 @@
     const emptyState = document.getElementById("emptyState");
     const chatInput = document.getElementById("chatInput");
     const sendBtn = document.getElementById("sendBtn");
-    const subjectTabs = document.getElementById("subjectTabs");
+    const subjectSelect = document.getElementById("subjectSelect");
 
     let selectedSubject = "";
     // Tracks the conversation so follow-ups like "more detailed" or
@@ -292,27 +324,19 @@
         const res = await CampusAuth.userFetch("/study/subjects");
         const data = await res.json();
         (data.subjects || []).forEach((subject) => {
-          const btn = document.createElement("button");
-          btn.className = "tab";
-          btn.textContent = subject;
-          btn.dataset.subject = subject;
-          btn.onclick = () => selectSubject(subject, btn);
-          subjectTabs.appendChild(btn);
+          const opt = document.createElement("option");
+          opt.value = subject;
+          opt.textContent = subject;
+          subjectSelect.appendChild(opt);
         });
       } catch (err) {
         console.error("Failed to load subjects:", err);
       }
     }
 
-    function selectSubject(subject, btnEl) {
-      selectedSubject = subject;
+    subjectSelect.addEventListener("change", () => {
+      selectedSubject = subjectSelect.value;
       conversationHistory = []; // fresh topic — old context shouldn't leak in
-      document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
-      btnEl.classList.add("active");
-    }
-
-    document.querySelector('.tab[data-subject=""]').addEventListener("click", function () {
-      selectSubject("", this);
     });
 
     function formatBotText(text) {
