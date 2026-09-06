@@ -91,25 +91,86 @@
     }
     .back-link:hover { color: var(--text); border-color: var(--accent); }
 
-    /* ── Subject dropdown ── */
+    /* ── Subject dropdown (custom-built — no native OS picker) ── */
     .subject-bar {
       padding: 10px 20px;
       background: var(--bg-elevated);
       border-bottom: 1px solid var(--border);
+      position: relative;
     }
-    .subject-select {
+    .subject-dropdown {
+      position: relative;
+      display: inline-block;
+      max-width: 260px;
+    }
+    .subject-dropdown-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      width: 100%;
       background: var(--bg);
       color: var(--text);
       border: 1px solid var(--border);
       border-radius: 999px;
-      padding: 8px 14px;
+      padding: 9px 14px;
       font-family: var(--font-body);
       font-size: 0.85rem;
-      outline: none;
       cursor: pointer;
-      max-width: 260px;
+      transition: border-color 0.15s ease;
     }
-    .subject-select:focus { border-color: var(--accent); }
+    .subject-dropdown-btn:hover,
+    .subject-dropdown.open .subject-dropdown-btn {
+      border-color: var(--accent);
+    }
+    .subject-dropdown-btn .label {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .subject-dropdown-btn .chevron {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      transition: transform 0.15s ease;
+    }
+    .subject-dropdown.open .subject-dropdown-btn .chevron {
+      transform: rotate(180deg);
+    }
+
+    .subject-dropdown-menu {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      min-width: 100%;
+      max-height: 260px;
+      overflow-y: auto;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      z-index: 20;
+      display: none;
+      padding: 6px;
+    }
+    .subject-dropdown.open .subject-dropdown-menu { display: block; }
+
+    .subject-option {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      color: var(--text);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .subject-option:hover { background: var(--accent-soft); }
+    .subject-option.selected { color: var(--accent); font-weight: 600; }
+    .subject-option .check { opacity: 0; color: var(--accent); }
+    .subject-option.selected .check { opacity: 1; }
 
     /* ── Chat area ── */
     .chat-messages {
@@ -262,7 +323,7 @@
       }
 
       .subject-bar { padding: 8px 14px; }
-      .subject-select { max-width: 100%; width: 100%; }
+      .subject-dropdown { max-width: 100%; width: 100%; }
     }
   </style>
 </head>
@@ -280,9 +341,22 @@
     </header>
 
     <div class="subject-bar">
-      <select class="subject-select" id="subjectSelect">
-        <option value="">All Subjects</option>
-      </select>
+      <div class="subject-dropdown" id="subjectDropdown">
+        <button type="button" class="subject-dropdown-btn" id="subjectDropdownBtn">
+          <span class="label" id="subjectDropdownLabel">All Subjects</span>
+          <span class="chevron">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </span>
+        </button>
+        <div class="subject-dropdown-menu" id="subjectDropdownMenu">
+          <div class="subject-option selected" data-subject="">
+            <span>All Subjects</span>
+            <span class="check">✓</span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="chat-messages" id="chatMessages">
@@ -311,7 +385,10 @@
     const emptyState = document.getElementById("emptyState");
     const chatInput = document.getElementById("chatInput");
     const sendBtn = document.getElementById("sendBtn");
-    const subjectSelect = document.getElementById("subjectSelect");
+    const subjectDropdown = document.getElementById("subjectDropdown");
+    const subjectDropdownBtn = document.getElementById("subjectDropdownBtn");
+    const subjectDropdownLabel = document.getElementById("subjectDropdownLabel");
+    const subjectDropdownMenu = document.getElementById("subjectDropdownMenu");
 
     let selectedSubject = "";
     // Tracks the conversation so follow-ups like "more detailed" or
@@ -324,19 +401,41 @@
         const res = await CampusAuth.userFetch("/study/subjects");
         const data = await res.json();
         (data.subjects || []).forEach((subject) => {
-          const opt = document.createElement("option");
-          opt.value = subject;
-          opt.textContent = subject;
-          subjectSelect.appendChild(opt);
+          const opt = document.createElement("div");
+          opt.className = "subject-option";
+          opt.dataset.subject = subject;
+          opt.innerHTML = `<span>${subject}</span><span class="check">✓</span>`;
+          opt.addEventListener("click", () => selectSubject(subject, opt));
+          subjectDropdownMenu.appendChild(opt);
         });
       } catch (err) {
         console.error("Failed to load subjects:", err);
       }
     }
 
-    subjectSelect.addEventListener("change", () => {
-      selectedSubject = subjectSelect.value;
+    function selectSubject(subject, optEl) {
+      selectedSubject = subject;
       conversationHistory = []; // fresh topic — old context shouldn't leak in
+      subjectDropdownLabel.textContent = optEl.querySelector("span").textContent;
+      document.querySelectorAll(".subject-option").forEach((o) => o.classList.remove("selected"));
+      optEl.classList.add("selected");
+      closeDropdown();
+    }
+
+    document.querySelector('.subject-option[data-subject=""]').addEventListener("click", function () {
+      selectSubject("", this);
+    });
+
+    function openDropdown() { subjectDropdown.classList.add("open"); }
+    function closeDropdown() { subjectDropdown.classList.remove("open"); }
+
+    subjectDropdownBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      subjectDropdown.classList.contains("open") ? closeDropdown() : openDropdown();
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!subjectDropdown.contains(e.target)) closeDropdown();
     });
 
     function formatBotText(text) {
