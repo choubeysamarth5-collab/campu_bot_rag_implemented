@@ -1,0 +1,754 @@
+text,intent
+hostel fee,fees
+semester fee,fees
+how much fee,fees
+exam date,exam
+exam timetable,exam
+placement drive,placement
+library timing,library
+hostel rules,hostel
+canteen timing,canteen
+text,intent
+hostel fee,fees
+hostel charges,fees
+semester fee,fees
+college fee,fees
+how much is fee,fees
+tuition fee,fees
+payment details,fees
+fee structure,fees
+exam fee,fees
+library fine,fees
+
+exam date,exam
+exam timetable,exam
+exam routine,exam
+when are exams,exam
+semester exam schedule,exam
+mid sem date,exam
+end sem exam,exam
+supplementary exam,exam
+internal exam date,exam
+practical exam schedule,exam
+
+placement drive,placement
+campus placement,placement
+placement company,placement
+internship opportunity,placement
+job fair,placement
+recruitment drive,placement
+placement cell,placement
+highest package,placement
+average package,placement
+placement training,placement
+
+library timing,library
+library open time,library
+library closing time,library
+when does library open,library
+digital library,library
+reading room timing,library
+library rules,library
+issue books,library
+return books,library
+library card,library
+
+hostel rules,hostel
+hostel timing,hostel
+boys hostel,hostel
+girls hostel,hostel
+hostel facilities,hostel
+mess timing,hostel
+hostel room,hostel
+hostel warden,hostel
+hostel attendance,hostel
+hostel leave,hostel
+
+canteen timing,canteen
+canteen menu,canteen
+food court,canteen
+cafeteria timing,canteen
+snacks available,canteen
+canteen open time,canteen
+canteen closing,canteen
+tea stall,canteen
+lunch timing,canteen
+mess food,canteen
+
+admission process,admission
+admission form,admission
+how to apply,admission
+eligibility criteria,admission
+college admission,admission
+application deadline,admission
+required documents,admission
+admission fees,admission
+seat availability,admission
+direct admission,admission
+
+scholarship details,scholarship
+financial aid,scholarship
+merit scholarship,scholarship
+scholarship form,scholarship
+government scholarship,scholarship
+fee concession,scholarship
+scholarship eligibility,scholarship
+apply scholarship,scholarship
+student loan,scholarship
+scholarship amount,scholarship
+
+faculty details,faculty
+teacher contact,faculty
+hod name,faculty
+department faculty,faculty
+professor details,faculty
+faculty cabin,faculty
+teacher timing,faculty
+faculty room,faculty
+mentor details,faculty
+staff information,faculty
+
+sports facilities,sports
+cricket ground,sports
+football ground,sports
+gym facility,sports
+sports event,sports
+indoor games,sports
+sports teacher,sports
+annual sports,sports
+basketball court,sports
+sports registration,sports
+
+wifi password,wifi
+internet issue,wifi
+campus wifi,wifi
+wifi login,wifi
+network problem,wifi
+wifi access,wifi
+internet speed,wifi
+wifi registration,wifi
+wifi support,wifi
+wifi available,wifi
+when are exams,exams
+mid sem date,exams
+final exam schedule,exams
+semester exam,exams
+
+hostel fee,fees
+semester fee,fees
+payment details,fees
+tuition fee,fees
+
+placement drive,placements
+highest package,placements
+internship opportunity,placements
+
+library timing,library
+reading room timing,library
+
+hostel rules,hostel
+mess timing,hostel
+boys hostel,hostel
+
+when are exams,exams
+mid sem schedule,exams
+final exam date,exams
+exam timetable,exams
+practical exam timing,exams
+hall ticket download,exams
+supplementary exam,exams
+backlog exam details,exams
+internal marks,exams
+exam result date,exams
+
+परीक्षा कब है,exams
+मिड सेम टाइम टेबल,exams
+फाइनल एग्जाम डेट,exams
+एडमिट कार्ड डाउनलोड,exams
+रिजल्ट कब आएगा,exams
+
+परीक्षा कधी आहे,exams
+मिड सेम वेळापत्रक,exams
+निकाल तारीख,exams
+
+தேர்வு எப்போது,exams
+ஹால் டிக்கெட் பதிவிறக்கம்,exams
+முடிவுகள் எப்போது,exams
+
+పరీక్ష ఎప్పుడు,exams
+హాల్ టికెట్ డౌన్‌లోడ్,exams
+ఫలితాలు ఎప్పుడు,exams
+
+semester fee,fees
+hostel fee,fees
+tuition fee details,fees
+fee payment deadline,fees
+online payment portal,fees
+scholarship details,fees
+late fee penalty,fees
+payment receipt,fees
+
+कॉलेज फीस,fees
+सेमेस्टर फीस,fees
+फीस जमा करने की अंतिम तिथि,fees
+स्कॉलरशिप जानकारी,fees
+
+कॉलेज फी,fees
+शिष्यवृत्ती माहिती,fees
+
+கல்லூரி கட்டணம்,fees
+கட்டணம் செலுத்த கடைசி தேதி,fees
+
+కాలేజీ ఫీజు,fees
+ఫీజు చెల్లింపు చివరి తేదీ,fees
+
+hostel rules,hostel
+mess timing,hostel
+boys hostel details,hostel
+girls hostel details,hostel
+hostel wifi password,hostel
+room allotment,hostel
+warden contact,hostel
+laundry facility,hostel
+
+हॉस्टल नियम,hostel
+मेस टाइमिंग,hostel
+वार्डन नंबर,hostel
+
+वसतिगृह नियम,hostel
+मेस वेळ,hostel
+
+விடுதி விதிகள்,hostel
+மெஸ் நேரம்,hostel
+
+హాస్టల్ నియమాలు,hostel
+మెస్ టైమింగ్,hostel
+
+library timing,library
+book issue process,library
+digital library access,library
+library card renewal,library
+reading room timing,library
+fine for late return,library
+
+लाइब्रेरी टाइमिंग,library
+बुक इश्यू कैसे करें,library
+
+ग्रंथालय वेळ,library
+
+நூலக நேரம்,library
+
+లైబ్రరీ టైమింగ్,library
+
+placement drive,placements
+highest package,placements
+internship opportunities,placements
+campus recruitment,placements
+placement eligibility,placements
+resume submission,placements
+mock interview,placements
+
+प्लेसमेंट ड्राइव,placements
+इंटर्नशिप अवसर,placements
+
+प्लेसमेंट माहिती,placements
+
+வேலைவாய்ப்பு தகவல்,placements
+
+ప్లేస్‌మెంట్ డ్రైవ్,placements
+
+admission process,admissions
+required documents,admissions
+college admission last date,admissions
+application form,admissions
+entrance exam,admissions
+
+एडमिशन प्रक्रिया,admissions
+जरूरी दस्तावेज,admissions
+
+प्रवेश प्रक्रिया,admissions
+
+சேர்க்கை செயல்முறை,admissions
+
+అడ్మిషన్ ప్రక్రియ,admissions
+
+hello,greeting
+hi,greeting
+good morning,greeting
+good evening,greeting
+how are you,greeting
+thank you,greeting
+bye,greeting
+
+नमस्ते,greeting
+धन्यवाद,greeting
+
+नमस्कार,greeting
+
+வணக்கம்,greeting
+
+నమస్కారం,greeting
+text,intent
+fee,fees
+structure,fees
+tuition fee,fees
+due date,fees
+last date,fees
+deadline,fees
+payment,fees
+pay online,fees
+payment mode,fees
+late fee,fees
+penalty,fees
+fine,fees
+fee receipt,fees
+download receipt,fees
+payment proof,fees
+refund,fees
+fee refund,fees
+withdrawal refund,fees
+installment,fees
+fee installment,fees
+partial payment,fees
+hostel fee,fees
+mess fee,fees
+accommodation fee,fees
+caution deposit,fees
+security deposit,fees
+scholarship deduction,fees
+fee waiver,fees
+bank details,fees
+account number,fees
+fee payment bank,fees
+exam fee,fees
+examination fee,fees
+admission,admissions
+how to apply,admissions
+application process,admissions
+eligibility,admissions
+eligibility criteria,admissions
+minimum marks,admissions
+documents required,admissions
+documents needed,admissions
+upload documents,admissions
+entrance exam,admissions
+admission test,admissions
+merit list,admissions
+selection list,admissions
+cutoff,admissions
+counseling,admissions
+seat allotment,admissions
+counselling schedule,admissions
+reservation,admissions
+quota,admissions
+category seats,admissions
+lateral entry,admissions
+direct second year,admissions
+transfer certificate,admissions
+TC,admissions
+migration certificate,admissions
+admission cancellation,admissions
+withdraw admission,admissions
+NRI admission,admissions
+foreign national admission,admissions
+management quota,admissions
+spot admission,admissions
+exam schedule,exams
+timetable,exams
+exam dates,exams
+exam form,exams
+exam registration,exams
+form submission,exams
+hall ticket,exams
+admit card,exams
+download hall ticket,exams
+revaluation,exams
+recheck,exams
+answer sheet recheck,exams
+result,exams
+marksheet,exams
+grade card,exams
+backlog,exams
+supplementary exam,exams
+re-exam,exams
+attendance requirement,exams
+minimum attendance,exams
+exam center,exams
+exam venue,exams
+grading system,exams
+CGPA,exams
+percentage conversion,exams
+malpractice,exams
+unfair means,exams
+exam rules,exams
+practical exam,exams
+lab exam,exams
+viva schedule,exams
+improvement exam,exams
+grade improvement,exams
+hostel admission,hostel
+hostel application,hostel
+room allotment,hostel
+hostel fee,hostel
+mess charges,hostel
+room rent,hostel
+hostel rules,hostel
+curfew timing,hostel
+visitor policy,hostel
+mess menu,hostel
+food timing,hostel
+meal timings,hostel
+roommate change,hostel
+room change request,hostel
+hostel leave,hostel
+outing permission,hostel
+leave application,hostel
+laundry service,hostel
+washing machine,hostel
+hostel wifi,hostel
+internet access hostel,hostel
+day scholar,hostel
+non-hostel student,hostel
+hostel vacate,hostel
+checkout process,hostel
+ragging,hostel
+anti-ragging,hostel
+hostel safety,hostel
+hostel medical,hostel
+sick room,hostel
+first aid,hostel
+library timing,library
+opening hours,library
+library hours,library
+book issue,library
+borrow book,library
+issue limit,library
+book return,library
+due date,library
+renewal,library
+library fine,library
+late return fine,library
+library card,library
+membership,library
+lost card,library
+e-books,library
+digital library,library
+online journals,library
+reading room,library
+study hall,library
+book reservation,library
+hold book,library
+lost book,library
+damaged book,library
+book replacement,library
+inter library loan,library
+book request other library,library
+photocopy,library
+printing,library
+scanning service,library
+no dues certificate,library
+library clearance,library
+placement,placements
+campus placement,placements
+placement process,placements
+eligibility for placement,placements
+placement criteria,placements
+resume,placements
+CV format,placements
+resume building,placements
+internship,placements
+summer internship,placements
+internship program,placements
+placement statistics,placements
+average package,placements
+highest package,placements
+companies visiting,placements
+recruiters list,placements
+aptitude test,placements
+placement test preparation,placements
+pre placement talk,placements
+PPT,placements
+placement registration,placements
+register for drive,placements
+higher studies,placements
+GATE,placements
+study abroad support,placements
+internship stipend,placements
+paid internship,placements
+placement drive schedule,placements
+company visit dates,placements
+scholarship,scholarships
+financial aid,scholarships
+merit scholarship,scholarships
+government scholarship,scholarships
+state scholarship,scholarships
+scholarship eligibility,scholarships
+who can apply scholarship,scholarships
+scholarship application,scholarships
+how to apply scholarship,scholarships
+scholarship amount,scholarships
+scholarship benefit,scholarships
+sports scholarship,scholarships
+cultural scholarship,scholarships
+scholarship disbursement,scholarships
+when will I get scholarship,scholarships
+income certificate,scholarships
+scholarship documents,scholarships
+renewal of scholarship,scholarships
+scholarship continuation,scholarships
+private scholarship,scholarships
+external scholarship,scholarships
+class timetable,timetable
+schedule,timetable
+class timing,timetable
+timetable change,timetable
+schedule update,timetable
+lab schedule,timetable
+practical timetable,timetable
+academic calendar,timetable
+semester dates,timetable
+holiday list,timetable
+extra class,timetable
+makeup class,timetable
+college timing,timetable
+working hours,timetable
+class hours,timetable
+semester start date,timetable
+semester end date,timetable
+exam timetable,timetable
+exam schedule release,timetable
+contact,other
+phone number,other
+office contact,other
+id card,other
+student id,other
+lost id card,other
+bonafide certificate,other
+bonafide request,other
+transport,other
+bus facility,other
+college bus route,other
+grievance,other
+complaint,other
+student grievance cell,other
+medical facility,other
+health center,other
+campus doctor,other
+wifi,other
+internet,other
+campus wifi access,other
+sports facility,other
+gym,other
+sports complex,other
+clubs,other
+student activities,other
+extracurricular,other
+leave application,other
+attendance leave,other
+medical leave,other
+harassment,other
+anti-ragging helpline,other
+safety concern,other
+alumni,other
+alumni network,other
+alumni association,other
+convocation fee,fees
+degree fee,fees
+transport fee,fees
+bus fee payment,fees
+fee concession,fees
+fee reduction request,fees
+duplicate fee receipt,fees
+reprint receipt,fees
+fee structure new student,fees
+first year fees,fees
+provisional admission,admissions
+provisional seat,admissions
+sibling quota,admissions
+alumni quota admission,admissions
+gap year,admissions
+education gap admission,admissions
+hostel allotment at admission,admissions
+accommodation during admission,admissions
+admission helpline,admissions
+admission office contact,admissions
+online exam,exams
+computer based test,exams
+exam postponement,exams
+exam rescheduled,exams
+duplicate marksheet,exams
+marksheet reissue,exams
+condonation of attendance,exams
+attendance shortage exam,exams
+exam syllabus,exams
+portion for exam,exams
+hostel warden contact,hostel
+warden office,hostel
+guest room,hostel
+parents stay hostel,hostel
+hostel electricity,hostel
+power backup hostel,hostel
+hostel water supply,hostel
+drinking water hostel,hostel
+single room,hostel
+AC room hostel,hostel
+new arrivals,library
+new books library,library
+library seating capacity,library
+study space availability,library
+plagiarism check,library
+anti plagiarism software,library
+thesis submission,library
+project report library copy,library
+library orientation,library
+library induction,library
+placement cell contact,placements
+TPO contact,placements
+mock interview,placements
+interview preparation,placements
+off campus placement,placements
+off campus opportunities,placements
+placement policy,placements
+dream company rule,placements
+industry visit,placements
+industrial training,placements
+minority scholarship,scholarships
+SC ST scholarship,scholarships
+single girl child scholarship,scholarships
+girl child scholarship,scholarships
+research scholarship,scholarships
+fellowship,scholarships
+scholarship status check,scholarships
+track scholarship application,scholarships
+scholarship rejection,scholarships
+scholarship not approved,scholarships
+orientation day,timetable
+first day schedule,timetable
+public holiday list,timetable
+college holidays,timetable
+elective timetable,timetable
+elective subject schedule,timetable
+sports day schedule,timetable
+annual day schedule,timetable
+semester break,timetable
+vacation dates,timetable
+parking facility,other
+vehicle parking,other
+canteen timing,other
+cafeteria hours,other
+photocopy shop,other
+stationery shop campus,other
+internship certificate,other
+NOC for internship,other
+student portal login,other
+forgot password portal,other
+convocation ceremony,other
+graduation ceremony date,other
+disability support,other
+special needs assistance,other
+counseling services,other
+mental health support,other
+identity proof for exams,other
+valid ID for campus,other
+feedback form,other
+course feedback,other
+annual fee vs semester fee,fees
+fee frequency,fees
+fee hike,fees
+fee increase notice,fees
+cheque bounce,fees
+payment failed fee,fees
+fee for revaluation,fees
+recheck fee amount,fees
+admission open date,admissions
+when admissions start,admissions
+waitlist,admissions
+waiting list admission,admissions
+foreign qualification equivalence,admissions
+international marksheet admission,admissions
+admission brochure,admissions
+prospectus download,admissions
+exam invigilator complaint,exams
+unfair treatment exam,exams
+photocopy of answer sheet,exams
+certified copy request,exams
+exam pattern,exams
+marking scheme,exams
+hostel food quality complaint,hostel
+mess feedback,hostel
+hostel capacity,hostel
+number of hostel seats,hostel
+hostel fee refund,hostel
+vacate mid semester,hostel
+library rules,library
+silence policy,library
+borrow limit undergraduate,library
+borrow limit postgraduate,library
+placement offer letter,placements
+joining details,placements
+placement eligibility backlog,placements
+active backlog placement,placements
+scholarship helpdesk,scholarships
+scholarship office contact,scholarships
+post matric scholarship,scholarships
+pre matric scholarship,scholarships
+makeup exam schedule,timetable
+retest timetable,timetable
+internet issue campus,other
+wifi not working,other
+lost and found,other
+lost item campus,other
+campus event registration,other
+fest registration,other
+fee payment gateway error,fees
+transaction failed,fees
+sibling fee discount,fees
+multiple children discount,fees
+fee structure PDF,fees
+download fee chart,fees
+TDS on scholarship,fees
+tax on fee refund,fees
+admission form correction,admissions
+edit application,admissions
+age limit admission,admissions
+maximum age criteria,admissions
+admission interview,admissions
+personal interview round,admissions
+exam dress code,exams
+ID required for exam,exams
+internal marks,exams
+continuous assessment marks,exams
+exam seating arrangement,exams
+roll number seating,exams
+hostel entry exit register,hostel
+biometric attendance hostel,hostel
+hostel furniture,hostel
+room amenities,hostel
+library fine waiver,library
+fine exemption request,library
+reference books,library
+non issuable books,library
+placement dress code,placements
+interview attire,placements
+placement bond,placements
+service agreement company,placements
+scholarship bank account,scholarships
+account linking scholarship,scholarships
+revised timetable notification,timetable
+timetable update method,timetable
+campus map,other
+building directions,other
+duplicate degree certificate,other
+certificate reissue,other
+internship NOC process,other
+department approval internship,other
+photocopy ID card process,other
+replace lost student card,other
+practical batch timing,timetable
+lab batch schedule,timetable
+NSP scholarship,scholarships
+national scholarship portal,scholarships
+placement report download,placements
+annual placement report,placements
+hostel application deadline,hostel
+last date hostel form,hostel

@@ -64,6 +64,8 @@ const feedbackRoutes = require('./routes/feedback');
 const aiRoutes = require("./routes/ai");
 const documentRoute = require("./rag/routes/document");
 const uploadRoutes = require("./rag/routes/upload");
+const studyChatRoutes = require("./routes/studyChat");         // ← yeh add karo
+const studyUploadRoutes = require("./rag/routes/studyUpload"); // ← yeh add karo
 
 const { protect } = require("./middleware/auth");
 const { adminProtect } = require("./middleware/adminAuth");
@@ -233,6 +235,8 @@ app.get('/api/health', (req, res) => {
   });
 });
 app.use("/api/rag/documents", documentRoute);
+app.use('/api/study/admin', studyUploadRoutes);          // ← pehle
+app.use('/api/study', protect, studyChatRoutes);         // ← baad mein
 
 // ── 404 Handler ───────────────────────────────
 app.use('*', (req, res) => {

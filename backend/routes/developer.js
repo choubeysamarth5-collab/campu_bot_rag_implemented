@@ -691,6 +691,7 @@ router.post(
 
                 toInsert.push({
                     category,
+                    intent: category,
                     keywords,
                     answers: {
                         en: answerEn,

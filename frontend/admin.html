@@ -55,8 +55,12 @@
       <button class="admin-nav-btn" onclick="showSection('feedback', this)">⭐ Feedback</button>
       <button class="admin-nav-btn" onclick="showSection('users', this)">
 
+
         👥 Users
 
+      </button>
+      <button class="admin-nav-btn" onclick="showSection('study-notes')">
+        📚 Study Notes
       </button>
       <button class="admin-nav-btn" id="manageAdminsBtn" onclick="showSection('admins', this)" style="display:none">
 
@@ -216,6 +220,74 @@
           </h3>
           <div id="documentsListContainer">
             <p style="color: var(--text-muted)">Loading documents…</p>
+          </div>
+        </div>
+
+      </div>
+      <!-- PASTE B: drop this <div> right after your closing </div> for
+     id="section-upload-pdf" (i.e. between "UPLOAD PDF" and "CHAT LOGS"
+     sections) — same card / form-group / btn-primary classes you
+     already use, so it looks and behaves identically. -->
+
+      <!-- STUDY NOTES -->
+      <div id="section-study-notes" class="admin-section">
+
+        <h2>Study Notes Upload</h2>
+
+        <p style="color:var(--text-muted)">
+          Separate from FAQ training — these notes power the Study chatbot only.
+        </p>
+
+        <div class="card" style="max-width:600px">
+
+          <div class="form-group">
+            <label>Title</label>
+            <input type="text" id="studyNoteTitle" class="form-control"
+              placeholder="e.g. Unit 4 - Managing Innovation" />
+          </div>
+
+          <div class="form-group">
+            <label>Subject</label>
+            <input type="text" id="studyNoteSubject" class="form-control" placeholder="e.g. CS-803" />
+          </div>
+
+          <div class="form-group">
+            <label>Semester (optional)</label>
+            <input type="text" id="studyNoteSemester" class="form-control" placeholder="e.g. 8th Sem" />
+          </div>
+
+          <div class="form-group">
+            <label>Select PDF</label>
+            <input type="file" id="studyNoteFile" class="form-control" accept=".pdf" />
+          </div>
+
+          <button class="btn-primary" style="width:100%" onclick="submitStudyNoteUpload()">
+            📤 Upload Notes
+          </button>
+
+          <p id="studyUploadStatus" style="margin-top:10px"></p>
+
+        </div>
+
+               <!-- Uploaded Notes list: populated by loadStudyNotes() in
+             admin-new.js whenever this section is opened, and
+             refreshed automatically after each upload/delete. -->
+        <div class="card" style="margin-top: 20px;">
+          <h3 style="font-family:var(--font-display);margin-bottom:12px;font-size:1rem">
+            📚 Uploaded Notes
+          </h3>
+
+          <input
+            type="text"
+            id="studyNotesSearch"
+            class="form-control"
+            placeholder="🔍 Search by title or subject..."
+            style="margin-bottom:14px"
+            oninput="renderStudyNotesTable()"
+          />
+
+          <div id="studyNotesListContainer">
+            <p style="color: var(--text-muted)">Loading notes…</p>
           </div>
         </div>
 

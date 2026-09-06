@@ -34,8 +34,282 @@ function showSection(name) {
     if (name === 'add-admin') showAddAdmin();
     if (name === 'admins') loadAdmins();
     if (name === 'upload-pdf') loadDocuments();
+    if (name === 'study-notes') loadStudyNotes(); // ← ADD THIS LINE
+}
+// ── STUDY NOTES: SUBMIT HANDLER ──────────────────────────────────
+async function submitStudyNoteUpload() {
+    const status = document.getElementById("studyUploadStatus");
+    const fileInput = document.getElementById("studyNoteFile");
+    const title = document.getElementById("studyNoteTitle").value.trim();
+    const subject = document.getElementById("studyNoteSubject").value.trim();
+    const semester = document.getElementById("studyNoteSemester").value.trim();
+ 
+    if (!title || !subject) {
+        status.innerHTML = "❌ Title and Subject are required.";
+        return;
+    }
+    if (!fileInput.files.length) {
+        status.innerHTML = "❌ Please select a PDF.";
+        return;
+    }
+ 
+    uploadStudyNoteWithProgress(fileInput.files[0], { title, subject, semester }, status, fileInput);
+}
+ 
+// ── STUDY NOTES: UPLOAD WITH PROGRESS (mirrors uploadPDFWithProgress) ──
+function uploadStudyNoteWithProgress(file, meta, status, fileInput) {
+    let progressWrap = document.getElementById("studyUploadProgressWrap");
+    if (!progressWrap) {
+        progressWrap = document.createElement("div");
+        progressWrap.id = "studyUploadProgressWrap";
+        progressWrap.className = "upload-progress-wrap";
+        progressWrap.innerHTML = `
+            <div class="upload-progress-track">
+                <div class="upload-progress-fill" id="studyUploadProgressFill"></div>
+            </div>
+            <div class="upload-progress-text" id="studyUploadProgressText">0%</div>
+        `;
+        status.insertAdjacentElement("afterend", progressWrap);
+    }
+ 
+    const fill = document.getElementById("studyUploadProgressFill");
+    const text = document.getElementById("studyUploadProgressText");
+ 
+    progressWrap.style.display = "block";
+    fill.style.width = "0%";
+    text.textContent = "0%";
+    status.innerHTML = "⏳ Uploading...";
+ 
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("title", meta.title);
+    formData.append("subject", meta.subject);
+    formData.append("semester", meta.semester || "");
+ 
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${API_BASE}/study/admin/upload`);
+ 
+    const token = CampusAuth.getAdminToken();
+    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+ 
+    xhr.upload.addEventListener("progress", (e) => {
+        if (!e.lengthComputable) return;
+        const percent = Math.round((e.loaded / e.total) * 100);
+        fill.style.width = `${percent}%`;
+        text.textContent = `${percent}%`;
+    });
+ 
+    xhr.onload = () => {
+        fill.style.width = "100%";
+        text.textContent = "Processing…";
+ 
+        try {
+            const data = JSON.parse(xhr.responseText);
+ 
+            if (xhr.status >= 200 && xhr.status < 300 && data.success) {
+                status.innerHTML = `✅ Uploaded — ${data.note.chunkCount} chunks indexed.`;
+                document.getElementById("studyNoteTitle").value = "";
+                document.getElementById("studyNoteSubject").value = "";
+                document.getElementById("studyNoteSemester").value = "";
+            } else {
+                status.innerHTML = "❌ " + (data.message || "Upload failed.");
+            }
+        } catch (err) {
+            status.innerHTML = "❌ Upload failed.";
+        }
+ 
+        fileInput.value = "";
+        setTimeout(() => { progressWrap.style.display = "none"; }, 1500);
+        loadStudyNotes();
+    };
+ 
+    xhr.onerror = () => {
+        status.innerHTML = "❌ Upload failed (network error).";
+        progressWrap.style.display = "none";
+    };
+ 
+    xhr.send(formData);
+}
+ 
+// ── STUDY NOTES: LIST (mirrors loadDocuments) ────────────────────
+// ── STUDY NOTES: STATE (in-memory list + current sort) ────────────
+// Notes are fetched once and kept here; search/sort just re-render
+// from this array instead of re-hitting the server every keystroke.
+let studyNotesData = [];
+let studyNotesSort = { field: "createdAt", direction: "desc" };
+
+// ── STUDY NOTES: FETCH (mirrors loadDocuments) ─────────────────────
+async function loadStudyNotes() {
+    const container = document.getElementById("studyNotesListContainer");
+    if (!container) return;
+
+    container.innerHTML = "<p style='color:var(--text-muted)'>Loading notes…</p>";
+
+    try {
+        const res = await CampusAuth.adminFetch("/study/admin/notes");
+
+        if (res.status === 401 || res.status === 403) {
+            container.innerHTML =
+                "<p style='color:var(--danger)'>⚠️ Session expired, or you don't have the studyNotes permission. Refresh and log in again.</p>";
+            return;
+        }
+
+        const data = await res.json();
+
+        if (!data.success) {
+            container.innerHTML =
+                `<p style='color:var(--danger)'>⚠️ Could not load notes: ${escapeHtml(data.message || "Unknown error")}</p>`;
+            return;
+        }
+
+        studyNotesData = data.notes;
+        renderStudyNotesTable();
+    } catch (err) {
+        console.error(err);
+        container.innerHTML = "<p style='color:var(--danger)'>⚠️ Network error loading notes.</p>";
+    }
 }
 
+// ── STUDY NOTES: SORT HEADER CLICK ─────────────────────────────────
+function sortStudyNotes(field) {
+    if (studyNotesSort.field === field) {
+        studyNotesSort.direction = studyNotesSort.direction === "asc" ? "desc" : "asc";
+    } else {
+        studyNotesSort = { field, direction: "asc" };
+    }
+    renderStudyNotesTable();
+}
+
+function sortIcon(field) {
+    if (studyNotesSort.field !== field) return "";
+    return studyNotesSort.direction === "asc" ? " ▲" : " ▼";
+}
+
+// ── STUDY NOTES: RENDER (applies current search + sort) ────────────
+function renderStudyNotesTable() {
+    const container = document.getElementById("studyNotesListContainer");
+    if (!container) return;
+
+    const searchEl = document.getElementById("studyNotesSearch");
+    const query = (searchEl?.value || "").trim().toLowerCase();
+
+    let rows = studyNotesData;
+
+    if (query) {
+        rows = rows.filter(
+            (n) =>
+                n.title.toLowerCase().includes(query) ||
+                n.subject.toLowerCase().includes(query)
+        );
+    }
+
+    const { field, direction } = studyNotesSort;
+    rows = [...rows].sort((a, b) => {
+        let valA = a[field];
+        let valB = b[field];
+
+        if (field === "createdAt") {
+            valA = new Date(valA).getTime();
+            valB = new Date(valB).getTime();
+        } else if (field === "chunkCount") {
+            valA = Number(valA) || 0;
+            valB = Number(valB) || 0;
+        } else {
+            valA = (valA || "").toString().toLowerCase();
+            valB = (valB || "").toString().toLowerCase();
+        }
+
+        if (valA < valB) return direction === "asc" ? -1 : 1;
+        if (valA > valB) return direction === "asc" ? 1 : -1;
+        return 0;
+    });
+
+    if (studyNotesData.length === 0) {
+        container.innerHTML = "<p style='color:var(--text-muted)'>No notes uploaded yet.</p>";
+        return;
+    }
+
+    if (rows.length === 0) {
+        container.innerHTML = "<p style='color:var(--text-muted)'>No notes match your search.</p>";
+        return;
+    }
+
+    const th = (label, field) => `
+        <th style="padding:8px 6px;cursor:pointer;user-select:none" onclick="sortStudyNotes('${field}')">
+            ${label}${sortIcon(field)}
+        </th>
+    `;
+
+    container.innerHTML = `
+        <table style="width:100%;border-collapse:collapse">
+            <thead>
+                <tr style="text-align:left;border-bottom:1px solid var(--border,#333)">
+                    ${th("Title", "title")}
+                    ${th("Subject", "subject")}
+                    ${th("Semester", "semester")}
+                    ${th("Chunks", "chunkCount")}
+                    ${th("Uploaded", "createdAt")}
+                    <th style="padding:8px 6px">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${rows.map(note => `
+                    <tr style="border-bottom:1px solid var(--border,#2a2a2a)">
+                        <td style="padding:8px 6px">${escapeHtml(note.title)}</td>
+                        <td style="padding:8px 6px">${escapeHtml(note.subject)}</td>
+                        <td style="padding:8px 6px">${escapeHtml(note.semester || "-")}</td>
+                        <td style="padding:8px 6px">${note.chunkCount}</td>
+                        <td style="padding:8px 6px">${new Date(note.createdAt).toLocaleDateString()}</td>
+                        <td style="padding:8px 6px;white-space:nowrap">
+                            <button class="btn-primary" style="padding:4px 12px;font-size:0.85rem;margin-right:6px" onclick="viewStudyNote('${note._id}', '${escapeHtml(note.sourceFileName || note.title)}')">View</button>
+                            <button class="btn-primary" style="background:var(--danger);padding:4px 12px;font-size:0.85rem" onclick="deleteStudyNote('${note._id}')">Delete</button>
+                        </td>
+                    </tr>
+                `).join("")}
+            </tbody>
+        </table>
+    `;
+}
+
+// ── STUDY NOTES: VIEW ───────────────────────────────────────────────
+async function viewStudyNote(id, filename) {
+    try {
+        const res = await CampusAuth.adminFetch(`/study/admin/notes/view/${id}`);
+
+        if (!res.ok) {
+            alert("Could not load this PDF.");
+            return;
+        }
+
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, "_blank");
+
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    } catch (err) {
+        console.error(err);
+        alert("Failed to open PDF (network error).");
+    }
+}
+// ── STUDY NOTES: DELETE ───────────────────────────────────────────
+async function deleteStudyNote(id) {
+    if (!confirm("Delete this note permanently? This removes it from the Study chatbot too.")) return;
+ 
+    try {
+        const res = await CampusAuth.adminFetch(`/study/admin/notes/${id}`, { method: "DELETE" });
+        const data = await res.json();
+ 
+        if (data.success) {
+            loadStudyNotes();
+        } else {
+            alert("Delete failed: " + (data.message || "Unknown error"));
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Delete failed (network error).");
+    }
+}
+ 
 // =============================================
 // THEME TOGGLE
 // =============================================
@@ -1014,6 +1288,8 @@ async function loadAdmins() {
 
             <th>Status</th>
 
+            <th>Study Notes</th>
+
             <th>Action</th>
 
           </tr>
@@ -1037,6 +1313,21 @@ async function loadAdmins() {
                 ${admin.isActive
                 ? '🟢 Active'
                 : '🔴 Disabled'}
+
+              </td>
+
+              <td>
+
+                ${(admin.permissions || []).includes('all')
+                ? '<span style="color:var(--text-muted);font-size:0.8rem">Full access</span>'
+                : `<label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
+                     <input
+                       type="checkbox"
+                       ${(admin.permissions || []).includes('studyNotes') ? 'checked' : ''}
+                       onchange="toggleStudyNotesAccess('${admin._id}', this.checked, this)"
+                     />
+                   </label>`
+            }
 
               </td>
 
@@ -1083,6 +1374,36 @@ async function loadAdmins() {
 
         container.innerHTML =
             '<p>Failed to load admins.</p>';
+    }
+}
+
+// ── STUDY NOTES: toggle a specific admin's access from the Manage
+// Admins panel — replaces the need to run grantStudyPermission.js
+// in a terminal for every new teacher account.
+async function toggleStudyNotesAccess(adminId, enabled, checkboxEl) {
+    checkboxEl.disabled = true;
+
+    try {
+        const res = await CampusAuth.adminFetch(`/admin/admins/${adminId}/study-notes`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled }),
+        });
+
+        const data = await res.json();
+
+        if (!data.success) {
+            alert('Failed: ' + (data.message || 'Unknown error'));
+            checkboxEl.checked = !enabled; // revert the visual toggle
+        }
+        // On success we leave the checkbox as the user set it —
+        // no need to reload the whole admins table for one field.
+    } catch (err) {
+        console.error(err);
+        alert('Network error — could not update Study Notes access.');
+        checkboxEl.checked = !enabled;
+    } finally {
+        checkboxEl.disabled = false;
     }
 }
 // =============================================

@@ -69,4 +69,4 @@ backend/chroma_db/
 # Uploaded documents
 backend/uploads/
 # Old ML Model
-ml_model/
+#ml_model/

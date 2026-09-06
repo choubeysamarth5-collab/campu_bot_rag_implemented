@@ -17,15 +17,15 @@
 // =================================================================
 
 const express = require('express');
-const router  = express.Router();
-const Admin   = require('../models/Admin');
-const User    = require('../models/User');
-const Log     = require('../models/Log');
+const router = express.Router();
+const Admin = require('../models/Admin');
+const User = require('../models/User');
+const Log = require('../models/Log');
 const Feedback = require('../models/Feedback');
-const FAQ     = require('../models/FAQ');
-const { generateAdminToken }                       = require('../utils/jwt');
-const { adminProtect, requireSuperAdmin }          = require('../middleware/adminAuth');
-const { validateLogin, validateAdminRegister }     = require('../utils/validators');
+const FAQ = require('../models/FAQ');
+const { generateAdminToken } = require('../utils/jwt');
+const { adminProtect, requireSuperAdmin } = require('../middleware/adminAuth');
+const { validateLogin, validateAdminRegister } = require('../utils/validators');
 
 // =================================================================
 // POST /api/admin/auth/register
@@ -58,10 +58,10 @@ router.post('/auth/register', async (req, res) => {
       : 'admin';
 
     const admin = await Admin.create({
-      name:  name.trim(),
+      name: name.trim(),
       email: email.toLowerCase().trim(),
       password,
-      role:  assignedRole,
+      role: assignedRole,
     });
 
     const token = generateAdminToken(admin._id, admin.role);
@@ -97,7 +97,7 @@ router.post('/auth/login', async (req, res) => {
 
     // Select password explicitly (select:false in schema)
     const admin = await Admin.findOne({ email: email.toLowerCase().trim() })
-                             .select('+password');
+      .select('+password');
 
     if (!admin) {
       return res.status(401).json({
@@ -156,9 +156,9 @@ router.get('/auth/me', adminProtect, (req, res) => {
 // =================================================================
 router.get('/users', adminProtect, async (req, res) => {
   try {
-    const page  = parseInt(req.query.page)  || 1;
+    const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
-    const skip  = (page - 1) * limit;
+    const skip = (page - 1) * limit;
 
     const [users, total] = await Promise.all([
       User.find().sort({ createdAt: -1 }).skip(skip).limit(limit),
@@ -438,36 +438,36 @@ router.put(
     try {
 
       // Prevent disabling last superadmin
-if (
-  req.body.isActive === false
-) {
+      if (
+        req.body.isActive === false
+      ) {
 
-  const admin =
-    await Admin.findById(
-      req.params.id
-    );
+        const admin =
+          await Admin.findById(
+            req.params.id
+          );
 
-  if (
-    admin &&
-    admin.role === 'superadmin'
-  ) {
+        if (
+          admin &&
+          admin.role === 'superadmin'
+        ) {
 
-    const activeSuperadmins =
-      await Admin.countDocuments({
-        role: 'superadmin',
-        isActive: true
-      });
+          const activeSuperadmins =
+            await Admin.countDocuments({
+              role: 'superadmin',
+              isActive: true
+            });
 
-    if (activeSuperadmins <= 1) {
+          if (activeSuperadmins <= 1) {
 
-      return res.status(400).json({
-        success: false,
-        message:
-          'Cannot disable last active superadmin.'
-      });
-    }
-  }
-}
+            return res.status(400).json({
+              success: false,
+              message:
+                'Cannot disable last active superadmin.'
+            });
+          }
+        }
+      }
       const admin =
         await Admin.findByIdAndUpdate(
           req.params.id,
@@ -564,6 +564,82 @@ router.delete(
         success: true,
         message:
           'Admin deleted successfully.'
+      });
+
+    } catch (err) {
+
+      res.status(500).json({
+        success: false,
+        message: err.message
+      });
+    }
+  }
+);
+
+// =============================================
+// PASTE into routes/adminAuth.js — anywhere after the existing
+// PUT /admins/:id route (the one that toggles isActive), before
+// module.exports = router;
+// =============================================
+//
+// Lets a superadmin flip another admin's "studyNotes" permission
+// on/off from the Manage Admins panel, instead of running
+// grantStudyPermission.js in a terminal every time a new teacher
+// account is created.
+
+// =================================================================
+// PUT /api/admin/admins/:id/study-notes   [SUPERADMIN ONLY]
+// Body: { enabled: true|false }
+// =================================================================
+router.put(
+  '/admins/:id/study-notes',
+
+  adminProtect,
+
+  requireSuperAdmin,
+
+  async (req, res) => {
+
+    try {
+
+      const { enabled } = req.body;
+
+      const admin = await Admin.findById(req.params.id);
+
+      if (!admin) {
+        return res.status(404).json({
+          success: false,
+          message: 'Admin not found.'
+        });
+      }
+
+      if (!admin.permissions) admin.permissions = [];
+
+      // If this admin has "all" permissions, studyNotes is already
+      // implied — nothing to add, and we don't remove "all" just
+      // because someone unchecked this one box.
+      if (admin.permissions.includes('all')) {
+        return res.json({
+          success: true,
+          message: `${admin.name} already has full access (includes Study Notes).`,
+          permissions: admin.permissions,
+        });
+      }
+
+      const hasIt = admin.permissions.includes('studyNotes');
+
+      if (enabled && !hasIt) {
+        admin.permissions.push('studyNotes');
+      } else if (!enabled && hasIt) {
+        admin.permissions = admin.permissions.filter(p => p !== 'studyNotes');
+      }
+
+      await admin.save();
+
+      res.json({
+        success: true,
+        message: `Study Notes access ${enabled ? 'granted to' : 'removed from'} ${admin.name}.`,
+        permissions: admin.permissions,
       });
 
     } catch (err) {
