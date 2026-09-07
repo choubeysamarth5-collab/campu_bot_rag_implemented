@@ -41,6 +41,7 @@
   --user-bubble: linear-gradient(135deg, #6c8fff, #a78bfa);
   --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   --danger: #ef4444;
+  --bg-elevated: #171a23;   /* 👈 add this */
 
   /* Radii */
   --radius: 18px;
@@ -78,6 +79,7 @@
   --bot-bubble: #ffffff;
   --user-bubble: linear-gradient(135deg, #4a6cf7, #7c3aed);
   --shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  --bg-elevated: #ffffff;   /* 👈 add this — light theme ka surface color */
 }
 
 

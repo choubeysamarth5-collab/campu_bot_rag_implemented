@@ -320,27 +320,27 @@ function deleteStudyNote(id) {
     });
 }
  
-// =============================================
-// THEME TOGGLE
-// =============================================
-document
-    .getElementById('themeToggle')
-    .addEventListener('click', () => {
+// // =============================================
+// // THEME TOGGLE
+// // =============================================
+// document
+//     .getElementById('themeToggle')
+//     .addEventListener('click', () => {
 
-        const current = document.body.dataset.theme;
+//         const current = document.body.dataset.theme;
 
-        document.body.dataset.theme =
-            current === 'dark'
-                ? 'light'
-                : 'dark';
+//         document.body.dataset.theme =
+//             current === 'dark'
+//                 ? 'light'
+//                 : 'dark';
 
-        document
-            .querySelector('.theme-icon')
-            .textContent =
-            current === 'dark'
-                ? '🌙'
-                : '☀️';
-    });
+//         document
+//             .querySelector('.theme-icon')
+//             .textContent =
+//             current === 'dark'
+//                 ? '🌙'
+//                 : '☀️';
+//     });
 
 // =============================================
 // LOAD DASHBOARD
@@ -1453,9 +1453,10 @@ function renderAdminsUI() {
             <div style="font-size:0.8rem;color:var(--text-muted)">${escapeHtml(admin.role)} · ${statusBadge(admin)}</div>
 
             <div
-              id="adminRowMenu-${admin._id}"
-              style="display:${adminsOpenMenuId === admin._id ? 'block' : 'none'};position:absolute;right:4px;top:36px;background:var(--bg-elevated,#171a23);border:1px solid var(--border,#333);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.4);z-index:20;min-width:170px;padding:6px"
-            >
+  id="adminRowMenu-${admin._id}"
+  onclick="event.stopPropagation()"
+  style="display:${adminsOpenMenuId === admin._id ? 'block' : 'none'};position:absolute;right:4px;top:36px;background:var(--bg-elevated,#171a23);border:1px solid var(--border,#333);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.4);z-index:20;min-width:170px;padding:6px"
+>
               <button class="btn-sm danger" style="width:100%;margin-bottom:4px" onclick="toggleAdminStatus('${admin._id}', ${admin.isActive}); toggleAdminRowMenu(null)">
                 ${admin.isActive ? 'Disable' : 'Enable'}
               </button>
