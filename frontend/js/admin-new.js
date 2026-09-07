@@ -287,7 +287,7 @@ async function viewStudyNote(id, filename) {
         const res = await CampusAuth.adminFetch(`/study/admin/notes/view/${id}`);
 
         if (!res.ok) {
-            alert("Could not load this PDF.");
+            showAlert("Could not load this PDF.");
             return;
         }
 
@@ -298,26 +298,26 @@ async function viewStudyNote(id, filename) {
         setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
     } catch (err) {
         console.error(err);
-        alert("Failed to open PDF (network error).");
+        showAlert("Failed to open PDF (network error).");
     }
 }
 // ── STUDY NOTES: DELETE ───────────────────────────────────────────
-async function deleteStudyNote(id) {
-    if (!confirm("Delete this note permanently? This removes it from the Study chatbot too.")) return;
- 
-    try {
-        const res = await CampusAuth.adminFetch(`/study/admin/notes/${id}`, { method: "DELETE" });
-        const data = await res.json();
- 
-        if (data.success) {
-            loadStudyNotes();
-        } else {
-            alert("Delete failed: " + (data.message || "Unknown error"));
+function deleteStudyNote(id) {
+    showConfirm("Delete this note permanently? This removes it from the Study chatbot too.", async () => {
+        try {
+            const res = await CampusAuth.adminFetch(`/study/admin/notes/${id}`, { method: "DELETE" });
+            const data = await res.json();
+
+            if (data.success) {
+                loadStudyNotes();
+            } else {
+                showAlert("Delete failed: " + (data.message || "Unknown error"));
+            }
+        } catch (err) {
+            console.error(err);
+            showAlert("Delete failed (network error).");
         }
-    } catch (err) {
-        console.error(err);
-        alert("Delete failed (network error).");
-    }
+    });
 }
  
 // =============================================
@@ -1262,130 +1262,292 @@ async function changeAdminPassword() {
 // =============================================
 // LOAD ADMINS
 // =============================================
-async function loadAdmins() {
+// =============================================
+// PASTE: replace your ENTIRE existing loadAdmins() function with
+// everything below (state vars + loadAdmins + all new helpers).
+// Reuses your EXISTING toggleAdminStatus, deleteAdmin, createAdmin
+// functions untouched — no backend/API changes, this only rebuilds
+// how the list is rendered.
+// =============================================
 
-    const container =
-        document.getElementById(
-            'adminsContainer'
-        );
+// ── MANAGE ADMINS: STATE ──────────────────────────────────────────
+let adminsData = [];
+let adminsPage = 1;
+const ADMINS_PAGE_SIZE = 10;
+let adminsSort = "name_asc";
+let adminsHasCreatedAt = false; // only offer Newest/Oldest if the data actually has it
+let adminsOpenMenuId = null; // which row's "⋮" menu is open (mobile)
+
+// ── MANAGE ADMINS: FETCH ──────────────────────────────────────────
+async function loadAdmins() {
+    const listContainer = document.getElementById('adminsContainer') || document.getElementById('adminsListContainer');
 
     try {
+        const res = await CampusAuth.adminFetch('/admin/admins');
+        const data = await res.json();
+        adminsData = data.data || [];
 
-        const res =
-            await CampusAuth.adminFetch(
-                '/admin/admins'
-            );
+        adminsHasCreatedAt = adminsData.some(a => !!a.createdAt);
+        ensureCreatedAtSortOptions();
 
-        const data =
-            await res.json();
-
-        const admins =
-            data.data || [];
-
-        container.innerHTML = `
-
-      <table class="faq-table">
-
-        <thead>
-
-          <tr>
-
-            <th>Name</th>
-
-            <th>Email</th>
-
-            <th>Role</th>
-
-            <th>Status</th>
-
-            <th>Study Notes</th>
-
-            <th>Action</th>
-
-          </tr>
-
-        </thead>
-
-        <tbody>
-
-          ${admins.map(admin => `
-
-            <tr>
-
-              <td>${admin.name}</td>
-
-              <td>${admin.email}</td>
-
-              <td>${admin.role}</td>
-
-              <td>
-
-                ${admin.isActive
-                ? '🟢 Active'
-                : '🔴 Disabled'}
-
-              </td>
-
-              <td>
-
-                ${(admin.permissions || []).includes('all')
-                ? '<span style="color:var(--text-muted);font-size:0.8rem">Full access</span>'
-                : `<label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
-                     <input
-                       type="checkbox"
-                       ${(admin.permissions || []).includes('studyNotes') ? 'checked' : ''}
-                       onchange="toggleStudyNotesAccess('${admin._id}', this.checked, this)"
-                     />
-                   </label>`
-            }
-
-              </td>
-
-              <td>
-
-                <button
-                  class="btn-sm danger"
-                  onclick="toggleAdminStatus(
-                    '${admin._id}',
-                    ${admin.isActive}
-                  )">
-
-                  ${admin.isActive
-                ? 'Disable'
-                : 'Enable'}
-
-                </button>
-
-                <button
-                  class="btn-sm danger"
-                  style="margin-left:6px"
-                  onclick="deleteAdmin(
-                    '${admin._id}'
-                  )">
-
-                  Delete
-
-                </button>
-
-              </td>
-
-            </tr>
-
-          `).join('')}
-
-        </tbody>
-
-      </table>
-    `;
-
+        adminsPage = 1;
+        renderAdminsUI();
     } catch (err) {
-
         console.error(err);
-
-        container.innerHTML =
-            '<p>Failed to load admins.</p>';
+        if (listContainer) listContainer.innerHTML = '<p style="color:var(--danger)">Failed to load admins.</p>';
     }
 }
+
+// Adds "Newest first" / "Oldest first" options to the sort dropdown
+// only if the fetched admins actually carry a createdAt field —
+// never invents a sort option for data that doesn't exist.
+function ensureCreatedAtSortOptions() {
+    const sortSelect = document.getElementById('adminsSortSelect');
+    if (!sortSelect || !adminsHasCreatedAt) return;
+    if (sortSelect.querySelector('option[value="created_desc"]')) return; // already added
+
+    const newest = document.createElement('option');
+    newest.value = 'created_desc';
+    newest.textContent = 'Newest first';
+    const oldest = document.createElement('option');
+    oldest.value = 'created_asc';
+    oldest.textContent = 'Oldest first';
+    sortSelect.appendChild(newest);
+    sortSelect.appendChild(oldest);
+}
+
+// Called by the search input (oninput) and sort dropdown (onchange) —
+// both count as "the view changed", so we jump back to page 1.
+function onAdminsSearchOrSortChange() {
+    const sortSelect = document.getElementById('adminsSortSelect');
+    if (sortSelect) adminsSort = sortSelect.value;
+    adminsPage = 1;
+    renderAdminsUI();
+}
+
+function goToAdminsPage(n) {
+    adminsPage = n;
+    renderAdminsUI();
+}
+
+// ── MANAGE ADMINS: FILTER + SORT + PAGINATE + RENDER ──────────────
+function renderAdminsUI() {
+    const summaryEl = document.getElementById('adminsSummary');
+    const listContainer = document.getElementById('adminsListContainer') || document.getElementById('adminsContainer');
+    if (!listContainer) return;
+
+    // Summary always reflects the FULL dataset, not just what search
+    // currently filters — it's an overview, not a filtered count.
+    const total = adminsData.length;
+    const activeCount = adminsData.filter(a => a.isActive).length;
+    const disabledCount = total - activeCount;
+    if (summaryEl) {
+        summaryEl.textContent = `Total: ${total} · Active: ${activeCount} · Disabled: ${disabledCount}`;
+    }
+
+    // 1. SEARCH
+    const searchEl = document.getElementById('adminsSearch');
+    const query = (searchEl?.value || '').trim().toLowerCase();
+    let rows = adminsData;
+    if (query) {
+        rows = rows.filter(a =>
+            (a.name || '').toLowerCase().includes(query) ||
+            (a.email || '').toLowerCase().includes(query)
+        );
+    }
+
+    // 2. SORT
+    rows = [...rows].sort((a, b) => {
+        switch (adminsSort) {
+            case 'name_asc': return (a.name || '').localeCompare(b.name || '');
+            case 'name_desc': return (b.name || '').localeCompare(a.name || '');
+            case 'email_asc': return (a.email || '').localeCompare(b.email || '');
+            case 'email_desc': return (b.email || '').localeCompare(a.email || '');
+            case 'status_active': return (b.isActive === true) - (a.isActive === true);
+            case 'status_disabled': return (a.isActive === true) - (b.isActive === true);
+            case 'created_desc': return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+            case 'created_asc': return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+            default: return 0;
+        }
+    });
+
+    // 3. PAGINATE
+    const totalFiltered = rows.length;
+    const totalPages = Math.max(1, Math.ceil(totalFiltered / ADMINS_PAGE_SIZE));
+    if (adminsPage > totalPages) adminsPage = totalPages;
+    const start = (adminsPage - 1) * ADMINS_PAGE_SIZE;
+    const pageItems = rows.slice(start, start + ADMINS_PAGE_SIZE);
+
+    if (total === 0) {
+        listContainer.innerHTML = '<p style="color:var(--text-muted)">No admins found.</p>';
+        return;
+    }
+    if (totalFiltered === 0) {
+        listContainer.innerHTML = '<p style="color:var(--text-muted)">No admins match your search.</p>';
+        return;
+    }
+
+    const statusBadge = (a) => a.isActive ? '🟢 Active' : '🔴 Disabled';
+
+    const studyNotesCell = (a) => {
+        if ((a.permissions || []).includes('all')) {
+            return '<span style="color:var(--text-muted);font-size:0.8rem">Full access</span>';
+        }
+        const checked = (a.permissions || []).includes('studyNotes') ? 'checked' : '';
+        return `<label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
+                  <input type="checkbox" ${checked} onchange="toggleStudyNotesAccess('${a._id}', this.checked, this)" />
+                </label>`;
+    };
+
+    // ── DESKTOP TABLE (unchanged structure from your original) ──
+    const desktopTable = `
+      <div class="admins-desktop-view" style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+        <table class="faq-table" style="min-width:720px">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Study Notes</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${pageItems.map(admin => `
+              <tr>
+                <td>${escapeHtml(admin.name)}</td>
+                <td>${escapeHtml(admin.email)}</td>
+                <td>${escapeHtml(admin.role)}</td>
+                <td>${statusBadge(admin)}</td>
+                <td>${studyNotesCell(admin)}</td>
+                <td>
+                  <button class="btn-sm danger" onclick="toggleAdminStatus('${admin._id}', ${admin.isActive})">
+                    ${admin.isActive ? 'Disable' : 'Enable'}
+                  </button>
+                  <button class="btn-sm danger" style="margin-left:6px" onclick="deleteAdmin('${admin._id}')">
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    // ── MOBILE COMPACT ROWS (no big per-admin cards) ──
+    const mobileList = `
+      <div class="admins-mobile-view">
+        ${pageItems.map(admin => `
+          <div class="admin-compact-row" style="border-bottom:1px solid var(--border,#2a2a2a);padding:10px 4px;position:relative">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+              <strong style="font-size:0.92rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(admin.name)}</strong>
+              <button
+                aria-label="Actions"
+                onclick="toggleAdminRowMenu('${admin._id}', event)"
+                style="background:none;border:none;color:var(--text-muted);font-size:1.2rem;cursor:pointer;padding:2px 8px;flex-shrink:0"
+              >⋮</button>
+            </div>
+            <div style="font-size:0.8rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(admin.email)}</div>
+            <div style="font-size:0.8rem;color:var(--text-muted)">${escapeHtml(admin.role)} · ${statusBadge(admin)}</div>
+
+            <div
+              id="adminRowMenu-${admin._id}"
+              style="display:${adminsOpenMenuId === admin._id ? 'block' : 'none'};position:absolute;right:4px;top:36px;background:var(--bg-elevated,#171a23);border:1px solid var(--border,#333);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.4);z-index:20;min-width:170px;padding:6px"
+            >
+              <button class="btn-sm danger" style="width:100%;margin-bottom:4px" onclick="toggleAdminStatus('${admin._id}', ${admin.isActive}); toggleAdminRowMenu(null)">
+                ${admin.isActive ? 'Disable' : 'Enable'}
+              </button>
+              <button class="btn-sm danger" style="width:100%;margin-bottom:4px" onclick="deleteAdmin('${admin._id}'); toggleAdminRowMenu(null)">
+                Delete
+              </button>
+              ${(admin.permissions || []).includes('all')
+                ? '<div style="font-size:0.78rem;color:var(--text-muted);padding:6px 4px">Study Notes: Full access</div>'
+                : `<label style="display:flex;align-items:center;gap:8px;font-size:0.82rem;padding:6px 4px;cursor:pointer">
+                     <input type="checkbox" ${(admin.permissions || []).includes('studyNotes') ? 'checked' : ''}
+                       onchange="toggleStudyNotesAccess('${admin._id}', this.checked, this)" />
+                     Study Notes access
+                   </label>`
+              }
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+
+    // ── PAGINATION ──
+    const rangeStart = totalFiltered === 0 ? 0 : start + 1;
+    const rangeEnd = Math.min(start + ADMINS_PAGE_SIZE, totalFiltered);
+
+    const pageNumbers = buildAdminsPageNumbers(adminsPage, totalPages);
+    const pagination = `
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:14px;font-size:0.85rem">
+        <span style="color:var(--text-muted)">Showing ${rangeStart}–${rangeEnd} of ${totalFiltered}</span>
+        <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+          <button class="btn-sm" ${adminsPage === 1 ? 'disabled' : ''} onclick="goToAdminsPage(${adminsPage - 1})">Previous</button>
+          ${pageNumbers.map(p =>
+            p === '...'
+              ? `<span style="padding:0 6px;color:var(--text-muted)">…</span>`
+              : `<button class="btn-sm ${p === adminsPage ? 'active' : ''}" style="${p === adminsPage ? 'background:var(--accent);color:white' : ''}" onclick="goToAdminsPage(${p})">${p}</button>`
+          ).join('')}
+          <button class="btn-sm" ${adminsPage === totalPages ? 'disabled' : ''} onclick="goToAdminsPage(${adminsPage + 1})">Next</button>
+        </div>
+      </div>
+    `;
+
+    listContainer.innerHTML = desktopTable + mobileList + pagination;
+}
+
+// Builds a compact page-number list like: 1 ... 4 5 [6] 7 8 ... 42
+function buildAdminsPageNumbers(current, totalPages) {
+    const pages = [];
+    const windowSize = 1;
+
+    for (let p = 1; p <= totalPages; p++) {
+        if (p === 1 || p === totalPages || (p >= current - windowSize && p <= current + windowSize)) {
+            pages.push(p);
+        } else if (pages[pages.length - 1] !== '...') {
+            pages.push('...');
+        }
+    }
+    return pages;
+}
+
+// Opens/closes the "⋮" menu for one mobile row; closes any other
+// open menu first (only one open at a time).
+function toggleAdminRowMenu(adminId, event) {
+    if (event) event.stopPropagation();
+    adminsOpenMenuId = (adminsOpenMenuId === adminId) ? null : adminId;
+    renderAdminsUI();
+}
+
+// Close an open row menu when tapping anywhere else on the page.
+document.addEventListener('click', () => {
+    if (adminsOpenMenuId !== null) {
+        adminsOpenMenuId = null;
+        renderAdminsUI();
+    }
+});
+
+// ── RESPONSIVE CSS: desktop table vs mobile compact rows ──
+// Injected once — toggles which of the two pre-rendered views is
+// visible based on screen width. Both are built in the same render
+// pass above; only visibility switches, so there's no separate
+// data-fetch or duplicated logic path for mobile vs desktop.
+(function injectAdminsResponsiveStyle() {
+    if (document.getElementById('admins-responsive-style')) return;
+    const style = document.createElement('style');
+    style.id = 'admins-responsive-style';
+    style.textContent = `
+        .admins-mobile-view { display: none; }
+        @media (max-width: 768px) {
+            .admins-desktop-view { display: none; }
+            .admins-mobile-view { display: block; }
+        }
+    `;
+    document.head.appendChild(style);
+})();
 
 // ── STUDY NOTES: toggle a specific admin's access from the Manage
 // Admins panel — replaces the need to run grantStudyPermission.js
@@ -1403,14 +1565,14 @@ async function toggleStudyNotesAccess(adminId, enabled, checkboxEl) {
         const data = await res.json();
 
         if (!data.success) {
-            alert('Failed: ' + (data.message || 'Unknown error'));
+           showAlert('Failed: ' + (data.message || 'Unknown error'));
             checkboxEl.checked = !enabled; // revert the visual toggle
         }
         // On success we leave the checkbox as the user set it —
         // no need to reload the whole admins table for one field.
     } catch (err) {
         console.error(err);
-        alert('Network error — could not update Study Notes access.');
+        showAlert('Network error — could not update Study Notes access.');
         checkboxEl.checked = !enabled;
     } finally {
         checkboxEl.disabled = false;
@@ -1419,79 +1581,43 @@ async function toggleStudyNotesAccess(adminId, enabled, checkboxEl) {
 // =============================================
 // ENABLE / DISABLE ADMIN
 // =============================================
-async function toggleAdminStatus(
-    id,
-    currentStatus
-) {
-
+async function toggleAdminStatus(id, currentStatus) {
     try {
+        const res = await CampusAuth.adminFetch(`/admin/admins/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isActive: !currentStatus }),
+        });
 
-        const res =
-            await CampusAuth.adminFetch(
-                `/admin/admins/${id}`,
-                {
-                    method: 'PUT',
+        const data = await res.json();
 
-                    headers: {
-                        'Content-Type':
-                            'application/json'
-                    },
-
-                    body: JSON.stringify({
-                        isActive: !currentStatus
-                    })
-                }
-            );
-
-        const data =
-            await res.json();
-
-        alert(data.message);
-
+        showAlert(data.message);
         loadAdmins();
-
     } catch (err) {
-
         console.error(err);
-
-        alert('Backend error');
+        showAlert('Backend error');
     }
 }
 
 // =============================================
 // DELETE ADMIN
 // =============================================
-async function deleteAdmin(id) {
+function deleteAdmin(id) {
+    showConfirm('Delete this admin permanently?', async () => {
+        try {
+            const res = await CampusAuth.adminFetch(`/admin/admins/${id}`, {
+                method: 'DELETE',
+            });
 
-    if (
-        !confirm(
-            'Delete this admin permanently?'
-        )
-    ) return;
+            const data = await res.json();
 
-    try {
-
-        const res =
-            await CampusAuth.adminFetch(
-                `/admin/admins/${id}`,
-                {
-                    method: 'DELETE'
-                }
-            );
-
-        const data =
-            await res.json();
-
-        alert(data.message);
-
-        loadAdmins();
-
-    } catch (err) {
-
-        console.error(err);
-
-        alert('Backend error');
-    }
+            showAlert(data.message);
+            loadAdmins();
+        } catch (err) {
+            console.error(err);
+            showAlert('Backend error');
+        }
+    });
 }
 async function uploadPDF() {
 
@@ -1771,3 +1897,62 @@ function escapeHtml(str) {
     div.textContent = str;
     return div.innerHTML;
 }
+// =============================================
+// PASTE: add these two functions anywhere in admin-new.js (once).
+// They replace window.confirm() / window.alert() with a modal that
+// matches the dark theme, using the shell added in
+// custom-modal.PATCH.html.
+//
+// USAGE — drop-in style replacement pattern:
+//   Old:  if (confirm("Delete this?")) { doDelete(); }
+//   New:  showConfirm("Delete this?", () => { doDelete(); });
+//
+//   Old:  alert("Something failed");
+//   New:  showAlert("Something failed");
+// =============================================
+
+function showAlert(message) {
+    const overlay = document.getElementById('customModalOverlay');
+    const messageEl = document.getElementById('customModalMessage');
+    const actionsEl = document.getElementById('customModalActions');
+
+    messageEl.textContent = message;
+    actionsEl.innerHTML = `<button class="btn-primary" style="width:auto;padding:8px 20px" onclick="closeCustomModal()">OK</button>`;
+    overlay.style.display = 'flex';
+}
+
+function showConfirm(message, onConfirm) {
+    const overlay = document.getElementById('customModalOverlay');
+    const messageEl = document.getElementById('customModalMessage');
+    const actionsEl = document.getElementById('customModalActions');
+
+    messageEl.textContent = message;
+    actionsEl.innerHTML = `
+        <button class="btn-sm" onclick="closeCustomModal()">Cancel</button>
+        <button class="btn-sm danger" id="customModalConfirmBtn">Confirm</button>
+    `;
+    overlay.style.display = 'flex';
+
+    // Attach fresh each time so old handlers from a previous call
+    // never stack up on repeated confirm() usage.
+    document.getElementById('customModalConfirmBtn').onclick = () => {
+        closeCustomModal();
+        onConfirm();
+    };
+}
+
+function closeCustomModal() {
+    document.getElementById('customModalOverlay').style.display = 'none';
+}
+
+// Close on backdrop click (clicking outside the modal box)
+document.addEventListener('click', (e) => {
+    if (e.target && e.target.id === 'customModalOverlay') {
+        closeCustomModal();
+    }
+});
+
+// Close on Escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeCustomModal();
+});

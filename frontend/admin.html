@@ -67,11 +67,11 @@
         🛡 Manage Admins
 
       </button>
-      <button class="admin-nav-btn" id="addAdminNavBtn" onclick="showSection('add-admin', this)" style="display:none">
+      <!-- <button class="admin-nav-btn" id="addAdminNavBtn" onclick="showSection('add-admin', this)" style="display:none">
 
         🛡 Add Admin
 
-      </button>
+      </button> -->
       <button class="admin-nav-btn" onclick="showSection('change-password', this)">
 
         🔐 Change Password
@@ -269,7 +269,7 @@
 
         </div>
 
-               <!-- Uploaded Notes list: populated by loadStudyNotes() in
+        <!-- Uploaded Notes list: populated by loadStudyNotes() in
              admin-new.js whenever this section is opened, and
              refreshed automatically after each upload/delete. -->
         <div class="card" style="margin-top: 20px;">
@@ -277,14 +277,8 @@
             📚 Uploaded Notes
           </h3>
 
-          <input
-            type="text"
-            id="studyNotesSearch"
-            class="form-control"
-            placeholder="🔍 Search by title or subject..."
-            style="margin-bottom:14px"
-            oninput="renderStudyNotesTable()"
-          />
+          <input type="text" id="studyNotesSearch" class="form-control" placeholder="🔍 Search by title or subject..."
+            style="margin-bottom:14px" oninput="renderStudyNotesTable()" />
 
           <div id="studyNotesListContainer">
             <p style="color: var(--text-muted)">Loading notes…</p>
@@ -361,18 +355,74 @@
 
       </div>
       <!-- MANAGE ADMINS -->
+      <!-- ═══════════════════════════════════════════════════════════════
+     PASTE A: SIDEBAR — remove the "Add Admin" nav button entirely.
+
+     Find this in admin.html's sidebar and DELETE it:
+
+       <button class="admin-nav-btn" id="addAdminNavBtn" onclick="showSection('add-admin', this)" style="display:none">
+         🛡 Add Admin
+       </button>
+
+     Keep "Manage Admins" (manageAdminsBtn) as-is — only Add Admin
+     moves, Manage Admins stays in the sidebar.
+     ═══════════════════════════════════════════════════════════════ -->
+
+
+      <!-- ═══════════════════════════════════════════════════════════════
+     PASTE B: replace your ENTIRE existing:
+
+       <div id="section-admins" class="admin-section">
+         <h2>Manage Admins</h2>
+         <div class="card">
+           <div id="adminsContainer">
+             Loading admins...
+           </div>
+         </div>
+       </div>
+
+     with the block below. The old bare "Loading admins..." container
+     is now split into: a static header+search+sort bar (built once,
+     so the search box never loses focus while typing) and a results
+     container that JS re-renders on every search/sort/page change.
+     ═══════════════════════════════════════════════════════════════ -->
+
       <div id="section-admins" class="admin-section">
 
-        <h2>Manage Admins</h2>
+        <div
+          style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+          <h2 style="margin:0">Manage Admins</h2>
+          <button class="btn-primary" style="width:auto;padding:8px 16px" onclick="showSection('add-admin')">
+            ➕ Add Admin
+          </button>
+        </div>
 
-        <div class="card">
-
-          <div id="adminsContainer">
-
-            Loading admins...
-
+        <div class="card" style="margin-bottom:16px">
+          <div id="adminsSummary" style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px">
+            Loading…
           </div>
 
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <form autocomplete="off" onsubmit="return false;" style="flex:1;min-width:200px">
+              <input type="text" id="adminsSearch" name="q_admins_search_field_no_autofill" autocomplete="off"
+                class="form-control" placeholder="🔍 Search admins by name or email..." style="width:100%"
+                oninput="onAdminsSearchOrSortChange()" />
+            </form>
+
+            <select id="adminsSortSelect" class="form-control" style="width:auto;min-width:170px"
+              onchange="onAdminsSearchOrSortChange()">
+              <option value="name_asc">Name (A–Z)</option>
+              <option value="name_desc">Name (Z–A)</option>
+              <option value="email_asc">Email (A–Z)</option>
+              <option value="email_desc">Email (Z–A)</option>
+              <option value="status_active">Status (Active first)</option>
+              <option value="status_disabled">Status (Disabled first)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="card">
+          <div id="adminsListContainer">Loading admins...</div>
         </div>
 
       </div>
@@ -483,6 +533,25 @@
     document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
     document.getElementById('themeToggleMobile')?.addEventListener('click', toggleTheme);
   </script>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+     PASTE: add this once, anywhere in admin.html — right before the
+     closing </body> tag works well. This is the modal shell used by
+     showConfirm() / showAlert() (see custom-modal.PATCH.js) instead
+     of the browser's native confirm()/alert() popups.
+     ═══════════════════════════════════════════════════════════════ -->
+
+  <div id="customModalOverlay"
+    style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:1000;align-items:center;justify-content:center;padding:16px">
+    <div
+      style="background:var(--bg-elevated,#171a23);border:1px solid var(--border,#2a2a2a);border-radius:14px;max-width:400px;width:100%;padding:22px;box-shadow:0 12px 32px rgba(0,0,0,0.5)">
+      <p id="customModalMessage" style="margin:0 0 20px;color:var(--text,#f2f3f7);font-size:0.95rem;line-height:1.5">
+      </p>
+      <div id="customModalActions" style="display:flex;justify-content:flex-end;gap:10px">
+        <!-- Buttons injected by JS depending on confirm vs alert -->
+      </div>
+    </div>
+  </div>
 </body>
 
 </html>
