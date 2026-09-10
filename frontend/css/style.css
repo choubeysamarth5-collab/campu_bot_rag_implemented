@@ -623,12 +623,13 @@ img {
    phones. */
 .bubble {
   max-width: min(60ch, 88%);
+  width: max-content;
+  flex-shrink: 0;
   padding: 12px 16px;
   border-radius: 18px;
   font-size: 0.95rem;
   line-height: 1.6;
-  word-break: break-word;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 /* Bot replies: plain text, no card/border/shadow — just like
