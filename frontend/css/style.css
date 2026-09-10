@@ -649,8 +649,7 @@ img {
   border-radius: 18px;
   font-size: 0.95rem;
   line-height: 1.6;
-  word-break: break-word;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 /* Bot replies: plain text, no card/border/shadow — just like
