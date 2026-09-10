@@ -643,7 +643,8 @@ img {
    phones. */
 .bubble {
   max-width: min(60ch, 88%);
-  width: fit-content;
+  width: max-content;
+  flex-shrink: 0;
   padding: 12px 16px;
   border-radius: 18px;
   font-size: 0.95rem;
