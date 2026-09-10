@@ -41,8 +41,7 @@
   --user-bubble: linear-gradient(135deg, #6c8fff, #a78bfa);
   --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   --danger: #ef4444;
-  --bg-elevated: #171a23;
-  /* 👈 add this */
+  --bg-elevated: #171a23;   /* 👈 add this */
 
   /* Radii */
   --radius: 18px;
@@ -80,8 +79,7 @@
   --bot-bubble: #ffffff;
   --user-bubble: linear-gradient(135deg, #4a6cf7, #7c3aed);
   --shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
-  --bg-elevated: #ffffff;
-  /* 👈 add this — light theme ka surface color */
+  --bg-elevated: #ffffff;   /* 👈 add this — light theme ka surface color */
 }
 
 
@@ -112,11 +110,9 @@ body {
   background: var(--bg);
   color: var(--text);
   height: 100dvh;
-  overflow: hidden;
-  /* the app scrolls internally, not the page */
+  overflow: hidden; /* the app scrolls internally, not the page */
   transition: background var(--transition), color var(--transition);
-  -webkit-text-size-adjust: 100%;
-  /* stops iOS auto-enlarging text */
+  -webkit-text-size-adjust: 100%; /* stops iOS auto-enlarging text */
 }
 
 /* Admin/Developer pages have long stacked content (many cards in a
@@ -196,8 +192,7 @@ img {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-width: 0;
-  /* allows text-overflow ellipsis to work inside flex */
+  min-width: 0; /* allows text-overflow ellipsis to work inside flex */
 }
 
 .bot-avatar {
@@ -227,15 +222,8 @@ img {
 }
 
 @keyframes pulse {
-
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
-  }
-
-  50% {
-    box-shadow: 0 0 0 5px rgba(34, 197, 94, 0);
-  }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+  50%      { box-shadow: 0 0 0 5px rgba(34, 197, 94, 0); }
 }
 
 .bot-info {
@@ -407,9 +395,9 @@ img {
 /* Safety net: whatever app.js injects inside these lists (divs,
    buttons, wrappers) should never carry its own margin — otherwise
    rows drift apart and the list stops looking like one tight group. */
-.sidebar-list>*,
-.topic-list>*,
-.history-list>* {
+.sidebar-list > *,
+.topic-list > *,
+.history-list > * {
   margin: 0 !important;
 }
 
@@ -570,8 +558,7 @@ img {
   flex-direction: column;
   overflow: hidden;
   position: relative;
-  min-width: 0;
-  /* prevents flex children from overflowing horizontally */
+  min-width: 0; /* prevents flex children from overflowing horizontally */
 }
 
 /* Faint background grid texture */
@@ -614,15 +601,8 @@ img {
 }
 
 @keyframes msgIn {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .msg-row {
@@ -643,13 +623,12 @@ img {
    phones. */
 .bubble {
   max-width: min(60ch, 88%);
-  width: max-content;
-  flex-shrink: 0;
   padding: 12px 16px;
   border-radius: 18px;
   font-size: 0.95rem;
   line-height: 1.6;
-  overflow-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 /* Bot replies: plain text, no card/border/shadow — just like
@@ -722,27 +701,12 @@ img {
   animation: typingBounce 1.2s infinite ease-in-out;
 }
 
-.typing-dot:nth-child(2) {
-  animation-delay: 0.2s;
-}
-
-.typing-dot:nth-child(3) {
-  animation-delay: 0.4s;
-}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
 
 @keyframes typingBounce {
-
-  0%,
-  80%,
-  100% {
-    transform: translateY(0);
-    opacity: 0.4;
-  }
-
-  40% {
-    transform: translateY(-6px);
-    opacity: 1;
-  }
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40%           { transform: translateY(-6px); opacity: 1; }
 }
 
 /* Suggestion chips */
@@ -922,13 +886,8 @@ img {
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .modal {
@@ -945,15 +904,8 @@ img {
 }
 
 @keyframes slideUp {
-  from {
-    transform: translateY(20px);
-    opacity: 0;
-  }
-
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
 }
 
 .modal h3 {
@@ -1194,8 +1146,7 @@ img {
   padding: 10px 12px;
   color: var(--text);
   font-family: var(--font-body);
-  font-size: 0.9rem;
-  /* >=16px avoids iOS zoom-on-focus; kept close
+  font-size: 0.9rem; /* >=16px avoids iOS zoom-on-focus; kept close
                          here and bumped explicitly on mobile below */
   outline: none;
   transition: border-color var(--transition);
@@ -1438,7 +1389,6 @@ select.form-control option {
 
 /* ---- Up to 1023px: phones + tablets (no permanent sidebar) -------- */
 @media (max-width: 1023px) {
-
   /* Sidebar is an off-canvas drawer (see base .sidebar rules above);
      show the hamburger button that toggles it. */
   .mobile-menu-btn {
@@ -1540,13 +1490,11 @@ select.form-control option {
   }
 
   .sidebar-overlay {
-    display: none !important;
-    /* never needed once sidebar is static */
+    display: none !important; /* never needed once sidebar is static */
   }
 
   .sidebar-bottom {
-    display: none;
-    /* redundant with header's profile/theme/admin controls on desktop */
+    display: none; /* redundant with header's profile/theme/admin controls on desktop */
   }
 
   .bubble {
@@ -1557,8 +1505,7 @@ select.form-control option {
 /* Extra-narrow screens (very small phones, e.g. 360px width) */
 @media (max-width: 360px) {
   .bot-status {
-    display: none;
-    /* keep only the bot name to save space */
+    display: none; /* keep only the bot name to save space */
   }
 
   .bubble {
