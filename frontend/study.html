@@ -5,12 +5,21 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Study Assistant - CampusBot</title>
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link
     href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap"
-    rel="stylesheet" />
+    rel="stylesheet"
+  />
+
+  <!-- PDF generator -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
   <style>
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
 
     :root {
       --bg: #0f1117;
@@ -26,13 +35,24 @@
       --font-body: 'DM Sans', sans-serif;
     }
 
+    html,
     body {
       margin: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    body {
       background: var(--bg);
       color: var(--text);
       font-family: var(--font-body);
       height: 100dvh;
       overflow: hidden;
+    }
+
+    button,
+    input {
+      font: inherit;
     }
 
     .study-app {
@@ -41,9 +61,13 @@
       height: 100dvh;
       display: flex;
       flex-direction: column;
+      min-height: 0;
     }
 
-    /* ── Header, matches index.html's .header look ── */
+    /* =========================================================
+       HEADER
+    ========================================================= */
+
     .study-header {
       display: flex;
       align-items: center;
@@ -51,16 +75,26 @@
       padding: 16px 20px;
       border-bottom: 1px solid var(--border);
       background: var(--bg-elevated);
+      flex-shrink: 0;
     }
+
     .study-avatar {
-      width: 42px; height: 42px;
+      width: 42px;
+      height: 42px;
       border-radius: 50%;
       background: linear-gradient(135deg, var(--accent), #8b5cf6);
-      display: flex; align-items: center; justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-size: 1.3rem;
       flex-shrink: 0;
     }
-    .study-title { min-width: 0; }
+
+    .study-title {
+      min-width: 0;
+      flex: 1;
+    }
+
     .study-title h1 {
       margin: 0;
       font-family: var(--font-display);
@@ -70,6 +104,7 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+
     .study-title span {
       font-size: 0.8rem;
       color: var(--text-muted);
@@ -78,31 +113,140 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .back-link {
+
+    .header-actions {
       margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .export-pdf-btn,
+    .back-link {
+      height: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      white-space: nowrap;
+      transition:
+        border-color 0.15s ease,
+        background 0.15s ease,
+        opacity 0.15s ease,
+        transform 0.15s ease;
+    }
+
+    .export-pdf-btn {
+      gap: 7px;
+      padding: 0 13px;
+      color: var(--text);
+      background: var(--accent-soft);
+      border: 1px solid rgba(99, 102, 241, 0.45);
+      cursor: pointer;
+      font-size: 0.82rem;
+    }
+
+    .export-pdf-btn:hover:not(:disabled) {
+      background: rgba(99, 102, 241, 0.2);
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    .export-pdf-btn:disabled {
+      opacity: 0.42;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .export-icon {
+      font-size: 0.95rem;
+      line-height: 1;
+    }
+
+    .back-link {
       color: var(--text-muted);
       text-decoration: none;
       font-size: 0.85rem;
       border: 1px solid var(--border);
-      padding: 6px 12px;
-      border-radius: 999px;
-      white-space: nowrap;
+      padding: 0 12px;
+    }
+
+    .back-link:hover {
+      color: var(--text);
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    /* =========================================================
+       PDF PROGRESS
+    ========================================================= */
+
+    .pdf-progress {
+      display: none;
+      padding: 10px 20px 11px;
+      background: var(--bg-elevated);
+      border-bottom: 1px solid var(--border);
       flex-shrink: 0;
     }
-    .back-link:hover { color: var(--text); border-color: var(--accent); }
 
-    /* ── Subject dropdown (custom-built — no native OS picker) ── */
+    .pdf-progress.show {
+      display: block;
+    }
+
+    .pdf-progress-inner {
+      width: 100%;
+    }
+
+    .pdf-progress-title {
+      font-family: var(--font-display);
+      font-size: 0.78rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: var(--text);
+    }
+
+    .pdf-progress-bar {
+      width: 100%;
+      height: 6px;
+      background: #252936;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .pdf-progress-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #8b5cf6);
+      border-radius: inherit;
+      transition: width 0.35s ease;
+    }
+
+    .pdf-progress-status {
+      margin-top: 6px;
+      color: var(--text-muted);
+      font-size: 0.74rem;
+      line-height: 1.3;
+    }
+
+    /* =========================================================
+       SUBJECT DROPDOWN
+    ========================================================= */
+
     .subject-bar {
       padding: 10px 20px;
       background: var(--bg-elevated);
       border-bottom: 1px solid var(--border);
       position: relative;
+      flex-shrink: 0;
     }
+
     .subject-dropdown {
       position: relative;
       display: inline-block;
       max-width: 260px;
     }
+
     .subject-dropdown-btn {
       display: flex;
       align-items: center;
@@ -119,21 +263,25 @@
       cursor: pointer;
       transition: border-color 0.15s ease;
     }
+
     .subject-dropdown-btn:hover,
     .subject-dropdown.open .subject-dropdown-btn {
       border-color: var(--accent);
     }
+
     .subject-dropdown-btn .label {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
+
     .subject-dropdown-btn .chevron {
       flex-shrink: 0;
       display: flex;
       align-items: center;
       transition: transform 0.15s ease;
     }
+
     .subject-dropdown.open .subject-dropdown-btn .chevron {
       transform: rotate(180deg);
     }
@@ -148,12 +296,15 @@
       background: var(--bg-elevated);
       border: 1px solid var(--border);
       border-radius: 12px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
       z-index: 20;
       display: none;
       padding: 6px;
     }
-    .subject-dropdown.open .subject-dropdown-menu { display: block; }
+
+    .subject-dropdown.open .subject-dropdown-menu {
+      display: block;
+    }
 
     .subject-option {
       display: flex;
@@ -167,19 +318,38 @@
       cursor: pointer;
       white-space: nowrap;
     }
-    .subject-option:hover { background: var(--accent-soft); }
-    .subject-option.selected { color: var(--accent); font-weight: 600; }
-    .subject-option .check { opacity: 0; color: var(--accent); }
-    .subject-option.selected .check { opacity: 1; }
 
-    /* ── Chat area ── */
+    .subject-option:hover {
+      background: var(--accent-soft);
+    }
+
+    .subject-option.selected {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .subject-option .check {
+      opacity: 0;
+      color: var(--accent);
+    }
+
+    .subject-option.selected .check {
+      opacity: 1;
+    }
+
+    /* =========================================================
+       CHAT AREA
+    ========================================================= */
+
     .chat-messages {
       flex: 1;
+      min-height: 0;
       overflow-y: auto;
       padding: 20px;
       display: flex;
       flex-direction: column;
       gap: 14px;
+      overscroll-behavior: contain;
     }
 
     .empty-state {
@@ -188,55 +358,177 @@
       color: var(--text-muted);
       max-width: 320px;
     }
-    .empty-state .icon { font-size: 2.4rem; margin-bottom: 10px; }
+
+    .empty-state .icon {
+      font-size: 2.4rem;
+      margin-bottom: 10px;
+    }
+
     .empty-state h3 {
       font-family: var(--font-display);
       color: var(--text);
       margin: 0 0 6px;
       font-size: 1rem;
     }
-    .empty-state p { margin: 0; font-size: 0.85rem; line-height: 1.5; }
 
-    .msg-row { display: flex; gap: 10px; max-width: 70%; }
-    .msg-row.user { align-self: flex-end; flex-direction: row-reverse; }
-    .msg-row.bot { align-self: flex-start; }
+    .empty-state p {
+      margin: 0;
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+
+    .msg-row {
+      display: flex;
+      gap: 10px;
+      max-width: 70%;
+    }
+
+    .msg-row.user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .msg-row.bot {
+      align-self: flex-start;
+    }
 
     .msg-avatar {
-      width: 30px; height: 30px;
+      width: 30px;
+      height: 30px;
       border-radius: 50%;
       flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-size: 0.95rem;
     }
-    .msg-row.user .msg-avatar { background: var(--accent); }
-    .msg-row.bot .msg-avatar { background: var(--bot-bubble); border: 1px solid var(--border); }
+
+    .msg-row.user .msg-avatar {
+      background: var(--accent);
+    }
+
+    .msg-row.bot .msg-avatar {
+      background: var(--bot-bubble);
+      border: 1px solid var(--border);
+    }
 
     .bubble {
       padding: 11px 16px;
       border-radius: 16px;
       font-size: 0.92rem;
       line-height: 1.55;
-      white-space: pre-wrap;
+      overflow-wrap: anywhere;
     }
+
     .msg-row.user .bubble {
       background: var(--user-bubble);
       color: white;
       border-bottom-right-radius: 4px;
+      white-space: pre-wrap;
     }
+
     .msg-row.bot .bubble {
       background: var(--bot-bubble);
       border: 1px solid var(--border);
       border-bottom-left-radius: 4px;
     }
-    .msg-row.bot .bubble.no-match { color: var(--text-muted); font-style: italic; }
 
-    .bubble p { margin: 0 0 8px; }
-    .bubble p:last-child { margin-bottom: 0; }
-    .bubble ul { margin: 4px 0 8px; padding-left: 20px; }
-    .bubble li { margin-bottom: 4px; }
-    .bubble h4 { margin: 10px 0 6px; font-family: var(--font-display); font-size: 0.95rem; }
-    .bubble h4:first-child { margin-top: 0; }
-    .bubble strong { color: var(--text); }
+    .msg-row.bot .bubble.no-match {
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    .bubble p {
+      margin: 0 0 8px;
+    }
+
+    .bubble p:last-child {
+      margin-bottom: 0;
+    }
+
+    .bubble .pdf-lines {
+      margin: 0 0 8px;
+    }
+
+    .bubble .pdf-lines .pdf-line {
+      margin: 0 0 2px;
+    }
+
+    .bubble .pdf-lines .pdf-line:last-child {
+      margin-bottom: 0;
+    }
+
+    .bubble ul,
+    .bubble ol {
+      margin: 4px 0 9px;
+      padding-left: 22px;
+    }
+
+    .bubble li {
+      margin-bottom: 4px;
+    }
+
+    .bubble h4 {
+      margin: 10px 0 6px;
+      font-family: var(--font-display);
+      font-size: 0.95rem;
+    }
+
+    .bubble h4:first-child {
+      margin-top: 0;
+    }
+
+    .bubble strong {
+      color: var(--text);
+    }
+
+    .bubble code {
+      background: rgba(0, 0, 0, 0.28);
+      border-radius: 5px;
+      padding: 2px 5px;
+      font-size: 0.86em;
+    }
+
+    .bubble pre {
+      margin: 9px 0;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: #0b0d12;
+      border: 1px solid var(--border);
+      overflow-x: auto;
+      white-space: pre-wrap;
+      font-family: monospace;
+      font-size: 0.82rem;
+    }
+
+    .bubble pre code {
+      background: transparent;
+      padding: 0;
+    }
+
+    .bubble table.pdf-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 9px 0;
+      font-size: 0.86em;
+    }
+
+    .bubble table.pdf-table th,
+    .bubble table.pdf-table td {
+      border: 1px solid var(--border);
+      padding: 6px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .bubble table.pdf-table th {
+      background: rgba(99, 102, 241, 0.15);
+      font-weight: 600;
+    }
+
+    /* =========================================================
+       TYPING
+    ========================================================= */
 
     .typing-dots {
       display: inline-flex;
@@ -244,29 +536,53 @@
       align-items: center;
       padding: 4px 0;
     }
+
     .typing-dots span {
-      width: 6px; height: 6px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
       background: var(--text-muted);
       animation: bounce 1.2s infinite;
     }
-    .typing-dots span:nth-child(2) { animation-delay: 0.15s; }
-    .typing-dots span:nth-child(3) { animation-delay: 0.3s; }
-    @keyframes bounce {
-      0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
-      30% { transform: translateY(-4px); opacity: 1; }
+
+    .typing-dots span:nth-child(2) {
+      animation-delay: 0.15s;
     }
 
-    /* ── Input bar ── */
+    .typing-dots span:nth-child(3) {
+      animation-delay: 0.3s;
+    }
+
+    @keyframes bounce {
+      0%,
+      60%,
+      100% {
+        transform: translateY(0);
+        opacity: 0.5;
+      }
+
+      30% {
+        transform: translateY(-4px);
+        opacity: 1;
+      }
+    }
+
+    /* =========================================================
+       INPUT
+    ========================================================= */
+
     .input-bar {
       display: flex;
       gap: 10px;
       padding: 14px 20px;
       background: var(--bg-elevated);
       border-top: 1px solid var(--border);
+      flex-shrink: 0;
     }
+
     .chat-input {
       flex: 1;
+      min-width: 0;
       background: var(--bg);
       border: 1px solid var(--border);
       border-radius: 999px;
@@ -276,288 +592,2603 @@
       font-size: 0.92rem;
       outline: none;
     }
-    .chat-input:focus { border-color: var(--accent); }
-    .chat-input::placeholder { color: var(--text-muted); }
+
+    .chat-input:focus {
+      border-color: var(--accent);
+    }
+
+    .chat-input::placeholder {
+      color: var(--text-muted);
+    }
 
     .send-btn {
-      width: 44px; height: 44px;
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
       border: none;
       background: var(--accent);
       color: white;
-      display: flex; align-items: center; justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       cursor: pointer;
       flex-shrink: 0;
       transition: opacity 0.15s ease;
     }
-    .send-btn:hover { opacity: 0.88; }
-    .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .send-btn:hover {
+      opacity: 0.88;
+    }
+
+    .send-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* =========================================================
+       MOBILE
+    ========================================================= */
 
     @media (max-width: 640px) {
-      .study-app { max-width: 100%; }
-      .chat-messages { padding: 14px; }
-      .msg-row { max-width: 92%; }
+      .study-app {
+        max-width: 100%;
+      }
 
-      /* Compact header on mobile — smaller avatar, tighter padding,
-         single-line title, subtitle hidden (it repeats what the
-         empty-state already says, so no info is lost). */
       .study-header {
         padding: 10px 14px;
-        gap: 10px;
+        gap: 9px;
       }
+
       .study-avatar {
-        width: 34px; height: 34px;
+        width: 34px;
+        height: 34px;
         font-size: 1.05rem;
       }
-      .study-title h1 { font-size: 0.98rem; }
-      .study-title span { display: none; }
-      .back-link {
-        font-size: 0; /* hide text, icon-only */
-        padding: 8px;
-        width: 32px; height: 32px;
-        display: flex; align-items: center; justify-content: center;
+
+      .study-title h1 {
+        font-size: 0.98rem;
       }
+
+      .study-title span {
+        display: none;
+      }
+
+      .header-actions {
+        gap: 6px;
+      }
+
+      .export-pdf-btn {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+      }
+
+      .export-text {
+        display: none;
+      }
+
+      .export-icon {
+        font-size: 0.95rem;
+      }
+
+      .back-link {
+        font-size: 0;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+      }
+
       .back-link::before {
         content: "←";
         font-size: 1rem;
       }
 
-      .subject-bar { padding: 8px 14px; }
-      .subject-dropdown { max-width: 100%; width: 100%; }
+      .pdf-progress {
+        padding: 9px 14px 10px;
+      }
+
+      .subject-bar {
+        padding: 8px 14px;
+      }
+
+      .subject-dropdown {
+        max-width: 100%;
+        width: 100%;
+      }
+
+      .chat-messages {
+        padding: 14px;
+      }
+
+      .msg-row {
+        max-width: 92%;
+      }
+
+      .input-bar {
+        padding: 10px 14px;
+      }
+
+      .chat-input {
+        padding: 11px 16px;
+      }
+
+      .send-btn {
+        width: 42px;
+        height: 42px;
+      }
     }
   </style>
 </head>
 
 <body>
+
   <div class="study-app">
 
+    <!-- =======================================================
+         HEADER
+    ======================================================== -->
     <header class="study-header">
+
       <div class="study-avatar">📚</div>
+
       <div class="study-title">
         <h1>Study Assistant</h1>
         <span>Ask questions from your teacher's uploaded notes</span>
       </div>
-      <a href="index.html" class="back-link">← Back to Chat</a>
+
+      <div class="header-actions">
+
+        <button
+          type="button"
+          class="export-pdf-btn"
+          id="exportPdfBtn"
+          title="Export current chat as PDF"
+          disabled
+        >
+          <span class="export-icon">📄</span>
+          <span class="export-text">Export PDF</span>
+        </button>
+
+        <a href="index.html" class="back-link">← Back to Chat</a>
+
+      </div>
+
     </header>
 
+    <!-- =======================================================
+         PDF PROGRESS
+    ======================================================== -->
+    <div
+      class="pdf-progress"
+      id="pdfProgress"
+      aria-hidden="true"
+    >
+      <div class="pdf-progress-inner">
+
+        <div
+          class="pdf-progress-title"
+          id="pdfProgressTitle"
+        >
+          Preparing PDF
+        </div>
+
+        <div class="pdf-progress-bar">
+          <div
+            class="pdf-progress-fill"
+            id="pdfProgressFill"
+          ></div>
+        </div>
+
+        <div
+          class="pdf-progress-status"
+          id="pdfProgressStatus"
+        >
+          Preparing your conversation...
+        </div>
+
+      </div>
+    </div>
+
+    <!-- =======================================================
+         SUBJECT
+    ======================================================== -->
     <div class="subject-bar">
-      <div class="subject-dropdown" id="subjectDropdown">
-        <button type="button" class="subject-dropdown-btn" id="subjectDropdownBtn">
-          <span class="label" id="subjectDropdownLabel">All Subjects</span>
+
+      <div
+        class="subject-dropdown"
+        id="subjectDropdown"
+      >
+
+        <button
+          type="button"
+          class="subject-dropdown-btn"
+          id="subjectDropdownBtn"
+        >
+
+          <span
+            class="label"
+            id="subjectDropdownLabel"
+          >
+            All Subjects
+          </span>
+
           <span class="chevron">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
               <polyline points="6 9 12 15 18 9"></polyline>
             </svg>
           </span>
+
         </button>
-        <div class="subject-dropdown-menu" id="subjectDropdownMenu">
-          <div class="subject-option selected" data-subject="">
+
+        <div
+          class="subject-dropdown-menu"
+          id="subjectDropdownMenu"
+        >
+
+          <div
+            class="subject-option selected"
+            data-subject=""
+          >
             <span>All Subjects</span>
             <span class="check">✓</span>
           </div>
+
         </div>
+
       </div>
+
     </div>
 
-    <div class="chat-messages" id="chatMessages">
-      <div class="empty-state" id="emptyState">
+    <!-- =======================================================
+         CHAT
+    ======================================================== -->
+    <div
+      class="chat-messages"
+      id="chatMessages"
+    >
+
+      <div
+        class="empty-state"
+        id="emptyState"
+      >
+
         <div class="icon">📖</div>
+
         <h3>Ask me anything from your notes</h3>
-        <p>Pick a subject above (optional) and ask a question — I'll only answer from what your teacher has uploaded.</p>
+
+        <p>
+          Pick a subject above (optional) and ask a question —
+          I'll only answer from what your teacher has uploaded.
+        </p>
+
       </div>
+
     </div>
 
+    <!-- =======================================================
+         INPUT
+    ======================================================== -->
     <div class="input-bar">
-      <input type="text" id="chatInput" class="chat-input" placeholder="Apna sawaal yahan likhein..." autocomplete="off" />
-      <button class="send-btn" id="sendBtn" title="Send">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <line x1="22" y1="2" x2="11" y2="13"></line>
-          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+
+      <input
+        type="text"
+        id="chatInput"
+        class="chat-input"
+        placeholder="Apna sawaal yahan likhein..."
+        autocomplete="off"
+      />
+
+      <button
+        class="send-btn"
+        id="sendBtn"
+        title="Send"
+      >
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+        >
+          <line
+            x1="22"
+            y1="2"
+            x2="11"
+            y2="13"
+          ></line>
+
+          <polygon
+            points="22 2 15 22 11 13 2 9 22 2"
+          ></polygon>
         </svg>
       </button>
+
     </div>
 
   </div>
 
   <script src="auth/auth.js"></script>
+
   <script>
-    const chatMessages = document.getElementById("chatMessages");
-    const emptyState = document.getElementById("emptyState");
-    const chatInput = document.getElementById("chatInput");
-    const sendBtn = document.getElementById("sendBtn");
-    const subjectDropdown = document.getElementById("subjectDropdown");
-    const subjectDropdownBtn = document.getElementById("subjectDropdownBtn");
-    const subjectDropdownLabel = document.getElementById("subjectDropdownLabel");
-    const subjectDropdownMenu = document.getElementById("subjectDropdownMenu");
+    /* =========================================================
+       ELEMENTS
+    ========================================================= */
+
+    const chatMessages =
+      document.getElementById("chatMessages");
+
+    const emptyState =
+      document.getElementById("emptyState");
+
+    const chatInput =
+      document.getElementById("chatInput");
+
+    const sendBtn =
+      document.getElementById("sendBtn");
+
+    const exportPdfBtn =
+      document.getElementById("exportPdfBtn");
+
+    const pdfProgress =
+      document.getElementById("pdfProgress");
+
+    const pdfProgressTitle =
+      document.getElementById("pdfProgressTitle");
+
+    const pdfProgressFill =
+      document.getElementById("pdfProgressFill");
+
+    const pdfProgressStatus =
+      document.getElementById("pdfProgressStatus");
+
+    const subjectDropdown =
+      document.getElementById("subjectDropdown");
+
+    const subjectDropdownBtn =
+      document.getElementById("subjectDropdownBtn");
+
+    const subjectDropdownLabel =
+      document.getElementById("subjectDropdownLabel");
+
+    const subjectDropdownMenu =
+      document.getElementById("subjectDropdownMenu");
+
+
+    /* =========================================================
+       STATE
+    ========================================================= */
 
     let selectedSubject = "";
-    // Tracks the conversation so follow-ups like "more detailed" or
-    // "what about the second one" resolve against the right topic —
-    // same idea as the main chatbot's history handling.
+
+    /*
+      IMPORTANT:
+      Keep the COMPLETE conversation locally.
+
+      Only the latest 6 messages are sent to the RAG backend.
+
+      This allows:
+      - better request size control
+      - complete PDF export
+      - current-session history preservation
+    */
     let conversationHistory = [];
+
+    let isExportingPdf = false;
+
+
+    /* =========================================================
+       SUBJECTS
+    ========================================================= */
 
     async function loadSubjects() {
       try {
-        const res = await CampusAuth.userFetch("/study/subjects");
-        const data = await res.json();
+
+        const res =
+          await CampusAuth.userFetch("/study/subjects");
+
+        const data =
+          await res.json();
+
         (data.subjects || []).forEach((subject) => {
-          const opt = document.createElement("div");
-          opt.className = "subject-option";
-          opt.dataset.subject = subject;
-          opt.innerHTML = `<span>${subject}</span><span class="check">✓</span>`;
-          opt.addEventListener("click", () => selectSubject(subject, opt));
+
+          const opt =
+            document.createElement("div");
+
+          opt.className =
+            "subject-option";
+
+          opt.dataset.subject =
+            subject;
+
+          const subjectText =
+            document.createElement("span");
+
+          subjectText.textContent =
+            subject;
+
+          const check =
+            document.createElement("span");
+
+          check.className =
+            "check";
+
+          check.textContent =
+            "✓";
+
+          opt.appendChild(subjectText);
+          opt.appendChild(check);
+
+          opt.addEventListener(
+            "click",
+            () => selectSubject(subject, opt)
+          );
+
           subjectDropdownMenu.appendChild(opt);
+
         });
+
       } catch (err) {
-        console.error("Failed to load subjects:", err);
+
+        console.error(
+          "Failed to load subjects:",
+          err
+        );
+
       }
     }
+
 
     function selectSubject(subject, optEl) {
-      selectedSubject = subject;
-      conversationHistory = []; // fresh topic — old context shouldn't leak in
-      subjectDropdownLabel.textContent = optEl.querySelector("span").textContent;
-      document.querySelectorAll(".subject-option").forEach((o) => o.classList.remove("selected"));
+
+      selectedSubject =
+        subject;
+
+      /*
+        Changing subject starts a fresh Study conversation.
+      */
+      conversationHistory = [];
+
+      subjectDropdownLabel.textContent =
+        optEl.querySelector("span").textContent;
+
+      document
+        .querySelectorAll(".subject-option")
+        .forEach((o) => {
+          o.classList.remove("selected");
+        });
+
       optEl.classList.add("selected");
+
+      /*
+        Since the old conversation is cleared,
+        export should be disabled again.
+      */
+      exportPdfBtn.disabled = true;
+
       closeDropdown();
+
     }
 
-    document.querySelector('.subject-option[data-subject=""]').addEventListener("click", function () {
-      selectSubject("", this);
-    });
 
-    function openDropdown() { subjectDropdown.classList.add("open"); }
-    function closeDropdown() { subjectDropdown.classList.remove("open"); }
+    document
+      .querySelector('.subject-option[data-subject=""]')
+      .addEventListener(
+        "click",
+        function () {
+          selectSubject("", this);
+        }
+      );
 
-    subjectDropdownBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      subjectDropdown.classList.contains("open") ? closeDropdown() : openDropdown();
-    });
 
-    document.addEventListener("click", (e) => {
-      if (!subjectDropdown.contains(e.target)) closeDropdown();
-    });
+    function openDropdown() {
+      subjectDropdown.classList.add("open");
+    }
+
+
+    function closeDropdown() {
+      subjectDropdown.classList.remove("open");
+    }
+
+
+    subjectDropdownBtn.addEventListener(
+      "click",
+      (e) => {
+
+        e.stopPropagation();
+
+        subjectDropdown.classList.contains("open")
+          ? closeDropdown()
+          : openDropdown();
+
+      }
+    );
+
+
+    document.addEventListener(
+      "click",
+      (e) => {
+
+        if (!subjectDropdown.contains(e.target)) {
+          closeDropdown();
+        }
+
+      }
+    );
+
+
+    /* =========================================================
+       SAFE HTML ESCAPE
+    ========================================================= */
+
+    function escapeHtml(value) {
+
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+    }
+
+
+    /* =========================================================
+       MARKDOWN FORMATTER
+       Used both by chat and PDF.
+    ========================================================= */
 
     function formatBotText(text) {
-      // Minimal markdown → HTML: **bold**, - / * bullets, blank-line
-      // paragraphs. Keeps things safe by escaping HTML first.
-      const escapeHtml = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-      const lines = escapeHtml(text).split("\n");
-      let html = "";
-      let inList = false;
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        const isBullet = /^[-*]\s+/.test(trimmed);
-
-        if (isBullet) {
-          if (!inList) { html += "<ul>"; inList = true; }
-          html += `<li>${trimmed.replace(/^[-*]\s+/, "")}</li>`;
-        } else {
-          if (inList) { html += "</ul>"; inList = false; }
-          if (trimmed === "") {
-            html += "<br>";
-          } else {
-            html += `<p>${trimmed}</p>`;
-          }
-        }
+      if (!text) {
+        return "";
       }
-      if (inList) html += "</ul>";
 
-      // **bold** and ### headings (basic)
-      html = html
-        .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-        .replace(/^<p>###\s+(.+?)<\/p>$/gm, "<h4>$1</h4>");
+      let source =
+        String(text)
+          .replace(/\r\n/g, "\n")
+          .replace(/\r/g, "\n");
+
+      /*
+        Protect fenced code blocks first.
+      */
+
+      const codeBlocks = [];
+
+      source = source.replace(
+        /```([\s\S]*?)```/g,
+        (_, code) => {
+
+          const index =
+            codeBlocks.length;
+
+          codeBlocks.push(
+            `<pre><code>${escapeHtml(
+              code.replace(/^\n|\n$/g, "")
+            )}</code></pre>`
+          );
+
+          return `@@CODEBLOCK${index}@@`;
+
+        }
+      );
+
+      const lines =
+        source
+          .split("\n")
+          .map((line) => escapeHtml(line));
+
+      let html = "";
+
+      let inUl = false;
+      let inOl = false;
+      let paragraphLines = [];
+
+
+      function closeLists() {
+
+        if (inUl) {
+          html += "</ul>";
+          inUl = false;
+        }
+
+        if (inOl) {
+          html += "</ol>";
+          inOl = false;
+        }
+
+      }
+
+
+      function applyInlineMarkdown(value) {
+
+        return value
+
+          /*
+            Restore literal <br> markers.
+
+            The backend (RAG note-summary generator) intentionally
+            emits "<br>" inside table cells to separate sub-points.
+            escapeHtml() turns that into the literal text "&lt;br&gt;",
+            which shows up as visible "<br>" text instead of a line
+            break. Only this exact tag (no attributes, br/br only) is
+            restored — nothing else escaped-HTML is ever un-escaped,
+            so this can't be used to inject arbitrary markup.
+          */
+          .replace(
+            /&lt;br\s*\/?&gt;/gi,
+            "<br>"
+          )
+
+          /* inline code */
+          .replace(
+            /`([^`]+)`/g,
+            "<code>$1</code>"
+          )
+
+          /* bold + italic */
+          .replace(
+            /\*\*\*(.+?)\*\*\*/g,
+            "<strong><em>$1</em></strong>"
+          )
+
+          /* bold */
+          .replace(
+            /\*\*(.+?)\*\*/g,
+            "<strong>$1</strong>"
+          )
+
+          /* italic */
+          .replace(
+            /(?<!\*)\*([^*]+)\*(?!\*)/g,
+            "<em>$1</em>"
+          )
+
+          /* underscore italic */
+          .replace(
+            /_([^_]+)_/g,
+            "<em>$1</em>"
+          );
+
+      }
+
+
+      function flushParagraph() {
+
+        if (!paragraphLines.length) {
+          return;
+        }
+
+        const cleaned =
+          paragraphLines
+            .map((l) => l.trim())
+            .filter(Boolean);
+
+        if (!cleaned.length) {
+          paragraphLines = [];
+          return;
+        }
+
+        if (cleaned.length === 1) {
+
+          html += `<p>${applyInlineMarkdown(cleaned[0])}</p>`;
+
+        } else {
+
+          /*
+            Multiple consecutive lines (e.g. pipe-style "table" rows)
+            used to be joined with <br> inside ONE <p>. That made the
+            whole block a single DOM element for PDF pagination, so a
+            page-break falling mid-block either moved the entire block
+            or — when that left too little content on the page — fell
+            back to a raw pixel cut, slicing a row in half and making
+            it appear duplicated across the page boundary.
+
+            Rendering each line as its own block element gives the PDF
+            pagination logic a bounding box PER LINE, so it can break
+            cleanly between rows instead of through one.
+          */
+
+          const linesHtml =
+            cleaned
+              .map((l) => `<div class="pdf-line">${applyInlineMarkdown(l)}</div>`)
+              .join("");
+
+          html += `<div class="pdf-lines">${linesHtml}</div>`;
+
+        }
+
+        paragraphLines = [];
+
+      }
+
+
+      /*
+        MARKDOWN TABLE HELPERS
+
+        The RAG backend sends real markdown pipe-tables (header row +
+        "|---|---|" separator row + body rows). These were previously
+        falling through to the generic "consecutive lines" handling,
+        which just stacked raw "| ... |" text instead of rendering an
+        actual table.
+      */
+
+      function isTableRowLine(value) {
+        return /^\|.*\|$/.test(value);
+      }
+
+      function isTableSeparatorLine(value) {
+        return /^\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?$/.test(value);
+      }
+
+      function splitTableRow(value) {
+
+        let inner = value.trim();
+
+        if (inner.startsWith("|")) {
+          inner = inner.slice(1);
+        }
+
+        if (inner.endsWith("|")) {
+          inner = inner.slice(0, -1);
+        }
+
+        return inner.split("|").map((cell) => cell.trim());
+
+      }
+
+
+      for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+
+        const rawLine =
+          lines[lineIndex];
+
+        const line =
+          rawLine.trim();
+
+        /*
+          Markdown table
+          (header row + separator row + 1+ body rows)
+        */
+
+        const nextLine =
+          (lines[lineIndex + 1] || "").trim();
+
+        if (
+          isTableRowLine(line) &&
+          isTableSeparatorLine(nextLine)
+        ) {
+
+          flushParagraph();
+          closeLists();
+
+          const headerCells =
+            splitTableRow(line)
+              .map((cell) => applyInlineMarkdown(cell));
+
+          lineIndex += 2; // skip header row + separator row
+
+          const bodyRows = [];
+
+          while (
+            lineIndex < lines.length &&
+            isTableRowLine(lines[lineIndex].trim())
+          ) {
+
+            bodyRows.push(
+              splitTableRow(lines[lineIndex].trim())
+                .map((cell) => applyInlineMarkdown(cell))
+            );
+
+            lineIndex++;
+
+          }
+
+          lineIndex--; // compensate for the loop's own increment
+
+          let tableHtml =
+            '<table class="pdf-table"><thead><tr>';
+
+          headerCells.forEach((cell) => {
+            tableHtml += `<th>${cell}</th>`;
+          });
+
+          tableHtml += "</tr></thead><tbody>";
+
+          bodyRows.forEach((row) => {
+
+            tableHtml += "<tr>";
+
+            row.forEach((cell) => {
+              tableHtml += `<td>${cell}</td>`;
+            });
+
+            tableHtml += "</tr>";
+
+          });
+
+          tableHtml += "</tbody></table>";
+
+          html += tableHtml;
+
+          continue;
+        }
+
+        /*
+          Code block placeholder
+        */
+
+        const codeMatch =
+          line.match(/^@@CODEBLOCK(\d+)@@$/);
+
+        if (codeMatch) {
+
+          flushParagraph();
+          closeLists();
+
+          html +=
+            codeBlocks[
+              Number(codeMatch[1])
+            ];
+
+          continue;
+        }
+
+
+        /*
+          Heading
+        */
+
+        const headingMatch =
+          line.match(/^#{1,4}\s+(.+)$/);
+
+        if (headingMatch) {
+
+          flushParagraph();
+          closeLists();
+
+          html +=
+            `<h4>${applyInlineMarkdown(
+              headingMatch[1]
+            )}</h4>`;
+
+          continue;
+        }
+
+
+        /*
+          Bullet list
+        */
+
+        const bulletMatch =
+          line.match(/^[-*•]\s+(.+)$/);
+
+        if (bulletMatch) {
+
+          flushParagraph();
+
+          if (inOl) {
+            html += "</ol>";
+            inOl = false;
+          }
+
+          if (!inUl) {
+            html += "<ul>";
+            inUl = true;
+          }
+
+          html +=
+            `<li>${applyInlineMarkdown(
+              bulletMatch[1]
+            )}</li>`;
+
+          continue;
+        }
+
+
+        /*
+          Numbered list
+        */
+
+        const numberMatch =
+          line.match(/^\d+[.)]\s+(.+)$/);
+
+        if (numberMatch) {
+
+          flushParagraph();
+
+          if (inUl) {
+            html += "</ul>";
+            inUl = false;
+          }
+
+          if (!inOl) {
+            html += "<ol>";
+            inOl = true;
+          }
+
+          html +=
+            `<li>${applyInlineMarkdown(
+              numberMatch[1]
+            )}</li>`;
+
+          continue;
+        }
+
+
+        /*
+          Empty line
+        */
+
+        if (!line) {
+
+          flushParagraph();
+          closeLists();
+
+          continue;
+        }
+
+
+        /*
+          Normal paragraph line
+        */
+
+        closeLists();
+
+        paragraphLines.push(line);
+
+      }
+
+
+      flushParagraph();
+      closeLists();
+
 
       return html;
     }
 
+
+    /* =========================================================
+       CHAT UI
+    ========================================================= */
+
     function appendUserMessage(text) {
-      emptyState.remove();
-      const row = document.createElement("div");
-      row.className = "msg-row user";
-      row.innerHTML = `
-        <div class="msg-avatar">🧑</div>
-        <div class="bubble"></div>
-      `;
-      row.querySelector(".bubble").textContent = text;
+
+      if (emptyState) {
+        emptyState.remove();
+      }
+
+      /*
+        Export becomes available after chat starts.
+      */
+      exportPdfBtn.disabled =
+        conversationHistory.length === 0 &&
+        !text;
+
+      const row =
+        document.createElement("div");
+
+      row.className =
+        "msg-row user";
+
+      const avatar =
+        document.createElement("div");
+
+      avatar.className =
+        "msg-avatar";
+
+      avatar.textContent =
+        "🧑";
+
+      const bubble =
+        document.createElement("div");
+
+      bubble.className =
+        "bubble";
+
+      /*
+        User text is deliberately rendered as text,
+        never as HTML.
+      */
+      bubble.textContent =
+        text;
+
+      row.appendChild(avatar);
+      row.appendChild(bubble);
+
       chatMessages.appendChild(row);
-      chatMessages.scrollTop = chatMessages.scrollHeight;
+
+      chatMessages.scrollTop =
+        chatMessages.scrollHeight;
+
       return row;
     }
 
+
     function appendBotTyping() {
-      const row = document.createElement("div");
-      row.className = "msg-row bot";
+
+      const row =
+        document.createElement("div");
+
+      row.className =
+        "msg-row bot";
+
       row.innerHTML = `
         <div class="msg-avatar">📚</div>
         <div class="bubble">
-          <div class="typing-dots"><span></span><span></span><span></span></div>
+          <div class="typing-dots">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
         </div>
       `;
+
       chatMessages.appendChild(row);
-      chatMessages.scrollTop = chatMessages.scrollHeight;
+
+      chatMessages.scrollTop =
+        chatMessages.scrollHeight;
+
       return row;
     }
 
+
     function renderBotReply(row, data) {
-      const bubble = row.querySelector(".bubble");
+
+      const bubble =
+        row.querySelector(".bubble");
+
       bubble.classList.remove("no-match");
-      bubble.innerHTML = formatBotText(data.reply || "Something went wrong.");
+
+      bubble.innerHTML =
+        formatBotText(
+          data.reply ||
+          "Something went wrong."
+        );
 
       if (data.matched === false) {
         bubble.classList.add("no-match");
       }
 
-      chatMessages.scrollTop = chatMessages.scrollHeight;
+      chatMessages.scrollTop =
+        chatMessages.scrollHeight;
     }
 
+
+    /* =========================================================
+       SEND MESSAGE
+    ========================================================= */
+
     async function sendMessage() {
-      const message = chatInput.value.trim();
-      if (!message) return;
+
+      const message =
+        chatInput.value.trim();
+
+      if (!message) {
+        return;
+      }
 
       chatInput.value = "";
+
       sendBtn.disabled = true;
 
       appendUserMessage(message);
-      conversationHistory.push({ role: "user", text: message });
-      const typingRow = appendBotTyping();
+
+      conversationHistory.push({
+        role: "user",
+        text: message
+      });
+
+      const typingRow =
+        appendBotTyping();
+
 
       try {
-        const res = await CampusAuth.userFetch("/study/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            message,
-            subject: selectedSubject || undefined,
-            history: conversationHistory,
-          }),
-        });
+
+        const res =
+          await CampusAuth.userFetch(
+            "/study/chat",
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json"
+              },
+
+              body: JSON.stringify({
+
+                message,
+
+                subject:
+                  selectedSubject || undefined,
+
+                /*
+                  IMPORTANT:
+                  Only latest 6 messages go to backend.
+                  Complete history stays locally.
+                */
+                history:
+                  conversationHistory.slice(-6)
+
+              })
+            }
+          );
+
 
         if (res.status === 401) {
-          renderBotReply(typingRow, { reply: "Please log in to use the Study section.", matched: false });
+
+          renderBotReply(
+            typingRow,
+            {
+              reply:
+                "Please log in to use the Study section.",
+              matched: false
+            }
+          );
+
           return;
         }
 
-        const data = await res.json();
-        renderBotReply(typingRow, data);
-        conversationHistory.push({ role: "bot", text: data.reply || "" });
+
+        if (!res.ok) {
+          throw new Error(
+            `HTTP ${res.status}`
+          );
+        }
+
+
+        const data =
+          await res.json();
+
+
+        renderBotReply(
+          typingRow,
+          data
+        );
+
+
+        conversationHistory.push({
+          role: "bot",
+          text: data.reply || ""
+        });
+
+
+        /*
+          Enable PDF after successful assistant response.
+        */
+        exportPdfBtn.disabled =
+          conversationHistory.length === 0;
+
+
       } catch (err) {
-        renderBotReply(typingRow, { reply: "Server se connect nahi ho pa raha.", matched: false });
+
+        console.error(
+          "Study chat error:",
+          err
+        );
+
+        renderBotReply(
+          typingRow,
+          {
+            reply:
+              "Server se connect nahi ho pa raha.",
+            matched: false
+          }
+        );
+
+
       } finally {
+
         sendBtn.disabled = false;
+
         chatInput.focus();
+
       }
+
     }
 
-    sendBtn.addEventListener("click", sendMessage);
-    chatInput.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") sendMessage();
+
+    sendBtn.addEventListener(
+      "click",
+      sendMessage
+    );
+
+
+    chatInput.addEventListener(
+      "keypress",
+      (e) => {
+
+        if (e.key === "Enter") {
+          sendMessage();
+        }
+
+      }
+    );
+
+
+    /* =========================================================
+       PDF PROGRESS
+    ========================================================= */
+
+    function showPdfProgress(
+      title,
+      percent,
+      status
+    ) {
+
+      pdfProgress.classList.add("show");
+
+      pdfProgress.setAttribute(
+        "aria-hidden",
+        "false"
+      );
+
+      pdfProgressTitle.textContent =
+        title;
+
+      pdfProgressFill.style.width =
+        `${percent}%`;
+
+      pdfProgressStatus.textContent =
+        status;
+
+    }
+
+
+    function hidePdfProgress() {
+
+      pdfProgress.classList.remove("show");
+
+      pdfProgress.setAttribute(
+        "aria-hidden",
+        "true"
+      );
+
+      pdfProgressFill.style.width =
+        "0%";
+
+    }
+
+
+    /* =========================================================
+       AI SUMMARY
+    ========================================================= */
+
+    async function generateRevisionSummary(
+      chatSnapshot,
+      subjectSnapshot
+    ) {
+
+      try {
+
+        const res =
+          await CampusAuth.userFetch(
+            "/study/summary",
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json"
+              },
+
+              body: JSON.stringify({
+
+                subject:
+                  subjectSnapshot || "",
+
+                history:
+                  chatSnapshot
+
+              })
+            }
+          );
+
+
+        if (!res.ok) {
+          throw new Error(
+            `Summary HTTP ${res.status}`
+          );
+        }
+
+
+        const data =
+          await res.json();
+
+
+        if (
+          !data ||
+          !data.summary ||
+          !String(data.summary).trim()
+        ) {
+          throw new Error(
+            "Empty summary returned"
+          );
+        }
+
+
+        return String(
+          data.summary
+        ).trim();
+
+
+      } catch (err) {
+
+        /*
+          VERY IMPORTANT:
+          Summary failure must NOT stop PDF creation.
+        */
+
+        console.warn(
+          "Revision summary unavailable. PDF will continue without it.",
+          err
+        );
+
+        return null;
+
+      }
+
+    }
+
+
+    /* =========================================================
+       PDF DOCUMENT HELPERS
+    ========================================================= */
+
+    function createPdfElement(
+      tag,
+      className,
+      text
+    ) {
+
+      const el =
+        document.createElement(tag);
+
+      if (className) {
+        el.className =
+          className;
+      }
+
+      if (text !== undefined) {
+        el.textContent =
+          text;
+      }
+
+      return el;
+    }
+
+
+    function addPdfConversationMessage(
+      container,
+      message
+    ) {
+
+      const isUser =
+        message.role === "user";
+
+
+      const block =
+        document.createElement("div");
+
+      block.className =
+        isUser
+          ? "pdf-message pdf-student"
+          : "pdf-message pdf-assistant";
+
+
+      const label =
+        createPdfElement(
+          "div",
+          "pdf-message-label",
+          isUser
+            ? "Student"
+            : "Study Assistant"
+        );
+
+
+      const content =
+        document.createElement("div");
+
+      content.className =
+        "pdf-message-content";
+
+
+      if (isUser) {
+
+        /*
+          User content is escaped automatically
+          by textContent.
+        */
+        content.textContent =
+          message.text || "";
+
+      } else {
+
+        /*
+          Assistant response uses safe markdown formatter.
+        */
+        content.innerHTML =
+          formatBotText(
+            message.text || ""
+          );
+
+      }
+
+
+      block.appendChild(label);
+      block.appendChild(content);
+
+      container.appendChild(block);
+
+    }
+
+
+    /* =========================================================
+       EXPORT CURRENT CHAT AS PDF
+    ========================================================= */
+
+    async function exportCurrentChatAsPDF() {
+
+      if (
+        isExportingPdf ||
+        !conversationHistory.length
+      ) {
+        return;
+      }
+
+
+      /*
+        SNAPSHOT FIRST.
+
+        Any new messages after this point
+        will not enter this PDF.
+      */
+      const chatSnapshot =
+        conversationHistory.map(
+          (item) => ({
+            role: item.role,
+            text: item.text
+          })
+        );
+
+
+      const subjectSnapshot =
+        selectedSubject || "All Subjects";
+
+
+      const exportDate =
+        new Date();
+
+
+      isExportingPdf =
+        true;
+
+      exportPdfBtn.disabled =
+        true;
+
+
+      let pdfContainer =
+        null;
+
+
+      try {
+
+        /* -----------------------------------------------------
+           0 → 25%
+        ----------------------------------------------------- */
+
+        showPdfProgress(
+          "Preparing PDF",
+          10,
+          "Preparing your conversation..."
+        );
+
+
+        await new Promise(
+          (resolve) =>
+            setTimeout(resolve, 150)
+        );
+
+
+        showPdfProgress(
+          "Preparing PDF",
+          25,
+          "Preparing your conversation..."
+        );
+
+
+        /* -----------------------------------------------------
+           25 → 70%
+        ----------------------------------------------------- */
+
+        showPdfProgress(
+          "Preparing PDF",
+          30,
+          "Generating your revision summary..."
+        );
+
+
+        const summary =
+          await generateRevisionSummary(
+            chatSnapshot,
+            subjectSnapshot
+          );
+
+
+        showPdfProgress(
+          "Preparing PDF",
+          65,
+          summary
+            ? "Revision summary ready..."
+            : "Summary unavailable — continuing with your chat..."
+        );
+
+
+        await new Promise(
+          (resolve) =>
+            setTimeout(resolve, 150)
+        );
+
+
+        /* -----------------------------------------------------
+           70 → 90%
+        ----------------------------------------------------- */
+
+        showPdfProgress(
+          "Preparing PDF",
+          70,
+          "Building your study notes..."
+        );
+
+
+        /*
+          Hidden but renderable PDF container.
+
+          Avoid display:none because html2canvas
+          cannot render display:none elements.
+        */
+        pdfContainer =
+          document.createElement("div");
+
+        pdfContainer.id =
+          "campusbot-pdf-container";
+Object.assign(pdfContainer.style, {
+    position: "absolute",
+    left: "-10000px",
+    top: "0",
+    width: "794px",
+    minHeight: "1123px",
+    boxSizing: "border-box",
+    background: "#ffffff",
+    color: "#111827",
+    padding: "52px",
+    fontFamily: "Arial, Helvetica, sans-serif",
+    lineHeight: "1.55",
+    zIndex: "999999",
+    opacity: "1",
+    pointerEvents: "none"
+});
+
+        /*
+          PDF-specific styles.
+        */
+        const pdfStyle =
+          document.createElement("style");
+
+        pdfStyle.textContent = `
+
+          #campusbot-pdf-container {
+            width: 794px;
+            background: #ffffff;
+            color: #111827;
+          }
+
+          #campusbot-pdf-container * {
+            box-sizing: border-box;
+          }
+
+          .pdf-header {
+            margin-bottom: 26px;
+          }
+
+          .pdf-brand {
+            font-size: 27px;
+            font-weight: 700;
+            margin-bottom: 5px;
+            color: #111827;
+          }
+
+          .pdf-subtitle {
+            font-size: 13px;
+            color: #6b7280;
+            margin-bottom: 18px;
+          }
+
+          .pdf-meta {
+            font-size: 12px;
+            color: #4b5563;
+            line-height: 1.7;
+          }
+
+          .pdf-divider {
+            height: 1px;
+            background: #d1d5db;
+            margin: 20px 0 26px;
+          }
+
+          .pdf-section-title {
+            font-size: 19px;
+            font-weight: 700;
+            color: #111827;
+            margin: 0 0 18px;
+          }
+
+          .pdf-message {
+    margin-bottom: 22px;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    position: relative;
+}
+
+.pdf-message-content {
+    font-size: 13px;
+    color: #1f2937;
+    overflow-wrap: anywhere;
+}
+
+
+
+          .pdf-message-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-weight: 700;
+            color: #6366f1;
+            margin-bottom: 7px;
+          }
+
+          .pdf-student .pdf-message-label {
+            color: #374151;
+          }
+
+          .pdf-message-content {
+            font-size: 13px;
+            color: #1f2937;
+            overflow-wrap: anywhere;
+          }
+
+          .pdf-message-content p {
+            margin: 0 0 9px;
+          }
+
+          .pdf-message-content p:last-child {
+            margin-bottom: 0;
+          }
+
+          .pdf-message-content .pdf-lines {
+            margin: 0 0 9px;
+          }
+
+          .pdf-message-content .pdf-line {
+            margin: 0 0 3px;
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+
+          .pdf-message-content .pdf-lines .pdf-line:last-child {
+            margin-bottom: 0;
+          }
+
+          .pdf-message-content h4 {
+            font-size: 15px;
+            margin: 13px 0 7px;
+            color: #111827;
+          }
+
+          .pdf-message-content h4:first-child {
+            margin-top: 0;
+          }
+
+          .pdf-message-content ul,
+          .pdf-message-content ol {
+            margin: 6px 0 11px;
+            padding-left: 24px;
+          }
+
+          .pdf-message-content li {
+            margin-bottom: 4px;
+          }
+
+          .pdf-message-content strong {
+            font-weight: 700;
+            color: #111827;
+          }
+
+          .pdf-message-content em {
+            font-style: italic;
+          }
+
+          .pdf-message-content code {
+            font-family: Consolas, monospace;
+            background: #f3f4f6;
+            border-radius: 4px;
+            padding: 2px 4px;
+            font-size: 11px;
+          }
+
+          .pdf-message-content pre {
+            margin: 9px 0;
+            padding: 12px;
+            background: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            font-family: Consolas, monospace;
+            font-size: 11px;
+          }
+
+          .pdf-message-content pre code {
+            background: transparent;
+            padding: 0;
+          }
+
+          .pdf-message-content table.pdf-table,
+          .pdf-summary-content table.pdf-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 9px 0 13px;
+            font-size: 12px;
+          }
+
+          .pdf-message-content table.pdf-table th,
+          .pdf-message-content table.pdf-table td,
+          .pdf-summary-content table.pdf-table th,
+          .pdf-summary-content table.pdf-table td {
+            border: 1px solid #d1d5db;
+            padding: 6px 8px;
+            text-align: left;
+            vertical-align: top;
+            overflow-wrap: anywhere;
+          }
+
+          .pdf-message-content table.pdf-table th,
+          .pdf-summary-content table.pdf-table th {
+            background: #eef0ff;
+            font-weight: 700;
+            color: #111827;
+          }
+
+          .pdf-message-content table.pdf-table tr,
+          .pdf-summary-content table.pdf-table tr {
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+
+          .pdf-summary-page {
+            page-break-before: always;
+            break-before: page;
+          }
+
+          .pdf-summary-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #111827;
+            margin: 0 0 22px;
+          }
+
+          .pdf-summary-content {
+            font-size: 13px;
+            color: #1f2937;
+          }
+
+          .pdf-message-content h4 {
+    font-size: 15px;
+    margin: 13px 0 7px;
+    color: #111827;
+
+    page-break-after: avoid;
+    break-after: avoid;
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+
+          .pdf-summary-content h4:first-child {
+            margin-top: 0;
+          }
+
+          .pdf-summary-content p {
+            margin: 0 0 9px;
+          }
+
+          .pdf-summary-content .pdf-lines {
+            margin: 0 0 9px;
+          }
+
+          .pdf-summary-content .pdf-line {
+            margin: 0 0 3px;
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+
+          .pdf-summary-content .pdf-lines .pdf-line:last-child {
+            margin-bottom: 0;
+          }
+
+          .pdf-summary-content ul,
+          .pdf-summary-content ol {
+            margin: 6px 0 11px;
+            padding-left: 24px;
+          }
+
+        .pdf-message-content li {
+    margin-bottom: 4px;
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+          .pdf-summary-content strong {
+            font-weight: 700;
+            color: #111827;
+          }
+
+          .pdf-summary-content code {
+            font-family: Consolas, monospace;
+            background: #f3f4f6;
+            padding: 2px 4px;
+            border-radius: 4px;
+          }
+
+          .pdf-footer-note {
+            margin-top: 30px;
+            padding-top: 12px;
+            border-top: 1px solid #e5e7eb;
+            color: #9ca3af;
+            font-size: 10px;
+          }
+
+        `;
+
+
+        pdfContainer.appendChild(
+          pdfStyle
+        );
+
+
+        /* -----------------------------------------------------
+           PDF HEADER
+        ----------------------------------------------------- */
+
+        const pdfHeader =
+          document.createElement("div");
+
+        pdfHeader.className =
+          "pdf-header";
+
+
+        const brand =
+          createPdfElement(
+            "div",
+            "pdf-brand",
+            "CampusBot — Study Assistant"
+          );
+
+
+        const subtitle =
+          createPdfElement(
+            "div",
+            "pdf-subtitle",
+            "Current Study Chat"
+          );
+
+
+        const meta =
+          document.createElement("div");
+
+        meta.className =
+          "pdf-meta";
+
+
+        const subjectLine =
+          document.createElement("div");
+
+        subjectLine.innerHTML =
+          `<strong>Subject:</strong> ${escapeHtml(
+            subjectSnapshot
+          )}`;
+
+
+        const dateLine =
+          document.createElement("div");
+
+        dateLine.innerHTML =
+          `<strong>Exported:</strong> ${escapeHtml(
+            exportDate.toLocaleString()
+          )}`;
+
+
+        meta.appendChild(
+          subjectLine
+        );
+
+        meta.appendChild(
+          dateLine
+        );
+
+
+        pdfHeader.appendChild(
+          brand
+        );
+
+        pdfHeader.appendChild(
+          subtitle
+        );
+
+        pdfHeader.appendChild(
+          meta
+        );
+
+
+        pdfContainer.appendChild(
+          pdfHeader
+        );
+
+
+        const divider =
+          document.createElement("div");
+
+        divider.className =
+          "pdf-divider";
+
+        pdfContainer.appendChild(
+          divider
+        );
+
+
+        /* -----------------------------------------------------
+           CONVERSATION
+        ----------------------------------------------------- */
+
+        const conversationTitle =
+          createPdfElement(
+            "div",
+            "pdf-section-title",
+            "Conversation"
+          );
+
+        pdfContainer.appendChild(
+          conversationTitle
+        );
+
+
+        const conversationContainer =
+          document.createElement("div");
+
+        conversationContainer.className =
+          "pdf-conversation";
+
+
+        chatSnapshot.forEach(
+          (message) => {
+
+            addPdfConversationMessage(
+              conversationContainer,
+              message
+            );
+
+          }
+        );
+
+
+        pdfContainer.appendChild(
+          conversationContainer
+        );
+
+
+        /* -----------------------------------------------------
+           QUICK REVISION SUMMARY
+        ----------------------------------------------------- */
+
+       if (summary) {
+
+    const summaryPage =
+        document.createElement("div");
+
+    summaryPage.className =
+        "pdf-summary-page";
+
+
+    const summaryTitle =
+        createPdfElement(
+            "div",
+            "pdf-summary-title",
+            "Quick Revision Summary"
+        );
+
+
+    const summaryContent =
+        document.createElement("div");
+
+    summaryContent.className =
+        "pdf-summary-content";
+
+
+    summaryContent.innerHTML =
+        formatBotText(summary);
+
+
+    summaryPage.appendChild(
+        summaryTitle
+    );
+
+    summaryPage.appendChild(
+        summaryContent
+    );
+
+    pdfContainer.appendChild(
+        summaryPage
+    );
+
+
+} else {
+
+    /* -----------------------------------------------------
+       SUMMARY NOT GENERATED
+    ----------------------------------------------------- */
+
+    const summaryPage =
+        document.createElement("div");
+
+    summaryPage.className =
+        "pdf-summary-page";
+
+
+    const summaryTitle =
+        createPdfElement(
+            "div",
+            "pdf-summary-title",
+            "Quick Revision Summary"
+        );
+
+
+    const summaryContent =
+        document.createElement("div");
+
+    summaryContent.className =
+        "pdf-summary-content";
+
+
+    summaryContent.innerHTML = `
+        <p>
+            Revision Summary could not be generated.
+        </p>
+    `;
+
+
+    summaryPage.appendChild(
+        summaryTitle
+    );
+
+    summaryPage.appendChild(
+        summaryContent
+    );
+
+    pdfContainer.appendChild(
+        summaryPage
+    );
+}
+
+
+        /*
+          Small footer.
+        */
+        const footer =
+          createPdfElement(
+            "div",
+            "pdf-footer-note",
+            "Generated by CampusBot Study Assistant"
+          );
+
+        pdfContainer.appendChild(
+          footer
+        );
+
+
+       document.body.appendChild(
+  pdfContainer
+);
+
+// PDF container ko browser me properly render hone ka time do
+await new Promise(
+  (resolve) =>
+    setTimeout(resolve, 300)
+);
+
+/* -----------------------------------------------------
+   80 → 90%
+----------------------------------------------------- */
+showPdfProgress(
+  "Preparing PDF",
+  82,
+  "Building your study notes..."
+);
+/* -----------------------------------------------------
+   FINAL PDF GENERATION
+----------------------------------------------------- */
+
+showPdfProgress(
+    "Preparing PDF",
+    90,
+    "Finalizing PDF..."
+);
+
+await new Promise(resolve =>
+    setTimeout(resolve, 300)
+);
+
+const safeSubject =
+    subjectSnapshot
+        .replace(/[^a-z0-9]+/gi, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 50) || "All-Subjects";
+
+const datePart =
+    exportDate.toISOString().slice(0, 10);
+
+const filename =
+    `CampusBot-Study-${safeSubject}-${datePart}.pdf`;
+
+
+/* Wait for browser layout */
+
+await new Promise(resolve =>
+    requestAnimationFrame(() => {
+        requestAnimationFrame(resolve);
+    })
+);
+
+
+/* -----------------------------------------------------
+   HTML → CANVAS
+----------------------------------------------------- */
+
+const canvas = await html2canvas(
+    pdfContainer,
+    {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+        scrollX: 0,
+        scrollY: 0,
+        width: pdfContainer.offsetWidth,
+        height: pdfContainer.scrollHeight
+    }
+);
+
+if (
+    !canvas ||
+    canvas.width === 0 ||
+    canvas.height === 0
+) {
+    throw new Error("PDF canvas is empty.");
+}
+
+
+/* -----------------------------------------------------
+   CREATE PDF
+----------------------------------------------------- */
+
+const { jsPDF } = window.jspdf;
+
+const pdf = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4"
+});
+
+const pageWidth =
+    pdf.internal.pageSize.getWidth();
+
+const pageHeight =
+    pdf.internal.pageSize.getHeight();
+
+
+/* Canvas → PDF scaling */
+
+const pdfImageWidth = pageWidth;
+
+const pdfImageHeight =
+    (canvas.height * pdfImageWidth) /
+    canvas.width;
+
+
+/* -----------------------------------------------------
+   FIND SAFE PAGE BREAKS
+----------------------------------------------------- */
+
+const containerRect =
+    pdfContainer.getBoundingClientRect();
+
+const canvasScale =
+    canvas.width / containerRect.width;
+
+
+/* -----------------------------------------------------
+   BOTTOM SAFE MARGIN
+----------------------------------------------------- */
+
+const topMargin = 12;      // new page ke top par 1.2 cm
+const bottomMargin = 12;   // page ke bottom par 1.2 cm
+
+const pageCanvasHeight =
+    canvas.width *
+    ((pageHeight - topMargin - bottomMargin) / pageWidth);
+/*
+   Elements which should preferably
+   stay together with their content.
+*/
+
+const safeElements = [
+    ...pdfContainer.querySelectorAll(`
+        .pdf-header,
+        .pdf-section-title,
+        .pdf-message,
+        .pdf-message-content h4,
+        .pdf-message-content p,
+        .pdf-message-content .pdf-line,
+        .pdf-message-content ul,
+        .pdf-message-content ol,
+        .pdf-message-content li,
+        .pdf-message-content pre,
+        .pdf-message-content tr,
+        .pdf-summary-page,
+        .pdf-summary-title,
+        .pdf-summary-content h4,
+        .pdf-summary-content p,
+        .pdf-summary-content .pdf-line,
+        .pdf-summary-content ul,
+        .pdf-summary-content ol,
+        .pdf-summary-content li,
+        .pdf-summary-content tr
+    `)
+];
+
+/*
+   Get their Y positions inside PDF container
+*/
+
+const safePositions = safeElements
+    .map(el => {
+
+        const rect =
+            el.getBoundingClientRect();
+
+        return {
+            top:
+                (rect.top -
+                 containerRect.top) *
+                canvasScale,
+
+            height:
+                rect.height *
+                canvasScale
+        };
+
+    })
+    .filter(item =>
+        item.top >= 0 &&
+        item.top < canvas.height
+    )
+    .sort((a, b) =>
+        a.top - b.top
+    );
+
+
+/*
+   Generate page boundaries.
+
+   If a heading/message is very close
+   to the bottom of a page, move the
+   boundary BEFORE that element.
+*/
+
+const pageCuts = [];
+
+let currentStart = 0;
+
+while (currentStart < canvas.height) {
+
+    const idealEnd =
+        Math.min(
+            currentStart + pageCanvasHeight,
+            canvas.height
+        );
+
+    /* Last page */
+    if (idealEnd >= canvas.height) {
+
+        pageCuts.push({
+            start: currentStart,
+            end: canvas.height
+        });
+
+        break;
+    }
+
+
+    /*
+       Find an element which is being cut
+       by the normal page boundary.
+    */
+
+    const crossingElements =
+    safePositions.filter(item => {
+        const elementBottom =
+            item.top + item.height;
+
+        return (
+            item.top > currentStart + 20 &&
+            item.top < idealEnd &&
+            elementBottom > idealEnd - 15
+        );
     });
 
+
+    let actualEnd = idealEnd;
+
+
+    /*
+       IMPORTANT:
+       If the page boundary falls inside
+       a heading / paragraph / list item,
+       start that element completely
+       on the next page.
+    */
+
+    if (crossingElements.length > 0) {
+    const crossingElement = crossingElements[0];
+
+    actualEnd =
+        crossingElement.top - 30;
+}
+
+    /*
+       Never allow a page to become too short.
+    */
+
+    if (
+        actualEnd - currentStart <
+        pageCanvasHeight * 0.60
+    ) {
+
+        actualEnd = idealEnd;
+    }
+
+
+    /*
+       Safety check.
+       The next page must NEVER start
+       inside an important element.
+    */
+
+    if (actualEnd < canvas.height) {
+
+        const nextElement =
+            safePositions.find(item =>
+                item.top >= actualEnd - 2 &&
+                item.top < actualEnd + 20
+            );
+
+        if (nextElement) {
+
+            actualEnd =
+                nextElement.top - 2;
+        }
+    }
+
+
+    /*
+       Final protection against
+       zero/infinite loops.
+    */
+
+    if (
+        actualEnd <= currentStart
+    ) {
+
+        actualEnd = idealEnd;
+    }
+
+
+    pageCuts.push({
+        start: currentStart,
+        end: actualEnd
+    });
+
+
+    currentStart = actualEnd;
+}
+
+
+/* -----------------------------------------------------
+   ADD EACH CANVAS SLICE AS A PDF PAGE
+----------------------------------------------------- */
+
+for (
+    let pageIndex = 0;
+    pageIndex < pageCuts.length;
+    pageIndex++
+) {
+
+    const cut =
+        pageCuts[pageIndex];
+
+    const sliceHeight =
+        cut.end - cut.start;
+
+
+    /*
+       Create a temporary canvas
+       for this page.
+    */
+
+    const pageCanvas =
+        document.createElement("canvas");
+
+    pageCanvas.width =
+        canvas.width;
+
+    pageCanvas.height =
+        Math.ceil(sliceHeight);
+
+
+    const ctx =
+        pageCanvas.getContext("2d");
+
+    ctx.fillStyle = "#ffffff";
+
+    ctx.fillRect(
+        0,
+        0,
+        pageCanvas.width,
+        pageCanvas.height
+    );
+
+
+    ctx.drawImage(
+        canvas,
+
+        0,
+        cut.start,
+        canvas.width,
+        sliceHeight,
+
+        0,
+        0,
+        canvas.width,
+        sliceHeight
+    );
+
+
+    const pageImage =
+        pageCanvas.toDataURL(
+            "image/jpeg",
+            0.97
+        );
+
+
+    if (pageIndex > 0) {
+        pdf.addPage();
+    }
+
+
+    const slicePdfHeight =
+    (pageCanvas.height *
+     pageWidth) /
+    pageCanvas.width;
+pdf.addImage(
+    pageImage,
+    "JPEG",
+    0,
+    topMargin,
+    pageWidth,
+    slicePdfHeight
+);
+}
+
+
+/* -----------------------------------------------------
+   SAVE
+----------------------------------------------------- */
+
+pdf.save(filename);
+
+showPdfProgress(
+    "PDF Ready",
+    100,
+    "Your study PDF has been downloaded."
+);
+
+await new Promise(resolve =>
+    setTimeout(resolve, 700)
+);
+
+
+        await new Promise(
+          (resolve) =>
+            setTimeout(resolve, 700)
+        );
+
+
+      } catch (err) {
+
+        console.error(
+          "PDF export failed:",
+          err
+        );
+
+
+        /*
+          Summary failure is already handled separately.
+
+          This error is for actual PDF generation failure.
+        */
+        alert(
+          "PDF generate nahi ho paaya. Please try again."
+        );
+
+
+      } finally {
+
+        if (pdfContainer) {
+
+          try {
+            pdfContainer.remove();
+          } catch (_) {}
+
+        }
+
+
+        hidePdfProgress();
+
+        isExportingPdf =
+          false;
+
+        exportPdfBtn.disabled =
+          conversationHistory.length === 0;
+
+      }
+
+    }
+
+
+    /* =========================================================
+       EXPORT BUTTON
+    ========================================================= */
+
+    exportPdfBtn.addEventListener(
+      "click",
+      exportCurrentChatAsPDF
+    );
+
+
+    /* =========================================================
+       INITIAL LOAD
+    ========================================================= */
+
     loadSubjects();
+
   </script>
+
 </body>
 
 </html>

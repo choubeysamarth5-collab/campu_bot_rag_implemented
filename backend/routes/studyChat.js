@@ -9,6 +9,8 @@
 const express = require("express");
 const router = express.Router();
 const { askStudyRAG } = require("../rag/services/studyRagService");
+const { askGemini } = require("../rag/services/geminiService");
+const { askGroq } = require("../rag/services/groqService");
 
 // ── POST /api/study/chat ──
 router.post("/chat", async (req, res) => {
@@ -39,7 +41,142 @@ router.post("/chat", async (req, res) => {
         });
     }
 });
+router.post("/summary", async (req, res) => {
+    try {
 
+        const { subject, history } = req.body;
+
+        if (
+            !history ||
+            !Array.isArray(history) ||
+            history.length === 0
+        ) {
+            return res.status(400).json({
+                error: "Chat history is required"
+            });
+        }
+
+
+        const conversationText =
+            history
+                .map(item => {
+                    const role =
+                        item.role === "user"
+                            ? "Student"
+                            : "Study Assistant";
+
+                    return `${role}: ${item.text || ""}`;
+                })
+                .join("\n\n");
+
+
+        const prompt = `
+You are creating a Quick Revision Summary for a student's current study conversation.
+
+Subject:
+${subject || "All Subjects"}
+
+Conversation:
+${conversationText}
+
+Create a concise revision summary based ONLY on the information present in this conversation.
+
+Use exactly these sections:
+
+📌 Key Concepts
+⭐ Important Points
+🧠 Terms to Remember
+📝 Questions to Revise
+🎯 Quick Takeaway
+
+Rules:
+- Do not add information that is not present in the conversation.
+- Keep it concise and exam-oriented.
+- Use clear bullet points.
+- Do not mention that you are an AI.
+- Do not include sources/citations unless they already appear as part of the conversation.
+`;
+
+
+        let summary = null;
+
+
+        /* -------------------------------------------------
+           GEMINI FIRST
+        ------------------------------------------------- */
+
+        try {
+
+            console.log(
+                "🤖 Study Summary: Using Gemini..."
+            );
+
+            summary =
+                await askGemini(prompt);
+
+            console.log(
+                "✅ Study Summary: Gemini Success"
+            );
+
+        } catch (geminiErr) {
+
+            console.log(
+                "❌ Study Summary: Gemini Failed —",
+                geminiErr.message
+            );
+
+
+            /* ---------------------------------------------
+               GROQ FALLBACK
+            --------------------------------------------- */
+
+            try {
+
+                console.log(
+                    "🚀 Study Summary: Switching to Groq..."
+                );
+
+                summary =
+                    await askGroq(prompt);
+
+                console.log(
+                    "✅ Study Summary: Groq Success"
+                );
+
+            } catch (groqErr) {
+
+                console.log(
+                    "❌ Study Summary: Groq Failed —",
+                    groqErr.message
+                );
+
+                summary = null;
+            }
+        }
+
+
+        /*
+           PDF should still generate even if
+           both AI providers fail.
+        */
+
+        return res.json({
+            summary: summary || null
+        });
+
+
+    } catch (error) {
+
+        console.error(
+            "Study summary error:",
+            error
+        );
+
+        return res.json({
+            summary: null
+        });
+    }
+});
 // ── GET /api/study/subjects ──
 // Distinct subjects for the subject-tabs UI in study.html
 router.get("/subjects", async (req, res) => {
