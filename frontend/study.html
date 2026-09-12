@@ -55,13 +55,14 @@
     }
 
     .study-app {
-      max-width: 980px;
-      margin: 0 auto;
-      height: 100dvh;
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-    }
+  width: 100%;
+  max-width: none;
+  margin: 0 auto;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
 
     /* =========================================================
        HEADER
@@ -264,6 +265,7 @@
 
     .pdf-progress {
       display: none;
+      width: 100%;
       padding: 10px 20px 11px;
       background: var(--bg-elevated);
       border-bottom: 1px solid var(--border);
@@ -1189,7 +1191,7 @@ id="quizBtn"
     ======================================================== -->
     <div class="input-bar">
 
-      <input type="text" id="chatInput" class="chat-input" placeholder="Apna sawaal yahan likhein..."
+      <input type="text" id="chatInput" class="chat-input" placeholder="Type your question here..."
         autocomplete="off" />
 
       <button class="send-btn" id="sendBtn" title="Send">
