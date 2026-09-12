@@ -9,12 +9,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link
     href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap"
-    rel="stylesheet"
-  />
+    rel="stylesheet" />
 
   <!-- PDF generator -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
   <style>
     * {
@@ -123,6 +122,7 @@
     }
 
     .export-pdf-btn,
+    .quiz-btn,
     .back-link {
       height: 34px;
       display: inline-flex;
@@ -137,7 +137,8 @@
         transform 0.15s ease;
     }
 
-    .export-pdf-btn {
+    .export-pdf-btn,
+    .quiz-btn {
       gap: 7px;
       padding: 0 13px;
       color: var(--text);
@@ -147,21 +148,100 @@
       font-size: 0.82rem;
     }
 
-    .export-pdf-btn:hover:not(:disabled) {
+    .export-pdf-btn:hover:not(:disabled),
+    .quiz-btn:hover:not(:disabled) {
       background: rgba(99, 102, 241, 0.2);
       border-color: var(--accent);
       transform: translateY(-1px);
     }
 
-    .export-pdf-btn:disabled {
+    .export-pdf-btn:disabled,
+    .quiz-btn:disabled {
       opacity: 0.42;
       cursor: not-allowed;
       transform: none;
     }
 
-    .export-icon {
+    .export-icon,
+    .quiz-icon {
       font-size: 0.95rem;
       line-height: 1;
+    }
+
+    .export-dropdown {
+      position: relative;
+    }
+
+    .export-chevron {
+      font-size: 0.7rem;
+      transition: transform 0.15s ease;
+    }
+
+    .export-dropdown.open .export-chevron {
+      transform: rotate(180deg);
+    }
+
+    .export-dropdown-menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      width: 260px;
+      max-width: calc(100vw - 28px);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+      padding: 6px;
+      z-index: 30;
+      display: none;
+    }
+
+    .export-dropdown.open .export-dropdown-menu {
+      display: block;
+    }
+
+    .export-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      width: 100%;
+      padding: 10px 11px;
+      border: none;
+      background: transparent;
+      border-radius: 10px;
+      cursor: pointer;
+      text-align: left;
+      color: var(--text);
+      font-family: var(--font-body);
+    }
+
+    .export-option:hover {
+      background: var(--accent-soft);
+    }
+
+    .export-option-icon {
+      font-size: 1.05rem;
+      flex-shrink: 0;
+      line-height: 1.3;
+    }
+
+    .export-option-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .export-option-text strong {
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .export-option-text small {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      line-height: 1.35;
+      white-space: normal;
     }
 
     .back-link {
@@ -526,6 +606,159 @@
       font-weight: 600;
     }
 
+    .bubble .streaming-text::after {
+      content: "▍";
+      display: inline-block;
+      margin-left: 2px;
+      animation: blink-cursor 1s steps(2) infinite;
+    }
+
+    @keyframes blink-cursor {
+
+      0%,
+      50% {
+        opacity: 1;
+      }
+
+      51%,
+      100% {
+        opacity: 0;
+      }
+    }
+
+    /* =========================================================
+       QUIZ WIDGET
+    ========================================================= */
+
+    .quiz-card {
+      width: 100%;
+    }
+
+    .quiz-card-title {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-bottom: 10px;
+    }
+
+    .quiz-loading {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .quiz-question {
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .quiz-question:last-of-type {
+      border-bottom: none;
+      padding-bottom: 0;
+      margin-bottom: 0;
+    }
+
+    .quiz-question-num {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
+    }
+
+    .quiz-question-text {
+      font-size: 0.92rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+      line-height: 1.5;
+    }
+
+    .quiz-options {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .quiz-option {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 9px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.86rem;
+      text-align: left;
+      cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .quiz-option:hover:not(:disabled) {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .quiz-option:disabled {
+      cursor: default;
+    }
+
+    .quiz-option .quiz-option-letter {
+      flex-shrink: 0;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.06);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.76rem;
+      font-weight: 700;
+    }
+
+    .quiz-option.correct {
+      border-color: #22c55e;
+      background: rgba(34, 197, 94, 0.14);
+    }
+
+    .quiz-option.correct .quiz-option-letter {
+      background: #22c55e;
+      color: #0f1117;
+    }
+
+    .quiz-option.incorrect {
+      border-color: #ef4444;
+      background: rgba(239, 68, 68, 0.14);
+    }
+
+    .quiz-option.incorrect .quiz-option-letter {
+      background: #ef4444;
+      color: #0f1117;
+    }
+
+    .quiz-explanation {
+      margin-top: 9px;
+      padding: 9px 12px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.04);
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .quiz-score {
+      margin-top: 6px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 0.92rem;
+      text-align: center;
+    }
+
     /* =========================================================
        TYPING
     ========================================================= */
@@ -554,6 +787,7 @@
     }
 
     @keyframes bounce {
+
       0%,
       60%,
       100% {
@@ -657,18 +891,42 @@
         gap: 6px;
       }
 
-      .export-pdf-btn {
+      .export-pdf-btn,
+      .quiz-btn {
         width: 32px;
         height: 32px;
         padding: 0;
       }
 
-      .export-text {
+      .export-text,
+      .quiz-text {
         display: none;
       }
 
-      .export-icon {
+      .export-icon,
+      .quiz-icon {
         font-size: 0.95rem;
+      }
+
+      .export-chevron {
+        display: none;
+      }
+
+      .export-dropdown-menu {
+        position: fixed;
+        top: auto;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        max-width: 100%;
+        border-radius: 18px 18px 0 0;
+        padding: 10px 10px calc(10px + env(safe-area-inset-bottom, 0px));
+        box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5);
+      }
+
+      .export-option {
+        padding: 13px 12px;
       }
 
       .back-link {
@@ -724,65 +982,148 @@
 
   <div class="study-app">
 
-    <!-- =======================================================
-         HEADER
-    ======================================================== -->
-    <header class="study-header">
+  <div class="study-app">
 
-      <div class="study-avatar">📚</div>
+  <!-- =======================================================
+       HEADER
+  ======================================================== -->
+  <header class="study-header">
 
-      <div class="study-title">
-        <h1>Study Assistant</h1>
-        <span>Ask questions from your teacher's uploaded notes</span>
-      </div>
+    <div class="study-avatar">📚</div>
 
-      <div class="header-actions">
+    <div class="study-title">
+      <h1>Study Assistant</h1>
+      <span>Ask questions from your teacher's uploaded notes</span>
+    </div>
+
+    <div class="header-actions">
+
+      <!-- =================================================
+           EXPORT PDF DROPDOWN
+      ================================================== -->
+      <div class="export-dropdown" id="exportDropdown">
 
         <button
           type="button"
           class="export-pdf-btn"
           id="exportPdfBtn"
           title="Export current chat as PDF"
+          aria-haspopup="true"
+          aria-expanded="false"
           disabled
         >
           <span class="export-icon">📄</span>
           <span class="export-text">Export PDF</span>
+          <span class="export-chevron">▾</span>
         </button>
 
-        <a href="index.html" class="back-link">← Back to Chat</a>
+        <div
+          class="export-dropdown-menu"
+          id="exportDropdownMenu"
+        >
 
+          <!-- Complete Study PDF -->
+          <button
+            type="button"
+            class="export-option"
+            data-export-mode="complete"
+          >
+            <span class="export-option-icon">📄</span>
+
+            <span class="export-option-text">
+              <strong>Complete Study PDF</strong>
+              <small>
+                Notes + Conversation + Revision Summary + Visual Learning
+              </small>
+            </span>
+          </button>
+
+
+          <!-- Visual Revision PDF -->
+          <button
+            type="button"
+            class="export-option"
+            data-export-mode="visual"
+          >
+            <span class="export-option-icon">🧠</span>
+
+            <span class="export-option-text">
+              <strong>Visual Revision PDF</strong>
+              <small>
+                Only diagrams/flowcharts + quick recall points
+              </small>
+            </span>
+          </button>
+
+
+          <!-- Generate Both -->
+          <button
+            type="button"
+            class="export-option"
+            data-export-mode="both"
+          >
+            <span class="export-option-icon">📚</span>
+
+            <span class="export-option-text">
+              <strong>Generate Both</strong>
+              <small>
+                Generate both PDFs
+              </small>
+            </span>
+          </button>
+
+
+          <!-- Quiz Me -->
+          <button
+            type="button"
+            class="export-option quiz-dropdown-option"
+id="quizBtn"
+            title="Generate a quiz from this conversation"
+            disabled
+          >
+            <span class="export-option-icon">📝</span>
+
+            <span class="export-option-text">
+              <strong>Quiz Me</strong>
+              <small>
+                Generate a quiz from this conversation
+              </small>
+            </span>
+          </button>
+
+        </div>
       </div>
 
-    </header>
+
+      <!-- =================================================
+           BACK TO CHAT
+      ================================================== -->
+      <a
+        href="index.html"
+        class="back-link"
+      >
+        ← Back to Chat
+      </a>
+
+    </div>
+
+  </header>
 
     <!-- =======================================================
          PDF PROGRESS
     ======================================================== -->
-    <div
-      class="pdf-progress"
-      id="pdfProgress"
-      aria-hidden="true"
-    >
+    <div class="pdf-progress" id="pdfProgress" aria-hidden="true">
       <div class="pdf-progress-inner">
 
-        <div
-          class="pdf-progress-title"
-          id="pdfProgressTitle"
-        >
+        <div class="pdf-progress-title" id="pdfProgressTitle">
           Preparing PDF
         </div>
 
         <div class="pdf-progress-bar">
-          <div
-            class="pdf-progress-fill"
-            id="pdfProgressFill"
-          ></div>
+          <div class="pdf-progress-fill" id="pdfProgressFill"></div>
         </div>
 
-        <div
-          class="pdf-progress-status"
-          id="pdfProgressStatus"
-        >
+        <div class="pdf-progress-status" id="pdfProgressStatus">
           Preparing your conversation...
         </div>
 
@@ -794,48 +1135,25 @@
     ======================================================== -->
     <div class="subject-bar">
 
-      <div
-        class="subject-dropdown"
-        id="subjectDropdown"
-      >
+      <div class="subject-dropdown" id="subjectDropdown">
 
-        <button
-          type="button"
-          class="subject-dropdown-btn"
-          id="subjectDropdownBtn"
-        >
+        <button type="button" class="subject-dropdown-btn" id="subjectDropdownBtn">
 
-          <span
-            class="label"
-            id="subjectDropdownLabel"
-          >
+          <span class="label" id="subjectDropdownLabel">
             All Subjects
           </span>
 
           <span class="chevron">
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.5"
-            >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="6 9 12 15 18 9"></polyline>
             </svg>
           </span>
 
         </button>
 
-        <div
-          class="subject-dropdown-menu"
-          id="subjectDropdownMenu"
-        >
+        <div class="subject-dropdown-menu" id="subjectDropdownMenu">
 
-          <div
-            class="subject-option selected"
-            data-subject=""
-          >
+          <div class="subject-option selected" data-subject="">
             <span>All Subjects</span>
             <span class="check">✓</span>
           </div>
@@ -849,15 +1167,9 @@
     <!-- =======================================================
          CHAT
     ======================================================== -->
-    <div
-      class="chat-messages"
-      id="chatMessages"
-    >
+    <div class="chat-messages" id="chatMessages">
 
-      <div
-        class="empty-state"
-        id="emptyState"
-      >
+      <div class="empty-state" id="emptyState">
 
         <div class="icon">📖</div>
 
@@ -877,37 +1189,14 @@
     ======================================================== -->
     <div class="input-bar">
 
-      <input
-        type="text"
-        id="chatInput"
-        class="chat-input"
-        placeholder="Apna sawaal yahan likhein..."
-        autocomplete="off"
-      />
+      <input type="text" id="chatInput" class="chat-input" placeholder="Apna sawaal yahan likhein..."
+        autocomplete="off" />
 
-      <button
-        class="send-btn"
-        id="sendBtn"
-        title="Send"
-      >
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2.5"
-        >
-          <line
-            x1="22"
-            y1="2"
-            x2="11"
-            y2="13"
-          ></line>
+      <button class="send-btn" id="sendBtn" title="Send">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
 
-          <polygon
-            points="22 2 15 22 11 13 2 9 22 2"
-          ></polygon>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
         </svg>
       </button>
 
@@ -936,6 +1225,15 @@
 
     const exportPdfBtn =
       document.getElementById("exportPdfBtn");
+
+    const exportDropdown =
+      document.getElementById("exportDropdown");
+
+    const exportDropdownMenu =
+      document.getElementById("exportDropdownMenu");
+
+    const quizBtn =
+      document.getElementById("quizBtn");
 
     const pdfProgress =
       document.getElementById("pdfProgress");
@@ -1069,9 +1367,10 @@
 
       /*
         Since the old conversation is cleared,
-        export should be disabled again.
+        export/quiz should be disabled again.
       */
       exportPdfBtn.disabled = true;
+      quizBtn.disabled = true;
 
       closeDropdown();
 
@@ -1124,6 +1423,86 @@
     );
 
 
+    /* =========================================================
+       EXPORT DROPDOWN
+    ========================================================= */
+
+    function openExportDropdown() {
+
+      if (exportPdfBtn.disabled) {
+        return;
+      }
+
+      exportDropdown.classList.add("open");
+
+      exportPdfBtn.setAttribute(
+        "aria-expanded",
+        "true"
+      );
+
+    }
+
+
+    function closeExportDropdown() {
+
+      exportDropdown.classList.remove("open");
+
+      exportPdfBtn.setAttribute(
+        "aria-expanded",
+        "false"
+      );
+
+    }
+
+
+    exportPdfBtn.addEventListener(
+      "click",
+      (e) => {
+
+        e.stopPropagation();
+
+        exportDropdown.classList.contains("open")
+          ? closeExportDropdown()
+          : openExportDropdown();
+
+      }
+    );
+
+
+    document.addEventListener(
+      "click",
+      (e) => {
+
+        if (!exportDropdown.contains(e.target)) {
+          closeExportDropdown();
+        }
+
+      }
+    );
+exportDropdownMenu
+  .querySelectorAll(".export-option")
+  .forEach((optionEl) => {
+    optionEl.addEventListener(
+      "click",
+      () => {
+
+        // Quiz button → ONLY generate quiz
+        if (optionEl.id === "quizBtn") {
+          closeExportDropdown();
+          generateQuiz();
+          return;
+        }
+
+        // PDF options
+        const mode =
+          optionEl.dataset.exportMode ||
+          "complete";
+
+        closeExportDropdown();
+        exportCurrentChatAsPDF(mode);
+      }
+    );
+  });
     /* =========================================================
        SAFE HTML ESCAPE
     ========================================================= */
@@ -1435,7 +1814,7 @@
 
           html +=
             codeBlocks[
-              Number(codeMatch[1])
+            Number(codeMatch[1])
             ];
 
           continue;
@@ -1572,6 +1951,9 @@
         conversationHistory.length === 0 &&
         !text;
 
+      quizBtn.disabled =
+        exportPdfBtn.disabled;
+
       const row =
         document.createElement("div");
 
@@ -1662,6 +2044,83 @@
     }
 
 
+    /*
+      STREAMING REPLY
+
+      Reads the response body as it arrives and shows it token-by-token
+      instead of waiting for the whole answer. While streaming, the
+      partial text is shown as PLAIN TEXT (textContent, never
+      innerHTML) — markdown/table formatting is only applied once the
+      stream completes, so a half-arrived "**bold" or "| table |" row
+      can never render as broken/unsafe HTML mid-stream.
+
+      Returns the full accumulated reply text once the stream ends.
+    */
+    async function streamBotReply(row, res) {
+
+      const bubble =
+        row.querySelector(".bubble");
+
+      bubble.classList.remove("no-match");
+
+      bubble.innerHTML = "";
+
+      const streamEl =
+        document.createElement("span");
+
+      streamEl.className =
+        "streaming-text";
+
+      bubble.appendChild(streamEl);
+
+
+      const reader =
+        res.body.getReader();
+
+      const decoder =
+        new TextDecoder();
+
+      let accumulated = "";
+
+
+      while (true) {
+
+        const { value, done } =
+          await reader.read();
+
+        if (done) {
+          break;
+        }
+
+        accumulated +=
+          decoder.decode(
+            value,
+            { stream: true }
+          );
+
+        streamEl.textContent =
+          accumulated;
+
+        chatMessages.scrollTop =
+          chatMessages.scrollHeight;
+
+      }
+
+
+      bubble.innerHTML =
+        formatBotText(
+          accumulated ||
+          "Something went wrong."
+        );
+
+      chatMessages.scrollTop =
+        chatMessages.scrollHeight;
+
+
+      return accumulated;
+    }
+
+
     /* =========================================================
        SEND MESSAGE
     ========================================================= */
@@ -1745,26 +2204,85 @@
         }
 
 
-        const data =
-          await res.json();
+        /*
+          BACKWARD-COMPATIBLE STREAMING DETECTION.
+
+          If /study/chat responds with JSON (the current behaviour),
+          nothing changes. If the backend is upgraded to stream plain
+          text chunks (Content-Type NOT application/json, with an
+          optional "X-Matched: false" response header for no-match
+          answers), we stream it live instead. No backend change
+          required for this frontend to keep working.
+        */
+
+        const contentType =
+          res.headers.get("content-type") || "";
+
+        const canStream =
+          !contentType.includes("application/json") &&
+          res.body &&
+          typeof res.body.getReader === "function";
+
+        let finalReply = "";
+        let matched = true;
 
 
-        renderBotReply(
-          typingRow,
-          data
-        );
+        if (canStream) {
+
+          const matchedHeader =
+            res.headers.get("x-matched");
+
+          if (matchedHeader !== null) {
+            matched =
+              matchedHeader !== "false";
+          }
+
+          finalReply =
+            await streamBotReply(
+              typingRow,
+              res
+            );
+
+          if (!matched) {
+
+            typingRow
+              .querySelector(".bubble")
+              .classList.add("no-match");
+
+          }
+
+        } else {
+
+          const data =
+            await res.json();
+
+          finalReply =
+            data.reply || "";
+
+          matched =
+            data.matched !== false;
+
+          renderBotReply(
+            typingRow,
+            data
+          );
+
+        }
 
 
         conversationHistory.push({
           role: "bot",
-          text: data.reply || ""
+          text: finalReply
         });
 
 
         /*
-          Enable PDF after successful assistant response.
+          Enable PDF / Quiz after a successful assistant response.
         */
         exportPdfBtn.disabled =
+          conversationHistory.length === 0;
+
+        quizBtn.disabled =
           conversationHistory.length === 0;
 
 
@@ -2035,155 +2553,472 @@
        EXPORT CURRENT CHAT AS PDF
     ========================================================= */
 
-    async function exportCurrentChatAsPDF() {
+    /* =========================================================
+       VISUAL LEARNING — DIAGRAM GENERATION
 
-      if (
-        isExportingPdf ||
-        !conversationHistory.length
-      ) {
-        return;
+       NOTE: this project had no existing plot/visualization
+       implementation to reuse (confirmed with the user), so
+       this is a fresh, lightweight SVG renderer. It reuses
+       the existing .pdf-table styling for "comparison" type
+       visualizations instead of building a second table
+       renderer.
+    ========================================================= */
+
+    function wrapLabelLines(label, maxCharsPerLine, maxLines) {
+
+      const words =
+        String(label || "")
+          .split(/\s+/)
+          .filter(Boolean);
+
+      const lines = [];
+      let current = "";
+
+      words.forEach((word) => {
+
+        const candidate =
+          current ? `${current} ${word}` : word;
+
+        if (candidate.length > maxCharsPerLine && current) {
+          lines.push(current);
+          current = word;
+        } else {
+          current = candidate;
+        }
+
+      });
+
+      if (current) {
+        lines.push(current);
       }
 
+      if (lines.length > maxLines) {
+
+        const trimmed =
+          lines.slice(0, maxLines);
+
+        trimmed[maxLines - 1] =
+          trimmed[maxLines - 1].replace(/.{0,3}$/, "...");
+
+        return trimmed;
+      }
+
+      return lines.length ? lines : [""];
+    }
+
+
+    /*
+      Layered auto-layout for node/edge diagrams (flowchart,
+      process, architecture, hierarchy, decision tree, concept
+      map, component-relationship). Each node's "level" is the
+      longest path from a root node, so parents always sit
+      above their children.
+    */
+    function layoutDiagramNodes(nodes, edges) {
+
+      const ids =
+        nodes.map((n) => n.id);
+
+      const incomingCount = {};
+
+      ids.forEach((id) => {
+        incomingCount[id] = 0;
+      });
+
+      edges.forEach((e) => {
+        if (incomingCount[e.to] !== undefined) {
+          incomingCount[e.to]++;
+        }
+      });
+
+      let roots =
+        ids.filter((id) => incomingCount[id] === 0);
+
+      if (!roots.length && ids.length) {
+        roots = [ids[0]];
+      }
+
+      const level = {};
+
+      ids.forEach((id) => {
+        level[id] = 0;
+      });
+
+      let changed = true;
+      let guard = 0;
+
+      while (changed && guard < ids.length + 5) {
+
+        changed = false;
+
+        edges.forEach((e) => {
+
+          if (
+            level[e.from] === undefined ||
+            level[e.to] === undefined
+          ) {
+            return;
+          }
+
+          if (level[e.to] < level[e.from] + 1) {
+            level[e.to] = level[e.from] + 1;
+            changed = true;
+          }
+
+        });
+
+        guard++;
+
+      }
+
+      const levels = {};
+
+      nodes.forEach((n) => {
+        const lv = level[n.id] || 0;
+        (levels[lv] = levels[lv] || []).push(n);
+      });
+
+      const levelKeys =
+        Object.keys(levels)
+          .map(Number)
+          .sort((a, b) => a - b);
+
+      const boxWidth = 168;
+      const boxMinHeight = 48;
+      const hGap = 26;
+      const vGap = 56;
+      const paddingX = 24;
+      const paddingY = 24;
+      const maxCharsPerLine = 20;
+
+      const positions = {};
+      let maxRowWidth = 0;
+
+      levelKeys.forEach((lv, rowIndex) => {
+
+        const rowNodes =
+          levels[lv];
+
+        const rowWidth =
+          rowNodes.length * boxWidth +
+          (rowNodes.length - 1) * hGap;
+
+        maxRowWidth =
+          Math.max(maxRowWidth, rowWidth);
+
+        rowNodes.forEach((node, colIndex) => {
+
+          const lines =
+            wrapLabelLines(node.label, maxCharsPerLine, 3);
+
+          const boxHeight =
+            Math.max(boxMinHeight, 26 + lines.length * 16);
+
+          positions[node.id] = {
+            x: paddingX + colIndex * (boxWidth + hGap),
+            y: paddingY + rowIndex * (boxMinHeight + vGap),
+            width: boxWidth,
+            height: boxHeight,
+            lines
+          };
+
+        });
+
+      });
 
       /*
-        SNAPSHOT FIRST.
-
-        Any new messages after this point
-        will not enter this PDF.
+        Center each row against the widest row so the
+        diagram looks balanced instead of left-aligned.
       */
-      const chatSnapshot =
-        conversationHistory.map(
-          (item) => ({
-            role: item.role,
-            text: item.text
-          })
-        );
+      levelKeys.forEach((lv) => {
+
+        const rowNodes =
+          levels[lv];
+
+        const rowWidth =
+          rowNodes.length * boxWidth +
+          (rowNodes.length - 1) * hGap;
+
+        const offset =
+          (maxRowWidth - rowWidth) / 2;
+
+        rowNodes.forEach((node) => {
+          positions[node.id].x += offset;
+        });
+
+      });
+
+      const totalWidth =
+        maxRowWidth + paddingX * 2;
+
+      const totalHeight =
+        levelKeys.length
+          ? Math.max(
+            ...levelKeys.map((lv) => {
+              const n = levels[lv][0];
+              return positions[n.id].y + positions[n.id].height;
+            })
+          ) + paddingY
+          : boxMinHeight + paddingY * 2;
+
+      return { positions, width: totalWidth, height: totalHeight };
+    }
 
 
-      const subjectSnapshot =
-        selectedSubject || "All Subjects";
+    function buildDiagramSvg(viz) {
+
+      const nodes =
+        Array.isArray(viz.nodes) ? viz.nodes : [];
+
+      const edges =
+        Array.isArray(viz.edges) ? viz.edges : [];
+
+      if (!nodes.length) {
+        return "";
+      }
+
+      const { positions, width, height } =
+        layoutDiagramNodes(nodes, edges);
+
+      let svg =
+        `<svg class="viz-diagram" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">`;
+
+      svg += `
+        <defs>
+          <marker id="viz-arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+            <path d="M0,0 L8,4 L0,8 Z" fill="#6366f1"></path>
+          </marker>
+        </defs>
+      `;
+
+      edges.forEach((edge) => {
+
+        const from = positions[edge.from];
+        const to = positions[edge.to];
+
+        if (!from || !to) {
+          return;
+        }
+
+        const x1 = from.x + from.width / 2;
+        const y1 = from.y + from.height;
+        const x2 = to.x + to.width / 2;
+        const y2 = to.y;
+        const midY = (y1 + y2) / 2;
+
+        svg +=
+          `<path d="M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2 - 6}" fill="none" stroke="#a5adf7" stroke-width="2" marker-end="url(#viz-arrow)"></path>`;
+
+        if (edge.label) {
+          svg +=
+            `<text x="${(x1 + x2) / 2}" y="${midY - 4}" font-size="10" fill="#6b7280" text-anchor="middle" font-family="Arial, sans-serif">${escapeHtml(edge.label)}</text>`;
+        }
+
+      });
+
+      nodes.forEach((node) => {
+
+        const pos = positions[node.id];
+
+        if (!pos) {
+          return;
+        }
+
+        svg +=
+          `<rect x="${pos.x}" y="${pos.y}" width="${pos.width}" height="${pos.height}" rx="10" fill="#eef0ff" stroke="#6366f1" stroke-width="1.5"></rect>`;
+
+        const lineHeight = 16;
+
+        const startY =
+          pos.y + pos.height / 2 -
+          ((pos.lines.length - 1) * lineHeight) / 2 + 5;
+
+        pos.lines.forEach((line, i) => {
+          svg +=
+            `<text x="${pos.x + pos.width / 2}" y="${startY + i * lineHeight}" font-size="12.5" font-weight="600" fill="#111827" text-anchor="middle" font-family="Arial, sans-serif">${escapeHtml(line)}</text>`;
+        });
+
+      });
+
+      svg += "</svg>";
+
+      return svg;
+    }
 
 
-      const exportDate =
-        new Date();
+    /*
+      "comparison" type reuses the SAME .pdf-table renderer/
+      styling already used for markdown tables in chat — no
+      second table implementation.
+    */
+    function buildComparisonTableHtml(viz) {
+
+      const columns =
+        Array.isArray(viz.columns) ? viz.columns : [];
+
+      const rows =
+        Array.isArray(viz.rows) ? viz.rows : [];
+
+      if (!columns.length || !rows.length) {
+        return "";
+      }
+
+      let html =
+        '<table class="pdf-table viz-comparison-table"><thead><tr>';
+
+      columns.forEach((col) => {
+        html += `<th>${escapeHtml(col)}</th>`;
+      });
+
+      html += "</tr></thead><tbody>";
+
+      rows.forEach((row) => {
+
+        html += "<tr>";
+
+        row.forEach((cell) => {
+          html += `<td>${escapeHtml(cell)}</td>`;
+        });
+
+        html += "</tr>";
+
+      });
+
+      html += "</tbody></table>";
+
+      return html;
+    }
 
 
-      isExportingPdf =
-        true;
+    function buildVisualizationCardHtml(viz) {
 
-      exportPdfBtn.disabled =
-        true;
+      const isComparison =
+        viz.type === "comparison" &&
+        Array.isArray(viz.columns);
+
+      const diagramHtml =
+        isComparison
+          ? buildComparisonTableHtml(viz)
+          : buildDiagramSvg(viz);
+
+      if (!diagramHtml) {
+        return "";
+      }
+
+      let html =
+        '<div class="viz-card">';
+
+      if (viz.title) {
+        html += `<div class="viz-title">${escapeHtml(viz.title)}</div>`;
+      }
+
+      html += `<div class="viz-diagram-wrap">${diagramHtml}</div>`;
+
+      if (viz.description) {
+        html += `<div class="viz-desc">${escapeHtml(viz.description)}</div>`;
+      }
+
+      if (viz.remember) {
+        html +=
+          `<div class="viz-remember"><strong>Remember:</strong> ${escapeHtml(viz.remember)}</div>`;
+      }
+
+      html += "</div>";
+
+      return html;
+    }
 
 
-      let pdfContainer =
-        null;
+    /* =========================================================
+       AI VISUALIZATION GENERATION
 
+       Called ONLY at export time (never during normal chat),
+       per the performance requirement — no extra AI call per
+       message.
+    ========================================================= */
+
+    async function generateVisualizations(chatSnapshot, subjectSnapshot) {
 
       try {
 
-        /* -----------------------------------------------------
-           0 → 25%
-        ----------------------------------------------------- */
+        const res =
+          await CampusAuth.userFetch(
+            "/study/visualize",
+            {
+              method: "POST",
 
-        showPdfProgress(
-          "Preparing PDF",
-          10,
-          "Preparing your conversation..."
-        );
+              headers: {
+                "Content-Type":
+                  "application/json"
+              },
 
+              body: JSON.stringify({
 
-        await new Promise(
-          (resolve) =>
-            setTimeout(resolve, 150)
-        );
+                subject:
+                  subjectSnapshot || "",
 
+                history:
+                  chatSnapshot
 
-        showPdfProgress(
-          "Preparing PDF",
-          25,
-          "Preparing your conversation..."
-        );
-
-
-        /* -----------------------------------------------------
-           25 → 70%
-        ----------------------------------------------------- */
-
-        showPdfProgress(
-          "Preparing PDF",
-          30,
-          "Generating your revision summary..."
-        );
-
-
-        const summary =
-          await generateRevisionSummary(
-            chatSnapshot,
-            subjectSnapshot
+              })
+            }
           );
 
 
-        showPdfProgress(
-          "Preparing PDF",
-          65,
-          summary
-            ? "Revision summary ready..."
-            : "Summary unavailable — continuing with your chat..."
-        );
+        if (!res.ok) {
+          throw new Error(
+            `Visualize HTTP ${res.status}`
+          );
+        }
 
 
-        await new Promise(
-          (resolve) =>
-            setTimeout(resolve, 150)
-        );
+        const data =
+          await res.json();
 
 
-        /* -----------------------------------------------------
-           70 → 90%
-        ----------------------------------------------------- */
-
-        showPdfProgress(
-          "Preparing PDF",
-          70,
-          "Building your study notes..."
-        );
+        if (
+          !data ||
+          !Array.isArray(data.visualizations) ||
+          !data.visualizations.length
+        ) {
+          return null;
+        }
 
 
-        /*
-          Hidden but renderable PDF container.
+        return data.visualizations;
 
-          Avoid display:none because html2canvas
-          cannot render display:none elements.
-        */
-        pdfContainer =
-          document.createElement("div");
 
-        pdfContainer.id =
-          "campusbot-pdf-container";
-Object.assign(pdfContainer.style, {
-    position: "absolute",
-    left: "-10000px",
-    top: "0",
-    width: "794px",
-    minHeight: "1123px",
-    boxSizing: "border-box",
-    background: "#ffffff",
-    color: "#111827",
-    padding: "52px",
-    fontFamily: "Arial, Helvetica, sans-serif",
-    lineHeight: "1.55",
-    zIndex: "999999",
-    opacity: "1",
-    pointerEvents: "none"
-});
+      } catch (err) {
 
         /*
-          PDF-specific styles.
+          VERY IMPORTANT:
+          Visualization failure must NOT stop PDF creation.
         */
-        const pdfStyle =
-          document.createElement("style");
 
-        pdfStyle.textContent = `
+        console.warn(
+          "Visualizations unavailable. PDF will continue without them.",
+          err
+        );
+
+        return null;
+
+      }
+
+    }
+
+
+    /* =========================================================
+       SHARED PDF BASE STYLES
+
+       Same CSS used by both the Complete Study PDF and the
+       Visual Revision PDF containers, plus the new .viz-*
+       rules for diagrams/comparison tables.
+    ========================================================= */
+
+    function getPdfBaseStyles() {
+
+      return `
+
 
           #campusbot-pdf-container {
             width: 794px;
@@ -2454,693 +3289,841 @@ Object.assign(pdfContainer.style, {
             font-size: 10px;
           }
 
-        `;
+        
+
+          .viz-card {
+            margin: 0 0 22px;
+            padding: 16px 18px;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            background: #fafbff;
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+
+          .viz-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 10px;
+          }
+
+          .viz-diagram-wrap {
+            width: 100%;
+            overflow: visible;
+            margin-bottom: 10px;
+            text-align: center;
+          }
+
+          .viz-diagram-wrap svg.viz-diagram {
+            width: 100%;
+            max-width: 560px;
+            height: auto;
+            max-height: 420px;
+            display: inline-block;
+          }
+
+          .viz-desc {
+            font-size: 12.5px;
+            color: #374151;
+            line-height: 1.5;
+            margin-bottom: 6px;
+          }
+
+          .viz-remember {
+            font-size: 12px;
+            color: #4338ca;
+            background: #eef0ff;
+            border-radius: 8px;
+            padding: 7px 10px;
+            line-height: 1.5;
+          }
+
+          .pdf-visual-section-title {
+            font-size: 19px;
+            font-weight: 700;
+            color: #111827;
+            margin: 0 0 18px;
+          }
+
+          .pdf-visual-revision-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #111827;
+            margin: 0 0 6px;
+          }
+
+          .pdf-visual-revision-subject {
+            font-size: 13px;
+            color: #6b7280;
+            margin-bottom: 26px;
+          }
+
+          .viz-revision-page {
+            page-break-before: always;
+            break-before: page;
+          }
+
+          .viz-empty-note {
+            font-size: 13px;
+            color: #6b7280;
+            padding: 20px 0;
+          }
+      `;
+
+    }
 
 
-        pdfContainer.appendChild(
-          pdfStyle
+    /* =========================================================
+       PDF CONTAINER BUILDERS
+       (build the DOM, do NOT append to <body> — the caller /
+       renderContainerToPdf() does that)
+    ========================================================= */
+
+    function createHiddenPdfContainer() {
+
+      const container =
+        document.createElement("div");
+
+      container.id =
+        "campusbot-pdf-container";
+
+      Object.assign(container.style, {
+        position: "absolute",
+        left: "-10000px",
+        top: "0",
+        width: "794px",
+        minHeight: "1123px",
+        boxSizing: "border-box",
+        background: "#ffffff",
+        color: "#111827",
+        padding: "52px",
+        fontFamily: "Arial, Helvetica, sans-serif",
+        lineHeight: "1.55",
+        zIndex: "999999",
+        opacity: "1",
+        pointerEvents: "none"
+      });
+
+      const style =
+        document.createElement("style");
+
+      style.textContent =
+        getPdfBaseStyles();
+
+      container.appendChild(style);
+
+      return container;
+    }
+
+
+    function buildCompletePdfContainer(
+      chatSnapshot,
+      subjectSnapshot,
+      exportDate,
+      summary,
+      visualizations
+    ) {
+
+      const container =
+        createHiddenPdfContainer();
+
+
+      /* PDF HEADER */
+
+      const pdfHeader =
+        document.createElement("div");
+
+      pdfHeader.className =
+        "pdf-header";
+
+      const brand =
+        createPdfElement(
+          "div",
+          "pdf-brand",
+          "CampusBot — Study Assistant"
         );
 
+      const subtitle =
+        createPdfElement(
+          "div",
+          "pdf-subtitle",
+          "Current Study Chat"
+        );
 
-        /* -----------------------------------------------------
-           PDF HEADER
-        ----------------------------------------------------- */
+      const meta =
+        document.createElement("div");
 
-        const pdfHeader =
+      meta.className =
+        "pdf-meta";
+
+      const subjectLine =
+        document.createElement("div");
+
+      subjectLine.innerHTML =
+        `<strong>Subject:</strong> ${escapeHtml(subjectSnapshot)}`;
+
+      const dateLine =
+        document.createElement("div");
+
+      dateLine.innerHTML =
+        `<strong>Exported:</strong> ${escapeHtml(exportDate.toLocaleString())}`;
+
+      meta.appendChild(subjectLine);
+      meta.appendChild(dateLine);
+
+      pdfHeader.appendChild(brand);
+      pdfHeader.appendChild(subtitle);
+      pdfHeader.appendChild(meta);
+
+      container.appendChild(pdfHeader);
+
+
+      const divider =
+        document.createElement("div");
+
+      divider.className =
+        "pdf-divider";
+
+      container.appendChild(divider);
+
+
+      /* CONVERSATION */
+
+      const conversationTitle =
+        createPdfElement(
+          "div",
+          "pdf-section-title",
+          "Conversation"
+        );
+
+      container.appendChild(conversationTitle);
+
+      const conversationContainer =
+        document.createElement("div");
+
+      conversationContainer.className =
+        "pdf-conversation";
+
+      chatSnapshot.forEach((message) => {
+        addPdfConversationMessage(conversationContainer, message);
+      });
+
+      container.appendChild(conversationContainer);
+
+
+      /* QUICK REVISION SUMMARY */
+
+      const summaryPage =
+        document.createElement("div");
+
+      summaryPage.className =
+        "pdf-summary-page";
+
+      const summaryTitle =
+        createPdfElement(
+          "div",
+          "pdf-summary-title",
+          "Quick Revision Summary"
+        );
+
+      const summaryContent =
+        document.createElement("div");
+
+      summaryContent.className =
+        "pdf-summary-content";
+
+      summaryContent.innerHTML =
+        summary
+          ? formatBotText(summary)
+          : "<p>Revision Summary could not be generated.</p>";
+
+      summaryPage.appendChild(summaryTitle);
+      summaryPage.appendChild(summaryContent);
+
+      container.appendChild(summaryPage);
+
+
+      /* VISUAL LEARNING (only if visualizations were generated) */
+
+      if (visualizations && visualizations.length) {
+
+        const vizPage =
           document.createElement("div");
 
-        pdfHeader.className =
-          "pdf-header";
+        vizPage.className =
+          "pdf-summary-page";
 
-
-        const brand =
+        const vizTitle =
           createPdfElement(
             "div",
-            "pdf-brand",
-            "CampusBot — Study Assistant"
+            "pdf-visual-section-title",
+            "🎨 Visual Learning"
           );
 
+        vizPage.appendChild(vizTitle);
 
-        const subtitle =
+        visualizations.forEach((viz) => {
+
+          const cardHtml =
+            buildVisualizationCardHtml(viz);
+
+          if (!cardHtml) {
+            return;
+          }
+
+          const wrapper =
+            document.createElement("div");
+
+          wrapper.innerHTML =
+            cardHtml;
+
+          vizPage.appendChild(wrapper.firstElementChild);
+
+        });
+
+        if (vizPage.children.length > 1) {
+          container.appendChild(vizPage);
+        }
+
+      }
+
+
+      /* FOOTER */
+
+      const footer =
+        createPdfElement(
+          "div",
+          "pdf-footer-note",
+          "Generated by CampusBot Study Assistant"
+        );
+
+      container.appendChild(footer);
+
+
+      return container;
+    }
+
+
+    function buildVisualRevisionContainer(
+      subjectSnapshot,
+      exportDate,
+      visualizations
+    ) {
+
+      const container =
+        createHiddenPdfContainer();
+
+
+      const pdfHeader =
+        document.createElement("div");
+
+      pdfHeader.className =
+        "pdf-header";
+
+      const brand =
+        createPdfElement(
+          "div",
+          "pdf-visual-revision-title",
+          "CampusBot — Visual Revision Notes"
+        );
+
+      const subjectLine =
+        createPdfElement(
+          "div",
+          "pdf-visual-revision-subject",
+          `Subject: ${subjectSnapshot}`
+        );
+
+      pdfHeader.appendChild(brand);
+      pdfHeader.appendChild(subjectLine);
+
+      container.appendChild(pdfHeader);
+
+
+      if (!visualizations || !visualizations.length) {
+
+        const emptyNote =
           createPdfElement(
             "div",
-            "pdf-subtitle",
-            "Current Study Chat"
+            "viz-empty-note",
+            "Visual diagrams could not be generated for this conversation. Try asking a few concept-style questions (\"how does X work\", \"explain the architecture of Y\") and export again."
           );
 
+        container.appendChild(emptyNote);
 
-        const meta =
+        return container;
+      }
+
+
+      visualizations.forEach((viz, index) => {
+
+        const cardHtml =
+          buildVisualizationCardHtml(viz);
+
+        if (!cardHtml) {
+          return;
+        }
+
+        const page =
           document.createElement("div");
 
-        meta.className =
-          "pdf-meta";
+        page.className =
+          index === 0
+            ? "viz-revision-first-page"
+            : "viz-revision-page";
 
-
-        const subjectLine =
-          document.createElement("div");
-
-        subjectLine.innerHTML =
-          `<strong>Subject:</strong> ${escapeHtml(
-            subjectSnapshot
-          )}`;
-
-
-        const dateLine =
-          document.createElement("div");
-
-        dateLine.innerHTML =
-          `<strong>Exported:</strong> ${escapeHtml(
-            exportDate.toLocaleString()
-          )}`;
-
-
-        meta.appendChild(
-          subjectLine
-        );
-
-        meta.appendChild(
-          dateLine
-        );
-
-
-        pdfHeader.appendChild(
-          brand
-        );
-
-        pdfHeader.appendChild(
-          subtitle
-        );
-
-        pdfHeader.appendChild(
-          meta
-        );
-
-
-        pdfContainer.appendChild(
-          pdfHeader
-        );
-
-
-        const divider =
-          document.createElement("div");
-
-        divider.className =
-          "pdf-divider";
-
-        pdfContainer.appendChild(
-          divider
-        );
-
-
-        /* -----------------------------------------------------
-           CONVERSATION
-        ----------------------------------------------------- */
-
-        const conversationTitle =
+        const sectionTitle =
           createPdfElement(
             "div",
-            "pdf-section-title",
-            "Conversation"
+            "pdf-visual-section-title",
+            index === 0
+              ? "Important Visual Concepts"
+              : "Next Concept"
           );
 
-        pdfContainer.appendChild(
-          conversationTitle
+        page.appendChild(sectionTitle);
+
+        const wrapper =
+          document.createElement("div");
+
+        wrapper.innerHTML =
+          cardHtml;
+
+        page.appendChild(wrapper.firstElementChild);
+
+        container.appendChild(page);
+
+      });
+
+
+      const footer =
+        createPdfElement(
+          "div",
+          "pdf-footer-note",
+          "Generated by CampusBot Study Assistant"
+        );
+
+      container.appendChild(footer);
+
+
+      return container;
+    }
+
+
+    /* =========================================================
+       CANVAS → PDF RENDERER
+       (shared by Complete Study PDF and Visual Revision PDF —
+       reuses the existing html2canvas + jsPDF pipeline and the
+       existing page-break-avoidance algorithm, extended with
+       .viz-card so a diagram is never cut in half.)
+    ========================================================= */
+
+    async function renderContainerToPdf(container, filename) {
+
+      document.body.appendChild(container);
+
+      try {
+
+        /* let the browser lay it out before capturing */
+
+        await new Promise(
+          (resolve) => setTimeout(resolve, 300)
+        );
+
+        await new Promise((resolve) =>
+          requestAnimationFrame(() => {
+            requestAnimationFrame(resolve);
+          })
         );
 
 
-        const conversationContainer =
-          document.createElement("div");
+        const canvas =
+          await html2canvas(
+            container,
+            {
+              scale: 2,
+              useCORS: true,
+              allowTaint: true,
+              backgroundColor: "#ffffff",
+              logging: false,
+              scrollX: 0,
+              scrollY: 0,
+              width: container.offsetWidth,
+              height: container.scrollHeight
+            }
+          );
 
-        conversationContainer.className =
-          "pdf-conversation";
+        if (
+          !canvas ||
+          canvas.width === 0 ||
+          canvas.height === 0
+        ) {
+          throw new Error("PDF canvas is empty.");
+        }
 
 
-        chatSnapshot.forEach(
-          (message) => {
+        const { jsPDF } = window.jspdf;
 
-            addPdfConversationMessage(
-              conversationContainer,
-              message
-            );
+        const pdf =
+          new jsPDF({
+            orientation: "portrait",
+            unit: "mm",
+            format: "a4"
+          });
+
+        const pageWidth =
+          pdf.internal.pageSize.getWidth();
+
+        const pageHeight =
+          pdf.internal.pageSize.getHeight();
+
+        const containerRect =
+          container.getBoundingClientRect();
+
+        const canvasScale =
+          canvas.width / containerRect.width;
+
+        const topMargin = 12;
+        const bottomMargin = 12;
+
+        const pageCanvasHeight =
+          canvas.width *
+          ((pageHeight - topMargin - bottomMargin) / pageWidth);
+
+
+        const safeElements = [
+          ...container.querySelectorAll(`
+            .pdf-header,
+            .pdf-section-title,
+            .pdf-visual-section-title,
+            .pdf-message,
+            .pdf-message-content h4,
+            .pdf-message-content p,
+            .pdf-message-content .pdf-line,
+            .pdf-message-content ul,
+            .pdf-message-content ol,
+            .pdf-message-content li,
+            .pdf-message-content pre,
+            .pdf-message-content tr,
+            .pdf-summary-page,
+            .pdf-summary-title,
+            .pdf-summary-content h4,
+            .pdf-summary-content p,
+            .pdf-summary-content .pdf-line,
+            .pdf-summary-content ul,
+            .pdf-summary-content ol,
+            .pdf-summary-content li,
+            .pdf-summary-content tr,
+            .viz-card
+          `)
+        ];
+
+        const safePositions = safeElements
+          .map((el) => {
+
+            const rect =
+              el.getBoundingClientRect();
+
+            return {
+              top: (rect.top - containerRect.top) * canvasScale,
+              height: rect.height * canvasScale
+            };
+
+          })
+          .filter((item) =>
+            item.top >= 0 && item.top < canvas.height
+          )
+          .sort((a, b) => a.top - b.top);
+
+
+        const pageCuts = [];
+        let currentStart = 0;
+
+        while (currentStart < canvas.height) {
+
+          const idealEnd =
+            Math.min(currentStart + pageCanvasHeight, canvas.height);
+
+          if (idealEnd >= canvas.height) {
+            pageCuts.push({ start: currentStart, end: canvas.height });
+            break;
+          }
+
+          const crossingElements =
+            safePositions.filter((item) => {
+              const elementBottom = item.top + item.height;
+              return (
+                item.top > currentStart + 20 &&
+                item.top < idealEnd &&
+                elementBottom > idealEnd - 15
+              );
+            });
+
+          let actualEnd = idealEnd;
+
+          if (crossingElements.length > 0) {
+            actualEnd = crossingElements[0].top - 30;
+          }
+
+          if (actualEnd - currentStart < pageCanvasHeight * 0.60) {
+            actualEnd = idealEnd;
+          }
+
+          if (actualEnd < canvas.height) {
+
+            const nextElement =
+              safePositions.find((item) =>
+                item.top >= actualEnd - 2 && item.top < actualEnd + 20
+              );
+
+            if (nextElement) {
+              actualEnd = nextElement.top - 2;
+            }
 
           }
+
+          if (actualEnd <= currentStart) {
+            actualEnd = idealEnd;
+          }
+
+          pageCuts.push({ start: currentStart, end: actualEnd });
+          currentStart = actualEnd;
+
+        }
+
+
+        for (
+          let pageIndex = 0;
+          pageIndex < pageCuts.length;
+          pageIndex++
+        ) {
+
+          const cut = pageCuts[pageIndex];
+          const sliceHeight = cut.end - cut.start;
+
+          const pageCanvas =
+            document.createElement("canvas");
+
+          pageCanvas.width = canvas.width;
+          pageCanvas.height = Math.ceil(sliceHeight);
+
+          const ctx =
+            pageCanvas.getContext("2d");
+
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+
+          ctx.drawImage(
+            canvas,
+            0, cut.start, canvas.width, sliceHeight,
+            0, 0, canvas.width, sliceHeight
+          );
+
+          const pageImage =
+            pageCanvas.toDataURL("image/jpeg", 0.97);
+
+          if (pageIndex > 0) {
+            pdf.addPage();
+          }
+
+          const slicePdfHeight =
+            (pageCanvas.height * pageWidth) / pageCanvas.width;
+
+          pdf.addImage(
+            pageImage, "JPEG", 0, topMargin, pageWidth, slicePdfHeight
+          );
+
+        }
+
+
+        pdf.save(filename);
+
+
+      } finally {
+
+        try {
+          container.remove();
+        } catch (_) { }
+
+      }
+
+    }
+
+
+    /* =========================================================
+       EXPORT CURRENT CHAT AS PDF
+
+       mode: "complete" | "visual" | "both"
+    ========================================================= */
+
+    async function exportCurrentChatAsPDF(mode) {
+
+      mode = mode || "complete";
+
+      if (
+        isExportingPdf ||
+        !conversationHistory.length
+      ) {
+        return;
+      }
+
+
+      /*
+        SNAPSHOT FIRST.
+        Any new messages after this point will not enter this PDF.
+      */
+      const chatSnapshot =
+        conversationHistory.map((item) => ({
+          role: item.role,
+          text: item.text
+        }));
+
+      const subjectSnapshot =
+        selectedSubject || "All Subjects";
+
+      const exportDate =
+        new Date();
+
+      const needsComplete =
+        mode === "complete" || mode === "both";
+
+      const needsVisual =
+        mode === "visual" || mode === "both";
+
+      const safeSubject =
+        subjectSnapshot
+          .replace(/[^a-z0-9]+/gi, "-")
+          .replace(/^-+|-+$/g, "")
+          .slice(0, 50) || "All-Subjects";
+
+      const datePart =
+        exportDate.toISOString().slice(0, 10);
+
+
+      isExportingPdf = true;
+      exportPdfBtn.disabled = true;
+
+
+      try {
+
+        showPdfProgress(
+          "Preparing PDF", 8, "Preparing your conversation..."
         );
 
-
-        pdfContainer.appendChild(
-          conversationContainer
-        );
+        await new Promise((r) => setTimeout(r, 150));
 
 
-        /* -----------------------------------------------------
-           QUICK REVISION SUMMARY
-        ----------------------------------------------------- */
+        let summary = null;
 
-       if (summary) {
+        if (needsComplete) {
 
-    const summaryPage =
-        document.createElement("div");
+          showPdfProgress(
+            "Preparing PDF", 20, "Generating your revision summary..."
+          );
 
-    summaryPage.className =
-        "pdf-summary-page";
+          summary =
+            await generateRevisionSummary(chatSnapshot, subjectSnapshot);
 
-
-    const summaryTitle =
-        createPdfElement(
-            "div",
-            "pdf-summary-title",
-            "Quick Revision Summary"
-        );
-
-
-    const summaryContent =
-        document.createElement("div");
-
-    summaryContent.className =
-        "pdf-summary-content";
-
-
-    summaryContent.innerHTML =
-        formatBotText(summary);
-
-
-    summaryPage.appendChild(
-        summaryTitle
-    );
-
-    summaryPage.appendChild(
-        summaryContent
-    );
-
-    pdfContainer.appendChild(
-        summaryPage
-    );
-
-
-} else {
-
-    /* -----------------------------------------------------
-       SUMMARY NOT GENERATED
-    ----------------------------------------------------- */
-
-    const summaryPage =
-        document.createElement("div");
-
-    summaryPage.className =
-        "pdf-summary-page";
-
-
-    const summaryTitle =
-        createPdfElement(
-            "div",
-            "pdf-summary-title",
-            "Quick Revision Summary"
-        );
-
-
-    const summaryContent =
-        document.createElement("div");
-
-    summaryContent.className =
-        "pdf-summary-content";
-
-
-    summaryContent.innerHTML = `
-        <p>
-            Revision Summary could not be generated.
-        </p>
-    `;
-
-
-    summaryPage.appendChild(
-        summaryTitle
-    );
-
-    summaryPage.appendChild(
-        summaryContent
-    );
-
-    pdfContainer.appendChild(
-        summaryPage
-    );
-}
+        }
 
 
         /*
-          Small footer.
+          Visualizations are generated ONCE even for "both" —
+          both PDFs reuse the same result instead of making a
+          second AI call.
         */
-        const footer =
-          createPdfElement(
-            "div",
-            "pdf-footer-note",
-            "Generated by CampusBot Study Assistant"
+        let visualizations = null;
+
+        showPdfProgress(
+          "Preparing PDF",
+          needsComplete ? 45 : 25,
+          "Generating visual learning diagrams..."
+        );
+
+        visualizations =
+          await generateVisualizations(chatSnapshot, subjectSnapshot);
+
+
+        if (needsComplete) {
+
+          showPdfProgress(
+            "Preparing PDF", 60, "Building your Complete Study PDF..."
           );
 
-        pdfContainer.appendChild(
-          footer
-        );
-
-
-       document.body.appendChild(
-  pdfContainer
-);
-
-// PDF container ko browser me properly render hone ka time do
-await new Promise(
-  (resolve) =>
-    setTimeout(resolve, 300)
-);
-
-/* -----------------------------------------------------
-   80 → 90%
------------------------------------------------------ */
-showPdfProgress(
-  "Preparing PDF",
-  82,
-  "Building your study notes..."
-);
-/* -----------------------------------------------------
-   FINAL PDF GENERATION
------------------------------------------------------ */
-
-showPdfProgress(
-    "Preparing PDF",
-    90,
-    "Finalizing PDF..."
-);
-
-await new Promise(resolve =>
-    setTimeout(resolve, 300)
-);
-
-const safeSubject =
-    subjectSnapshot
-        .replace(/[^a-z0-9]+/gi, "-")
-        .replace(/^-+|-+$/g, "")
-        .slice(0, 50) || "All-Subjects";
-
-const datePart =
-    exportDate.toISOString().slice(0, 10);
-
-const filename =
-    `CampusBot-Study-${safeSubject}-${datePart}.pdf`;
-
-
-/* Wait for browser layout */
-
-await new Promise(resolve =>
-    requestAnimationFrame(() => {
-        requestAnimationFrame(resolve);
-    })
-);
-
-
-/* -----------------------------------------------------
-   HTML → CANVAS
------------------------------------------------------ */
-
-const canvas = await html2canvas(
-    pdfContainer,
-    {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-        scrollX: 0,
-        scrollY: 0,
-        width: pdfContainer.offsetWidth,
-        height: pdfContainer.scrollHeight
-    }
-);
-
-if (
-    !canvas ||
-    canvas.width === 0 ||
-    canvas.height === 0
-) {
-    throw new Error("PDF canvas is empty.");
-}
-
-
-/* -----------------------------------------------------
-   CREATE PDF
------------------------------------------------------ */
-
-const { jsPDF } = window.jspdf;
-
-const pdf = new jsPDF({
-    orientation: "portrait",
-    unit: "mm",
-    format: "a4"
-});
-
-const pageWidth =
-    pdf.internal.pageSize.getWidth();
-
-const pageHeight =
-    pdf.internal.pageSize.getHeight();
-
-
-/* Canvas → PDF scaling */
-
-const pdfImageWidth = pageWidth;
-
-const pdfImageHeight =
-    (canvas.height * pdfImageWidth) /
-    canvas.width;
-
-
-/* -----------------------------------------------------
-   FIND SAFE PAGE BREAKS
------------------------------------------------------ */
-
-const containerRect =
-    pdfContainer.getBoundingClientRect();
-
-const canvasScale =
-    canvas.width / containerRect.width;
-
-
-/* -----------------------------------------------------
-   BOTTOM SAFE MARGIN
------------------------------------------------------ */
-
-const topMargin = 12;      // new page ke top par 1.2 cm
-const bottomMargin = 12;   // page ke bottom par 1.2 cm
-
-const pageCanvasHeight =
-    canvas.width *
-    ((pageHeight - topMargin - bottomMargin) / pageWidth);
-/*
-   Elements which should preferably
-   stay together with their content.
-*/
-
-const safeElements = [
-    ...pdfContainer.querySelectorAll(`
-        .pdf-header,
-        .pdf-section-title,
-        .pdf-message,
-        .pdf-message-content h4,
-        .pdf-message-content p,
-        .pdf-message-content .pdf-line,
-        .pdf-message-content ul,
-        .pdf-message-content ol,
-        .pdf-message-content li,
-        .pdf-message-content pre,
-        .pdf-message-content tr,
-        .pdf-summary-page,
-        .pdf-summary-title,
-        .pdf-summary-content h4,
-        .pdf-summary-content p,
-        .pdf-summary-content .pdf-line,
-        .pdf-summary-content ul,
-        .pdf-summary-content ol,
-        .pdf-summary-content li,
-        .pdf-summary-content tr
-    `)
-];
-
-/*
-   Get their Y positions inside PDF container
-*/
-
-const safePositions = safeElements
-    .map(el => {
-
-        const rect =
-            el.getBoundingClientRect();
-
-        return {
-            top:
-                (rect.top -
-                 containerRect.top) *
-                canvasScale,
-
-            height:
-                rect.height *
-                canvasScale
-        };
-
-    })
-    .filter(item =>
-        item.top >= 0 &&
-        item.top < canvas.height
-    )
-    .sort((a, b) =>
-        a.top - b.top
-    );
-
-
-/*
-   Generate page boundaries.
-
-   If a heading/message is very close
-   to the bottom of a page, move the
-   boundary BEFORE that element.
-*/
-
-const pageCuts = [];
-
-let currentStart = 0;
-
-while (currentStart < canvas.height) {
-
-    const idealEnd =
-        Math.min(
-            currentStart + pageCanvasHeight,
-            canvas.height
-        );
-
-    /* Last page */
-    if (idealEnd >= canvas.height) {
-
-        pageCuts.push({
-            start: currentStart,
-            end: canvas.height
-        });
-
-        break;
-    }
-
-
-    /*
-       Find an element which is being cut
-       by the normal page boundary.
-    */
-
-    const crossingElements =
-    safePositions.filter(item => {
-        const elementBottom =
-            item.top + item.height;
-
-        return (
-            item.top > currentStart + 20 &&
-            item.top < idealEnd &&
-            elementBottom > idealEnd - 15
-        );
-    });
-
-
-    let actualEnd = idealEnd;
-
-
-    /*
-       IMPORTANT:
-       If the page boundary falls inside
-       a heading / paragraph / list item,
-       start that element completely
-       on the next page.
-    */
-
-    if (crossingElements.length > 0) {
-    const crossingElement = crossingElements[0];
-
-    actualEnd =
-        crossingElement.top - 30;
-}
-
-    /*
-       Never allow a page to become too short.
-    */
-
-    if (
-        actualEnd - currentStart <
-        pageCanvasHeight * 0.60
-    ) {
-
-        actualEnd = idealEnd;
-    }
-
-
-    /*
-       Safety check.
-       The next page must NEVER start
-       inside an important element.
-    */
-
-    if (actualEnd < canvas.height) {
-
-        const nextElement =
-            safePositions.find(item =>
-                item.top >= actualEnd - 2 &&
-                item.top < actualEnd + 20
+          const completeContainer =
+            buildCompletePdfContainer(
+              chatSnapshot,
+              subjectSnapshot,
+              exportDate,
+              summary,
+              visualizations
             );
 
-        if (nextElement) {
+          const completeFilename =
+            `CampusBot-Study-${safeSubject}-${datePart}.pdf`;
 
-            actualEnd =
-                nextElement.top - 2;
+          showPdfProgress(
+            "Preparing PDF",
+            needsVisual ? 75 : 90,
+            "Finalizing Complete Study PDF..."
+          );
+
+          await renderContainerToPdf(completeContainer, completeFilename);
+
         }
-    }
 
 
-    /*
-       Final protection against
-       zero/infinite loops.
-    */
+        if (needsVisual) {
 
-    if (
-        actualEnd <= currentStart
-    ) {
+          showPdfProgress(
+            "Preparing PDF",
+            needsComplete ? 82 : 60,
+            "Building your Visual Revision PDF..."
+          );
 
-        actualEnd = idealEnd;
-    }
+          const visualContainer =
+            buildVisualRevisionContainer(
+              subjectSnapshot,
+              exportDate,
+              visualizations
+            );
 
+          const visualFilename =
+            `CampusBot-VisualRevision-${safeSubject}-${datePart}.pdf`;
 
-    pageCuts.push({
-        start: currentStart,
-        end: actualEnd
-    });
+          showPdfProgress(
+            "Preparing PDF", 92, "Finalizing Visual Revision PDF..."
+          );
 
+          await renderContainerToPdf(visualContainer, visualFilename);
 
-    currentStart = actualEnd;
-}
-
-
-/* -----------------------------------------------------
-   ADD EACH CANVAS SLICE AS A PDF PAGE
------------------------------------------------------ */
-
-for (
-    let pageIndex = 0;
-    pageIndex < pageCuts.length;
-    pageIndex++
-) {
-
-    const cut =
-        pageCuts[pageIndex];
-
-    const sliceHeight =
-        cut.end - cut.start;
+        }
 
 
-    /*
-       Create a temporary canvas
-       for this page.
-    */
-
-    const pageCanvas =
-        document.createElement("canvas");
-
-    pageCanvas.width =
-        canvas.width;
-
-    pageCanvas.height =
-        Math.ceil(sliceHeight);
-
-
-    const ctx =
-        pageCanvas.getContext("2d");
-
-    ctx.fillStyle = "#ffffff";
-
-    ctx.fillRect(
-        0,
-        0,
-        pageCanvas.width,
-        pageCanvas.height
-    );
-
-
-    ctx.drawImage(
-        canvas,
-
-        0,
-        cut.start,
-        canvas.width,
-        sliceHeight,
-
-        0,
-        0,
-        canvas.width,
-        sliceHeight
-    );
-
-
-    const pageImage =
-        pageCanvas.toDataURL(
-            "image/jpeg",
-            0.97
+        showPdfProgress(
+          "PDF Ready",
+          100,
+          needsComplete && needsVisual
+            ? "Both PDFs have been downloaded."
+            : "Your study PDF has been downloaded."
         );
 
-
-    if (pageIndex > 0) {
-        pdf.addPage();
-    }
-
-
-    const slicePdfHeight =
-    (pageCanvas.height *
-     pageWidth) /
-    pageCanvas.width;
-pdf.addImage(
-    pageImage,
-    "JPEG",
-    0,
-    topMargin,
-    pageWidth,
-    slicePdfHeight
-);
-}
-
-
-/* -----------------------------------------------------
-   SAVE
------------------------------------------------------ */
-
-pdf.save(filename);
-
-showPdfProgress(
-    "PDF Ready",
-    100,
-    "Your study PDF has been downloaded."
-);
-
-await new Promise(resolve =>
-    setTimeout(resolve, 700)
-);
-
-
-        await new Promise(
-          (resolve) =>
-            setTimeout(resolve, 700)
-        );
+        await new Promise((r) => setTimeout(r, 700));
 
 
       } catch (err) {
 
         console.error(
-          "PDF export failed:",
-          err
+          "PDF export failed:", err
         );
 
-
         /*
-          Summary failure is already handled separately.
-
-          This error is for actual PDF generation failure.
+          Per spec: an optional AI feature (summary/visualization)
+          failing must never break the core PDF. This catch is
+          only for an actual PDF-generation failure (canvas/jsPDF),
+          since summary/visualization failures are already caught
+          and neutralized inside their own generate* functions.
         */
         alert(
           "PDF generate nahi ho paaya. Please try again."
@@ -3149,19 +4132,9 @@ await new Promise(resolve =>
 
       } finally {
 
-        if (pdfContainer) {
-
-          try {
-            pdfContainer.remove();
-          } catch (_) {}
-
-        }
-
-
         hidePdfProgress();
 
-        isExportingPdf =
-          false;
+        isExportingPdf = false;
 
         exportPdfBtn.disabled =
           conversationHistory.length === 0;
@@ -3171,14 +4144,381 @@ await new Promise(resolve =>
     }
 
 
+
+    /* =========================================================
+       QUIZ
+    ========================================================= */
+
+    function appendBotMessageRow() {
+
+      const row =
+        document.createElement("div");
+
+      row.className =
+        "msg-row bot";
+
+      const avatar =
+        document.createElement("div");
+
+      avatar.className =
+        "msg-avatar";
+
+      avatar.textContent =
+        "📚";
+
+      const bubble =
+        document.createElement("div");
+
+      bubble.className =
+        "bubble";
+
+      row.appendChild(avatar);
+      row.appendChild(bubble);
+
+      chatMessages.appendChild(row);
+
+      chatMessages.scrollTop =
+        chatMessages.scrollHeight;
+
+      return row;
+    }
+
+
+    function renderQuizLoading(row) {
+
+      const bubble =
+        row.querySelector(".bubble");
+
+      bubble.innerHTML = `
+        <div class="quiz-card">
+          <div class="quiz-loading">
+            <div class="typing-dots">
+              <span></span><span></span><span></span>
+            </div>
+            <span>Generating quiz from your notes...</span>
+          </div>
+        </div>
+      `;
+
+      chatMessages.scrollTop =
+        chatMessages.scrollHeight;
+    }
+
+
+    function renderQuizError(row, message) {
+
+      const bubble =
+        row.querySelector(".bubble");
+
+      bubble.classList.add("no-match");
+
+      bubble.innerHTML =
+        `<div class="quiz-card">${escapeHtml(message)}</div>`;
+    }
+
+
+    function renderQuiz(row, questions) {
+
+      const bubble =
+        row.querySelector(".bubble");
+
+      bubble.classList.remove("no-match");
+
+      if (!questions || !questions.length) {
+
+        bubble.innerHTML =
+          '<div class="quiz-card">Is conversation se quiz nahi ban paaya — thoda aur padh ke try karo.</div>';
+
+        return;
+      }
+
+      const card =
+        document.createElement("div");
+
+      card.className =
+        "quiz-card";
+
+      const title =
+        document.createElement("div");
+
+      title.className =
+        "quiz-card-title";
+
+      title.textContent =
+        `Quick Quiz (${questions.length} questions)`;
+
+      card.appendChild(title);
+
+
+      const letters =
+        ["A", "B", "C", "D", "E", "F"];
+
+      let score = 0;
+      let answered = 0;
+
+
+      questions.forEach((q, qIndex) => {
+
+        const qWrap =
+          document.createElement("div");
+
+        qWrap.className =
+          "quiz-question";
+
+        const num =
+          document.createElement("div");
+
+        num.className =
+          "quiz-question-num";
+
+        num.textContent =
+          `Question ${qIndex + 1}`;
+
+        qWrap.appendChild(num);
+
+
+        const qText =
+          document.createElement("div");
+
+        qText.className =
+          "quiz-question-text";
+
+        qText.textContent =
+          q.question || "";
+
+        qWrap.appendChild(qText);
+
+
+        const optsWrap =
+          document.createElement("div");
+
+        optsWrap.className =
+          "quiz-options";
+
+
+        (q.options || []).forEach((optText, optIndex) => {
+
+          const optBtn =
+            document.createElement("button");
+
+          optBtn.type =
+            "button";
+
+          optBtn.className =
+            "quiz-option";
+
+          const letterSpan =
+            document.createElement("span");
+
+          letterSpan.className =
+            "quiz-option-letter";
+
+          letterSpan.textContent =
+            letters[optIndex] || String(optIndex + 1);
+
+          const textSpan =
+            document.createElement("span");
+
+          textSpan.textContent =
+            optText;
+
+          optBtn.appendChild(letterSpan);
+          optBtn.appendChild(textSpan);
+
+
+          optBtn.addEventListener(
+            "click",
+            () => {
+
+              optsWrap
+                .querySelectorAll(".quiz-option")
+                .forEach((b) => {
+                  b.disabled = true;
+                });
+
+              const isCorrect =
+                optIndex === q.answer;
+
+              optBtn.classList.add(
+                isCorrect ? "correct" : "incorrect"
+              );
+
+              if (!isCorrect) {
+
+                const correctBtn =
+                  optsWrap.children[q.answer];
+
+                if (correctBtn) {
+                  correctBtn.classList.add("correct");
+                }
+
+              }
+
+              if (q.explanation) {
+
+                const explEl =
+                  document.createElement("div");
+
+                explEl.className =
+                  "quiz-explanation";
+
+                explEl.textContent =
+                  q.explanation;
+
+                qWrap.appendChild(explEl);
+
+              }
+
+              answered++;
+
+              if (isCorrect) {
+                score++;
+              }
+
+              if (answered === questions.length) {
+
+                const scoreEl =
+                  document.createElement("div");
+
+                scoreEl.className =
+                  "quiz-score";
+
+                scoreEl.textContent =
+                  `Score: ${score} / ${questions.length}`;
+
+                card.appendChild(scoreEl);
+
+              }
+
+
+
+            }
+          );
+
+          optsWrap.appendChild(optBtn);
+
+        });
+
+        qWrap.appendChild(optsWrap);
+        card.appendChild(qWrap);
+
+      });
+
+
+      bubble.innerHTML = "";
+      bubble.appendChild(card);
+
+      chatMessages.scrollTop =
+        chatMessages.scrollHeight;
+    }
+
+
+    async function generateQuiz() {
+
+      if (!conversationHistory.length) {
+        return;
+      }
+
+      quizBtn.disabled = true;
+
+      const row =
+        appendBotMessageRow();
+
+      renderQuizLoading(row);
+
+
+      try {
+
+        const res =
+          await CampusAuth.userFetch(
+            "/study/quiz",
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json"
+              },
+
+              body: JSON.stringify({
+
+                subject:
+                  selectedSubject || undefined,
+
+                history:
+                  conversationHistory.slice(-6)
+
+              })
+            }
+          );
+
+
+        if (res.status === 401) {
+
+          renderQuizError(
+            row,
+            "Please log in to generate a quiz."
+          );
+
+          return;
+        }
+
+
+        if (!res.ok) {
+          throw new Error(
+            `HTTP ${res.status}`
+          );
+        }
+
+
+        const data =
+          await res.json();
+
+        renderQuiz(
+          row,
+          data.questions
+        );
+
+
+      } catch (err) {
+
+        console.error(
+          "Quiz generation error:",
+          err
+        );
+
+        renderQuizError(
+          row,
+          "Quiz generate nahi ho paaya. Please try again."
+        );
+
+
+      } finally {
+
+        quizBtn.disabled =
+          conversationHistory.length === 0;
+
+      }
+
+    }
+
+
+    // quizBtn.addEventListener(
+    //   "click",
+    //   generateQuiz
+    // );
+
+
     /* =========================================================
        EXPORT BUTTON
     ========================================================= */
 
-    exportPdfBtn.addEventListener(
-      "click",
-      exportCurrentChatAsPDF
-    );
+    /*
+      NOTE: exportPdfBtn's click listener now only toggles the
+      export dropdown (see "EXPORT DROPDOWN" section above).
+      Actual PDF generation is triggered per-option via
+      exportCurrentChatAsPDF(mode) from the dropdown items.
+    */
 
 
     /* =========================================================
