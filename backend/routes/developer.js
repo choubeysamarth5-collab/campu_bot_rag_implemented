@@ -782,12 +782,12 @@ router.post(
                 });
             }
 
-            if (!process.env.ML_SERVICE_URL) {
-                return res.status(500).json({
-                    success: false,
-                    message: "ML_SERVICE_URL is not configured on the server.",
-                });
-            }
+            // if (!process.env.ML_SERVICE_URL) {
+            //     return res.status(500).json({
+            //         success: false,
+            //         message: "ML_SERVICE_URL is not configured on the server.",
+            //     });
+            // }
 
             const MLTrainingRow = require("../models/MLTrainingRow");
 
