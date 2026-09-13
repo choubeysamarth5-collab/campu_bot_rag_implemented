@@ -58,7 +58,7 @@ async function predictIntent(text) {
 
     const response =
       await fetch(
-        'https://campus-bot-ml-1.onrender.com/predict',
+        `${process.env.ML_SERVICE_URL}/predict`,
         {
           method: 'POST',
 
@@ -100,43 +100,43 @@ router.post('/chat', async (req, res) => {
     }
 
     // =======================
-// Try RAG First
-// =======================
+    // Try RAG First
+    // =======================
 
-try {
+    try {
 
-    console.log("========== RAG ==========");
-    console.log("Question:", message);
+      console.log("========== RAG ==========");
+      console.log("Question:", message);
 
-    const ragReply = await askRAG(message, lang);
+      const ragReply = await askRAG(message, lang);
 
-    console.log("RAG Reply:");
-    console.log(ragReply);
+      console.log("RAG Reply:");
+      console.log(ragReply);
 
-    if (
+      if (
         ragReply &&
         !ragReply.includes("I couldn't find this information")
-    ) {
+      ) {
 
         console.log("Returning RAG answer");
 
         return res.json({
-            reply: ragReply,
-            intent: "rag",
-            lang,
-            timestamp: new Date().toISOString(),
+          reply: ragReply,
+          intent: "rag",
+          lang,
+          timestamp: new Date().toISOString(),
         });
 
+      }
+
+      console.log("Falling back to FAQ");
+
+    } catch (err) {
+
+      console.error("RAG Error:");
+      console.error(err);
+
     }
-
-    console.log("Falling back to FAQ");
-
-} catch (err) {
-
-    console.error("RAG Error:");
-    console.error(err);
-
-}
 
     let reply = null;
     let intent = 'unknown';
