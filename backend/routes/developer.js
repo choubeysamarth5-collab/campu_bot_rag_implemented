@@ -836,11 +836,17 @@ router.post(
             const blob = new Blob([fullCsv], { type: "text/csv" });
             formData.append("dataset", blob, "dataset.csv");
 
-            const mlResponse = await fetch(`${process.env.ML_SERVICE_URL}/train`, {
-                method: "POST",
-                body: formData,
-            });
+            const mlServiceUrl =
+    process.env.ML_SERVICE_URL ||
+    "https://campu-bot-rag-implemented-6.onrender.com";
 
+const mlResponse = await fetch(`${mlServiceUrl}/train`, {
+
+    method: "POST",
+
+    body: formData,
+
+});
             const data = await mlResponse.json();
 
             if (!mlResponse.ok || !data.success) {
