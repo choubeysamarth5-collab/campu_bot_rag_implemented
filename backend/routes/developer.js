@@ -36,6 +36,20 @@ const multer = require("multer");
 // touch disk or GridFS for this.
 const csvUpload = multer({ storage: multer.memoryStorage() });
 
+// Reused for the ML-training dataset CSV upload (text,intent format)
+const datasetUpload = multer({ storage: multer.memoryStorage() });
+
+// Wraps a CSV field in quotes only if it contains a comma, quote, or
+// newline — keeps the rebuilt dataset.csv valid even if some FAQ
+// text happens to contain a comma.
+function csvEscape(value) {
+  const str = String(value ?? "");
+  if (/[",\n]/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
 const UPLOADS_PATH = path.join(__dirname, "../uploads");
 
 // Recorded once when this module first loads (i.e. when the server
@@ -741,5 +755,124 @@ router.post(
     }
 );
 
+// =====================================================================
+// ML MODEL TRAINING (APPEND MODE)
+// ---------------------------------------------------------------------
+// The uploaded CSV (text,intent) is NOT sent straight to Flask.
+// Instead: (1) new rows are appended into MongoDB permanently, so
+// past training data is never lost even across restarts, then (2)
+// the FULL accumulated dataset is rebuilt from MongoDB and sent to
+// the Flask ML service, which retrains from scratch on everything
+// seen so far.
+// =====================================================================
+
+router.post(
+    "/train-model",
+    adminProtect,
+    requireSuperAdmin,
+    datasetUpload.single("dataset"),
+    async (req, res) => {
+
+        try {
+
+            if (!req.file) {
+                return res.status(400).json({
+                    success: false,
+                    message: "No dataset CSV was uploaded.",
+                });
+            }
+
+            if (!process.env.ML_SERVICE_URL) {
+                return res.status(500).json({
+                    success: false,
+                    message: "ML_SERVICE_URL is not configured on the server.",
+                });
+            }
+
+            const MLTrainingRow = require("../models/MLTrainingRow");
+
+            // 1. Parse the newly uploaded CSV (expects columns: text,intent)
+            const text = req.file.buffer.toString("utf-8");
+            const rows = parseCsv(text);
+
+            const toInsert = [];
+            const skipped = [];
+
+            rows.forEach((row, index) => {
+                const rowNumber = index + 2;
+                const rowText = (row.text || "").trim();
+                const rowIntent = (row.intent || "").trim();
+
+                if (!rowText || !rowIntent) {
+                    skipped.push(`Row ${rowNumber}: missing text or intent`);
+                    return;
+                }
+
+                toInsert.push({ text: rowText, intent: rowIntent });
+            });
+
+            if (toInsert.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: "No valid rows found in the uploaded CSV.",
+                    skipped,
+                });
+            }
+
+            // 2. Append the new rows permanently (never overwritten)
+            await MLTrainingRow.insertMany(toInsert);
+
+            // 3. Rebuild the FULL dataset (old + new) from MongoDB
+            const allRows = await MLTrainingRow.find({}).sort({ createdAt: 1 });
+
+            const csvLines = ["text,intent"];
+            allRows.forEach(r => {
+                csvLines.push(`${csvEscape(r.text)},${csvEscape(r.intent)}`);
+            });
+            const fullCsv = csvLines.join("\n");
+
+            // 4. Send the FULL accumulated dataset to Flask for retraining
+            const formData = new FormData();
+            const blob = new Blob([fullCsv], { type: "text/csv" });
+            formData.append("dataset", blob, "dataset.csv");
+
+            const mlResponse = await fetch(`${process.env.ML_SERVICE_URL}/train`, {
+                method: "POST",
+                body: formData,
+            });
+
+            const data = await mlResponse.json();
+
+            if (!mlResponse.ok || !data.success) {
+                logger.error(`Model training failed: ${data.message || "unknown error"}`);
+                return res.status(mlResponse.status || 500).json({
+                    success: false,
+                    message: data.message || "Training failed on the ML service.",
+                    error: data.error,
+                });
+            }
+
+            logger.info(
+                `ML model retrained: ${toInsert.length} new row(s) added, ${allRows.length} total row(s) used.`
+            );
+
+            res.json({
+                success: true,
+                message: `${data.message} (${toInsert.length} new row(s) added, ${allRows.length} total row(s) in dataset)`,
+                skipped,
+            });
+
+        } catch (err) {
+
+            logger.error(`Model training request failed: ${err.message}`);
+            res.status(500).json({
+                success: false,
+                message: "Could not reach the ML training service: " + err.message,
+            });
+
+        }
+
+    }
+);
 
 module.exports = router;

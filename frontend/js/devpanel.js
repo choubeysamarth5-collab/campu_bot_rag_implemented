@@ -267,18 +267,18 @@ async function trainFaqFromCsv() {
     const status = document.getElementById("faqTrainStatus");
 
     if (!fileInput.files.length) {
-        status.innerHTML = "❌ Please select a CSV file first.";
+        status.innerHTML = "❌ Please select a dataset CSV first.";
         return;
     }
 
     const file = fileInput.files[0];
-    status.innerHTML = "⏳ Training…";
+    status.innerHTML = "⏳ Training model… this may take a moment.";
 
     const formData = new FormData();
-    formData.append("csv", file);
+    formData.append("dataset", file);
 
     try {
-        const res = await CampusAuth.adminFetch("/dev/faq-train", {
+        const res = await CampusAuth.adminFetch("/dev/train-model", {
             method: "POST",
             body: formData,
             headers: {}, // let the browser set the multipart boundary
