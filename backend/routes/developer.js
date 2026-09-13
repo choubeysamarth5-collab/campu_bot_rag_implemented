@@ -841,11 +841,8 @@ router.post(
     "https://campu-bot-rag-implemented-6.onrender.com";
 
 const mlResponse = await fetch(`${mlServiceUrl}/train`, {
-
     method: "POST",
-
     body: formData,
-
 });
             const data = await mlResponse.json();
 
