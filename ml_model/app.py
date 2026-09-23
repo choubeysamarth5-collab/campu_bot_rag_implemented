@@ -20,6 +20,10 @@ def load_model():
 
 load_model()
 
+@app.route("/health", methods=["GET"])
+def health():
+    return jsonify({"status": "ok"}), 200
+
 @app.route("/predict", methods=["POST"])
 def predict():
     if model is None or vectorizer is None:
