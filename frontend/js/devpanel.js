@@ -265,14 +265,18 @@ async function trainFaqFromCsv() {
 
     const fileInput = document.getElementById("faqCsvFile");
     const status = document.getElementById("faqTrainStatus");
+    const trainBtn = document.getElementById("trainBtn");
 
     if (!fileInput.files.length) {
         status.innerHTML = "❌ Please select a dataset CSV first.";
         return;
     }
 
+    trainBtn.disabled = true;
+    trainBtn.textContent = "⏳ Training…";
+
     const file = fileInput.files[0];
-    status.innerHTML = "⏳ Training model… this may take a moment.";
+    status.innerHTML = "⏳ Training model… this may take a moment (service may be waking up).";
 
     const formData = new FormData();
     formData.append("dataset", file);
@@ -300,6 +304,9 @@ async function trainFaqFromCsv() {
     } catch (err) {
         console.error(err);
         status.innerHTML = "❌ Training request failed.";
+    } finally {
+        trainBtn.disabled = false;
+        trainBtn.textContent = "🎓 Train";
     }
 }
 

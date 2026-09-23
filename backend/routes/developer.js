@@ -844,7 +844,20 @@ const mlResponse = await fetch(`${mlServiceUrl}/train`, {
     method: "POST",
     body: formData,
 });
-            const data = await mlResponse.json();
+            const responseText = await mlResponse.text();
+
+let data;
+
+try {
+    data = JSON.parse(responseText);
+} catch (e) {
+    logger.error(`ML service returned non-JSON: ${responseText}`);
+
+    return res.status(mlResponse.status || 500).json({
+        success: false,
+        message: `ML service returned HTTP ${mlResponse.status}: ${responseText.slice(0, 200)}`
+    });
+}
 
             if (!mlResponse.ok || !data.success) {
                 logger.error(`Model training failed: ${data.message || "unknown error"}`);
