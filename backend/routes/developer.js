@@ -844,7 +844,13 @@ const mlResponse = await fetch(`${mlServiceUrl}/train`, {
     method: "POST",
     body: formData,
 });
-            const responseText = await mlResponse.text();
+
+console.log("ML URL:", `${mlServiceUrl}/train`);
+console.log("ML STATUS:", mlResponse.status);
+
+const responseText = await mlResponse.text();
+
+console.log("ML RESPONSE:", responseText);
 
 let data;
 
