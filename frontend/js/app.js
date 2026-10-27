@@ -715,7 +715,7 @@ function renderConversationList() {
 
   // Render all chats
   historyList.innerHTML = state.conversations.map(chat => `
-    <div class="history-entry ${chat.id === state.currentChatId ? 'active' : ''}">
+    <div class="history-entry ${chat.id === state.currentChatId ? 'active' : ''} ${editingHistoryId === chat.id ? 'is-renaming' : ''}">
       ${editingHistoryId === chat.id ? `
         <input id="rename-input-${chat.id}" class="history-rename-input" maxlength="80" value="${escapeHtml(chat.title || '')}" aria-label="Conversation name" onkeydown="if(event.key==='Enter')saveConversationName('${chat.id}');if(event.key==='Escape')cancelRenameConversation()">
         <button class="history-menu-action history-save-name" onclick="saveConversationName('${chat.id}')">Save</button>
