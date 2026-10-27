@@ -148,11 +148,11 @@ function renderStorage(data) {
 }
 
 async function clearEverything() {
-    if (!confirm(
+    if (!(await confirm(
         "This clears uploaded PDFs, the vector-search knowledge base, chat logs, " +
         "and feedback entries — everything except FAQs, Users, and Admins. " +
         "This cannot be undone. Continue?"
-    )) return;
+    ))) return;
 
     const msg = document.getElementById("dangerZoneMsg");
     msg.textContent = "Working…";
@@ -169,11 +169,11 @@ async function clearEverything() {
 }
 
 async function clearUploads() {
-    if (!confirm(
+    if (!(await confirm(
         "This will permanently delete EVERY uploaded PDF and wipe the entire " +
         "vector-search knowledge base. The chatbot will lose all document-based " +
         "answers until documents are re-uploaded. Continue?"
-    )) return;
+    ))) return;
 
     const msg = document.getElementById("dangerZoneMsg");
     msg.textContent = "Working…";
@@ -190,7 +190,7 @@ async function clearUploads() {
 }
 
 async function clearLogsCollection() {
-    if (!confirm("This will permanently delete all chat logs. Continue?")) return;
+    if (!(await confirm("This will permanently delete all chat logs. Continue?"))) return;
 
     const msg = document.getElementById("dangerZoneMsg");
     msg.textContent = "Working…";
@@ -244,7 +244,7 @@ async function loadVectorDB() {
 
 async function deleteVectorSource(source) {
     const decoded = decodeURIComponent(source);
-    if (!confirm(`Permanently delete all indexed chunks for "${decoded}"?`)) return;
+    if (!(await confirm(`Permanently delete all indexed chunks for "${decoded}"?`))) return;
 
     try {
         const res = await CampusAuth.adminFetch(`/dev/vectordb/${source}`, { method: "DELETE" });
@@ -297,6 +297,7 @@ async function trainFaqFromCsv() {
             }
             status.innerHTML = html;
             fileInput.value = "";
+            fileInput.refreshWebFilePicker?.();
         } else {
             status.innerHTML = `❌ ${data.message || "Training failed."}`;
         }
@@ -454,7 +455,7 @@ async function loadLogs(mode) {
 }
 
 async function clearDevLogs() {
-    if (!confirm("Clear all captured logs (including errors)?")) return;
+    if (!(await confirm("Clear all captured logs (including errors)?"))) return;
 
     try {
         await CampusAuth.adminFetch("/dev/logs", { method: "DELETE" });

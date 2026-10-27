@@ -133,6 +133,7 @@ function uploadStudyNoteWithProgress(file, meta, status, fileInput) {
         }
  
         fileInput.value = "";
+        fileInput.refreshWebFilePicker?.();
         setTimeout(() => { progressWrap.style.display = "none"; }, 1500);
         loadStudyNotes();
     };
@@ -307,13 +308,40 @@ async function viewStudyNote(id, filename) {
 
         const blob = await res.blob();
         const blobUrl = URL.createObjectURL(blob);
-        window.open(blobUrl, "_blank");
-
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+        openAdminPdfPreview(blobUrl, filename || 'Study note');
     } catch (err) {
         console.error(err);
         showAlert("Failed to open PDF (network error).");
     }
+}
+
+function openAdminPdfPreview(blobUrl, title) {
+    document.querySelector('.web-pdf-preview-overlay')?.remove();
+    const overlay = document.createElement('div');
+    overlay.className = 'web-pdf-preview-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', `PDF preview: ${title}`);
+    const header = document.createElement('div');
+    header.className = 'web-pdf-preview-header';
+    const heading = document.createElement('strong');
+    heading.textContent = title;
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'web-file-picker-button';
+    close.textContent = 'Close';
+    const closePreview = () => { URL.revokeObjectURL(blobUrl); overlay.remove(); };
+    close.addEventListener('click', closePreview);
+    header.append(heading, close);
+    const frame = document.createElement('iframe');
+    frame.className = 'web-pdf-preview-frame';
+    frame.src = blobUrl;
+    frame.title = `PDF preview: ${title}`;
+    overlay.addEventListener('click', event => { if (event.target === overlay) closePreview(); });
+    overlay.addEventListener('keydown', event => { if (event.key === 'Escape') closePreview(); });
+    overlay.append(header, frame);
+    document.body.appendChild(overlay);
+    close.focus();
 }
 // ── STUDY NOTES: DELETE ───────────────────────────────────────────
 function deleteStudyNote(id) {
@@ -643,7 +671,7 @@ async function addFAQ() {
 // =============================================
 async function deleteFAQ(id) {
 
-    if (!confirm('Delete this FAQ?'))
+    if (!(await confirm('Delete this FAQ?')))
         return;
 
     // Prevent deleting local FAQs
@@ -1044,6 +1072,7 @@ async function saveAuthorizedEmail(event) {
 function resetAuthorizedEmailForm() {
     editingAuthorizedEmailId = null;
     document.getElementById('authorizedEmailForm')?.reset();
+    setAccessSemester('');
     const button = document.getElementById('accessSaveButton');
     if (button) button.textContent = 'Add authorized email';
     const cancel = document.getElementById('accessCancelEdit');
@@ -1058,6 +1087,7 @@ function editAuthorizedEmail(id) {
     document.getElementById('accessEmail').value = record.email || '';
     document.getElementById('accessBranch').value = record.branch || '';
     document.getElementById('accessSemester').value = record.semester || '';
+    setAccessSemester(record.semester || '');
     document.getElementById('accessSaveButton').textContent = 'Save changes';
     document.getElementById('accessCancelEdit').hidden = false;
     document.getElementById('authorizedEmailForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1071,20 +1101,89 @@ function showAuthorizedEmailStatus(message, success) {
     status.style.color = success ? '#22c55e' : 'var(--danger)';
 }
 
+function toggleAccessSemesterOptions() {
+    const trigger = document.getElementById('accessSemesterTrigger');
+    const options = document.getElementById('accessSemesterOptions');
+    const opening = options.hidden;
+    options.hidden = !opening;
+    trigger.setAttribute('aria-expanded', String(opening));
+    document.getElementById('accessSemesterSelect').classList.toggle('is-open', opening);
+    if (opening) options.querySelector('[aria-selected="true"]')?.focus();
+}
+
+document.addEventListener('click', event => {
+    document.querySelectorAll('.web-native-select').forEach(wrapper => {
+        if (wrapper.contains(event.target)) return;
+        const trigger = wrapper.querySelector('.web-select-trigger');
+        const options = wrapper.querySelector('.web-select-options');
+        if (trigger && options) {
+            options.hidden = true;
+            trigger.setAttribute('aria-expanded', 'false');
+            wrapper.classList.remove('is-open');
+        }
+    });
+    const semesterSelect = document.getElementById('accessSemesterSelect');
+    if (semesterSelect && !semesterSelect.contains(event.target)) {
+        const options = document.getElementById('accessSemesterOptions');
+        const trigger = document.getElementById('accessSemesterTrigger');
+        options.hidden = true;
+        trigger.setAttribute('aria-expanded', 'false');
+        semesterSelect.classList.remove('is-open');
+    }
+});
+
+document.getElementById('accessSemesterSelect')?.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+        document.getElementById('accessSemesterOptions').hidden = true;
+        document.getElementById('accessSemesterTrigger').setAttribute('aria-expanded', 'false');
+        document.getElementById('accessSemesterSelect').classList.remove('is-open');
+        document.getElementById('accessSemesterTrigger').focus();
+    }
+});
+
+function chooseAccessSemester(option) {
+    document.getElementById('accessSemester').value = option.dataset.value;
+    document.getElementById('accessSemesterLabel').textContent = option.textContent.trim();
+    document.querySelectorAll('#accessSemesterOptions [role="option"]').forEach(item => {
+        const selected = item === option;
+        item.setAttribute('aria-selected', String(selected));
+        item.tabIndex = selected ? 0 : -1;
+    });
+    document.getElementById('accessSemesterOptions').hidden = true;
+    document.getElementById('accessSemesterTrigger').setAttribute('aria-expanded', 'false');
+    document.getElementById('accessSemesterSelect').classList.remove('is-open');
+}
+
+function setAccessSemester(value) {
+    const option = [...document.querySelectorAll('#accessSemesterOptions [role="option"]')]
+        .find(item => item.dataset.value === String(value ?? ''));
+    if (option) chooseAccessSemester(option);
+}
+
 async function setAuthorizedEmailEnabled(id, isEnabled) {
+    const record = usersData.find(item => item._id === id);
+    if (!record) return;
+    const previousState = record.isEnabled;
+    record.isEnabled = Boolean(isEnabled);
+    renderUsersTable();
+    showAuthorizedEmailStatus('Saving access change…', true);
     try {
         const response = await CampusAuth.adminFetch(`/admin/authorized-emails/${encodeURIComponent(id)}`, {
             method: 'PATCH', body: JSON.stringify({ isEnabled }),
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.message || 'Could not update email access.');
-        await loadAuthorizedEmails();
-    } catch (error) { showAuthorizedEmailStatus(error.message, false); }
+        showAuthorizedEmailStatus(data.message || 'Access updated.', true);
+    } catch (error) {
+        record.isEnabled = previousState;
+        renderUsersTable();
+        showAuthorizedEmailStatus(error.message, false);
+    }
 }
 
 async function deleteAuthorizedEmail(id) {
     const record = usersData.find(item => item._id === id);
-    if (!confirm(`Remove ${record?.email || 'this email'} from registration access? Its existing account, if any, will be disabled but its data will remain.`)) return;
+    if (!(await confirm(`Remove ${record?.email || 'this email'} from registration access? Its existing account, if any, will be disabled but its data will remain.`))) return;
     try {
         const response = await CampusAuth.adminFetch(`/admin/authorized-emails/${encodeURIComponent(id)}`, { method: 'DELETE' });
         const data = await response.json();
@@ -1098,8 +1197,17 @@ async function bulkAuthorizedEmailAction(action, all = false) {
     const ids = [...selectedAuthorizedEmailIds];
     if (!all && !ids.length) return showAuthorizedEmailStatus('Select one or more email entries first.', false);
     const count = all ? usersData.length : ids.length;
-    if (action === 'delete' && !confirm(`Remove ${count} email entry/entries from registration access? Any linked accounts will be disabled, but their data will remain.`)) return;
-    if (all && action === 'disable' && !confirm(`Disable registration access for all ${count} email entries?`)) return;
+    if (action === 'delete' && !(await confirm(`Remove ${count} email entry/entries from registration access? Any linked accounts will be disabled, but their data will remain.`))) return;
+    if (all && action === 'disable' && !(await confirm(`Disable registration access for all ${count} email entries?`))) return;
+    const targetRecords = all
+        ? [...usersData]
+        : usersData.filter(record => ids.includes(record._id));
+    const previousStates = new Map(targetRecords.map(record => [record._id, record.isEnabled]));
+    if (action !== 'delete') {
+        targetRecords.forEach(record => { record.isEnabled = action === 'enable'; });
+        renderUsersTable();
+        showAuthorizedEmailStatus('Updating access…', true);
+    }
     try {
         const response = await CampusAuth.adminFetch('/admin/authorized-emails/bulk', {
             method: 'PATCH', body: JSON.stringify({ action, ids: all ? [] : ids, all }),
@@ -1107,9 +1215,16 @@ async function bulkAuthorizedEmailAction(action, all = false) {
         const data = await response.json();
         if (!response.ok) throw new Error(data.message || 'Bulk update failed.');
         if (action === 'delete') selectedAuthorizedEmailIds.clear();
-        await loadAuthorizedEmails();
+        if (action === 'delete') await loadAuthorizedEmails();
         showAuthorizedEmailStatus(data.message, true);
-    } catch (error) { showAuthorizedEmailStatus(error.message, false); }
+    } catch (error) {
+        previousStates.forEach((isEnabled, id) => {
+            const record = usersData.find(item => item._id === id);
+            if (record) record.isEnabled = isEnabled;
+        });
+        if (action !== 'delete') renderUsersTable();
+        showAuthorizedEmailStatus(error.message, false);
+    }
 }
 
 async function importAuthorizedEmails() {
@@ -1159,9 +1274,9 @@ async function toggleUserStatus(id, currentStatus) {
             : 'enable';
 
     if (
-        !confirm(
+        !(await confirm(
             `Are you sure you want to ${action} this user?`
-        )
+        ))
     ) return;
 
     try {
@@ -1211,9 +1326,9 @@ async function toggleUserStatus(id, currentStatus) {
 async function deleteUser(id) {
 
     if (
-        !confirm(
+        !(await confirm(
             'Permanently delete this user?'
-        )
+        ))
     ) return;
 
     try {
@@ -1901,7 +2016,7 @@ async function uploadPDF() {
             listData.documents.some(doc => doc.name === file.name);
 
         if (alreadyExists) {
-            const confirmed = confirm(
+            const confirmed = await confirm(
                 `"${file.name}" already exists. Replace the existing document?`
             );
             if (!confirmed) {
@@ -1987,6 +2102,7 @@ function uploadPDFWithProgress(file, status, fileInput) {
         }
 
         fileInput.value = "";
+        fileInput.refreshWebFilePicker?.();
         setTimeout(() => { progressWrap.style.display = "none"; }, 1500);
         loadDocuments();
     };
@@ -2111,7 +2227,7 @@ function viewDocument(fileId) {
         })
         .then(blob => {
             const url = URL.createObjectURL(blob);
-            window.open(url, "_blank");
+            openAdminPdfPreview(url, 'Uploaded document');
         })
         .catch(err => {
             console.error(err);
@@ -2121,7 +2237,7 @@ function viewDocument(fileId) {
 
 async function deleteDocument(fileId, displayName) {
 
-    if (!confirm(`Delete "${displayName}"? This also removes it from the chatbot's knowledge.`)) {
+    if (!(await confirm(`Delete "${displayName}"? This also removes it from the chatbot's knowledge.`))) {
         return;
     }
 

@@ -25,7 +25,6 @@ const Log = require('../models/Log');
 const Feedback = require('../models/Feedback');
 const FAQ = require('../models/FAQ');
 const { parseAuthorizedEmailFile } = require('../utils/authorizedEmailImport');
-const syncRegisteredUsersToAccess = require('../utils/syncRegisteredUsersToAccess');
 const { generateAdminToken } = require('../utils/jwt');
 const { adminProtect, requireSuperAdmin } = require('../middleware/adminAuth');
 const { validateLogin } = require('../utils/validators');
@@ -38,10 +37,6 @@ const accessListUpload = multer({
     callback(new Error('Upload an .xlsx, .csv, .tsv, or PDF file.'));
   },
 });
-
-async function includeExistingUsersInAccessList() {
-  await syncRegisteredUsersToAccess();
-}
 
 function normalizeAccessRecord(body = {}) {
   const email = String(body.email || '').trim().toLowerCase();
@@ -129,7 +124,6 @@ router.get('/auth/me', adminProtect, (req, res) => {
 // =================================================================
 router.get('/authorized-emails', adminProtect, async (req, res) => {
   try {
-    await includeExistingUsersInAccessList();
     const records = await AuthorizedEmail.find({ isDeleted: false }).sort({ createdAt: -1 }).lean();
     const emails = records.map(record => record.email);
     const registered = await User.find({ email: { $in: emails } }).select('email').lean();

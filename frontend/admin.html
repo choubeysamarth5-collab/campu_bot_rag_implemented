@@ -10,6 +10,7 @@
     href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap"
     rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/web-ui.css" />
 </head>
 
 <body data-theme="dark" class="admin-page">
@@ -351,14 +352,25 @@
               <input type="text" id="accessBranch" class="form-control" maxlength="100" placeholder="e.g. Computer Science" style="width:100%;margin-top:5px" />
             </label>
             <label style="font-size:.78rem;color:var(--text-muted)">Semester (optional)
-              <select id="accessSemester" class="form-control" style="width:100%;margin-top:5px">
-                <option value="">Not specified</option>
-                <option value="1">Semester 1</option><option value="2">Semester 2</option>
-                <option value="3">Semester 3</option><option value="4">Semester 4</option>
-                <option value="5">Semester 5</option><option value="6">Semester 6</option>
-                <option value="7">Semester 7</option><option value="8">Semester 8</option>
-                <option value="9">Semester 9</option><option value="10">Semester 10</option>
-              </select>
+              <div class="web-select" id="accessSemesterSelect" style="margin-top:5px">
+                <input type="hidden" id="accessSemester" value="" />
+                <button type="button" id="accessSemesterTrigger" class="form-control web-select-trigger" role="combobox" aria-haspopup="listbox" aria-expanded="false" aria-controls="accessSemesterOptions" onclick="toggleAccessSemesterOptions()">
+                  <span id="accessSemesterLabel">Not specified</span><span class="web-select-chevron" aria-hidden="true">⌄</span>
+                </button>
+                <div id="accessSemesterOptions" class="web-select-options" role="listbox" aria-label="Semester" hidden>
+                  <button type="button" role="option" aria-selected="true" data-value="" onclick="chooseAccessSemester(this)">Not specified</button>
+                  <button type="button" role="option" aria-selected="false" data-value="1" onclick="chooseAccessSemester(this)">Semester 1</button>
+                  <button type="button" role="option" aria-selected="false" data-value="2" onclick="chooseAccessSemester(this)">Semester 2</button>
+                  <button type="button" role="option" aria-selected="false" data-value="3" onclick="chooseAccessSemester(this)">Semester 3</button>
+                  <button type="button" role="option" aria-selected="false" data-value="4" onclick="chooseAccessSemester(this)">Semester 4</button>
+                  <button type="button" role="option" aria-selected="false" data-value="5" onclick="chooseAccessSemester(this)">Semester 5</button>
+                  <button type="button" role="option" aria-selected="false" data-value="6" onclick="chooseAccessSemester(this)">Semester 6</button>
+                  <button type="button" role="option" aria-selected="false" data-value="7" onclick="chooseAccessSemester(this)">Semester 7</button>
+                  <button type="button" role="option" aria-selected="false" data-value="8" onclick="chooseAccessSemester(this)">Semester 8</button>
+                  <button type="button" role="option" aria-selected="false" data-value="9" onclick="chooseAccessSemester(this)">Semester 9</button>
+                  <button type="button" role="option" aria-selected="false" data-value="10" onclick="chooseAccessSemester(this)">Semester 10</button>
+                </div>
+              </div>
             </label>
             <button type="submit" class="btn-primary" id="accessSaveButton" style="width:auto;padding:10px 16px">Add authorized email</button>
             <button type="button" id="accessCancelEdit" class="btn-sm" onclick="resetAuthorizedEmailForm()" hidden>Cancel edit</button>
@@ -570,6 +582,7 @@
 
   </div>
   <script src="auth/auth.js"></script>
+  <script src="js/web-ui.js"></script>
   <script src="js/translations.js"></script>
   <script src="js/admin-new.js"></script>
   <script>

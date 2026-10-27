@@ -607,7 +607,7 @@ async function addFAQ() {
 // =============================================
 async function deleteFAQ(id) {
 
-  if (!confirm('Delete this FAQ?'))
+  if (!(await confirm('Delete this FAQ?')))
     return;
 
   // Prevent deleting local FAQs
@@ -882,9 +882,9 @@ async function toggleUserStatus(id, currentStatus) {
       : 'enable';
 
   if (
-    !confirm(
+    !(await confirm(
       `Are you sure you want to ${action} this user?`
-    )
+    ))
   ) return;
 
   try {
@@ -934,9 +934,9 @@ async function toggleUserStatus(id, currentStatus) {
 async function deleteUser(id) {
 
   if (
-    !confirm(
+    !(await confirm(
       'Permanently delete this user?'
-    )
+    ))
   ) return;
 
   try {
@@ -1395,9 +1395,9 @@ async function toggleAdminStatus(
 async function deleteAdmin(id) {
 
   if (
-    !confirm(
+    !(await confirm(
       'Delete this admin permanently?'
-    )
+    ))
   ) return;
 
   try {
