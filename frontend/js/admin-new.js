@@ -8,6 +8,18 @@ const API_BASE =
         : "https://campu-bot-rag-implemented.onrender.com/api";
 
 let usersData = [];
+let registeredUsersData = [];
+let selectedAuthorizedEmailIds = new Set();
+let visibleAuthorizedEmailIds = [];
+let editingAuthorizedEmailId = null;
+
+function showUsersPanel(panel) {
+    const registered = panel === 'registered';
+    document.getElementById('registeredUsersPanel').style.display = registered ? '' : 'none';
+    document.getElementById('authorizedUsersPanel').style.display = registered ? 'none' : '';
+    document.getElementById('registeredUsersTab').classList.toggle('active', registered);
+    document.getElementById('authorizedUsersTab').classList.toggle('active', !registered);
+}
 
 // =============================================
 // SECTION SWITCHING
@@ -774,47 +786,42 @@ async function loadFeedback() {
 // =============================================
 async function loadUsers() {
 
-    const container =
-        document.getElementById('usersContainer');
+    await Promise.all([loadRegisteredUsers(), loadAuthorizedEmails()]);
+}
 
+async function loadRegisteredUsers() {
+    const container = document.getElementById('registeredUsersContainer');
     try {
-
-        const res =
-            await CampusAuth.adminFetch('/admin/users');
-
-        const data =
-            await res.json();
-
-        usersData = data.data || [];
-        renderUsersTable();
-
-    } catch (err) {
-
-        console.error(err);
-
-        container.innerHTML =
-            '<p>Failed to load users.</p>';
+        const response = await CampusAuth.adminFetch('/admin/users?limit=1000');
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Could not load registered users.');
+        registeredUsersData = data.data || [];
+        const summary = document.getElementById('registeredUsersSummary');
+        if (summary) {
+            const active = registeredUsersData.filter(user => user.isActive).length;
+            summary.textContent = `Total registered: ${registeredUsersData.length} · Active: ${active} · Disabled: ${registeredUsersData.length - active}`;
+        }
+        renderRegisteredUsersTable();
+    } catch (error) {
+        console.error(error);
+        if (container) container.innerHTML = '<p>Failed to load registered users.</p>';
     }
 }
 
-function renderUsersTable() {
-    const container = document.getElementById('usersContainer');
+function renderRegisteredUsersTable() {
+    const container = document.getElementById('registeredUsersContainer');
     if (!container) return;
-
-    if (!usersData.length) {
-        container.innerHTML = '<p>No users registered yet.</p>';
+    if (!registeredUsersData.length) {
+        container.innerHTML = '<p>No registered users yet.</p>';
         return;
     }
 
-    const query = (document.getElementById('usersSearch')?.value || '').trim().toLocaleLowerCase();
+    const query = (document.getElementById('registeredUsersSearch')?.value || '').trim().toLocaleLowerCase();
     let users = query
-        ? usersData.filter(user =>
-            [user.name, user.email, user.department, user.rollNumber]
-                .some(value => String(value || '').toLocaleLowerCase().includes(query))
-        )
-        : [...usersData];
-
-    const sortBy = document.getElementById('usersSortSelect')?.value || 'name_asc';
+        ? registeredUsersData.filter(user => [user.name, user.email, user.department, user.rollNumber]
+            .some(value => String(value || '').toLocaleLowerCase().includes(query)))
+        : [...registeredUsersData];
+    const sortBy = document.getElementById('registeredUsersSort')?.value || 'name_asc';
     users.sort((a, b) => {
         switch (sortBy) {
             case 'name_desc': return (b.name || '').localeCompare(a.name || '');
@@ -832,100 +839,314 @@ function renderUsersTable() {
     });
 
     if (!users.length) {
-        container.innerHTML = '<p>No users match your search.</p>';
+        container.innerHTML = '<p>No registered users match your search.</p>';
+        return;
+    }
+    container.innerHTML = `
+      <table class="faq-table">
+        <thead><tr><th>Name</th><th>Email</th><th>Department</th><th>Year</th><th>Status</th><th>Joined</th><th>Action</th></tr></thead>
+        <tbody>${users.map(user => `
+          <tr>
+            <td>${escapeAdminText(user.name || '—')}</td>
+            <td>${escapeAdminText(user.email || '—')}</td>
+            <td>${escapeAdminText(user.department || '—')}</td>
+            <td>${escapeAdminText(user.year || '—')}</td>
+            <td>${user.isActive ? '🟢 Active' : '🔴 Disabled'}</td>
+            <td>${user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '—'}</td>
+            <td style="white-space:nowrap">
+              <button class="btn-sm" onclick="toggleUserStatus('${user._id}', ${user.isActive})">${user.isActive ? 'Disable' : 'Enable'}</button>
+              <button class="btn-sm" style="margin-left:6px" onclick="openUserPasswordModal('${user._id}')">Reset password</button>
+              <button class="btn-sm danger" style="margin-left:6px" onclick="deleteUser('${user._id}')">Delete</button>
+            </td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+      <p style="font-size:.78rem;color:var(--text-muted);margin-top:10px">Showing ${users.length} of ${registeredUsersData.length} registered users.</p>`;
+}
+
+let passwordResetUserId = null;
+function openUserPasswordModal(userId) {
+    passwordResetUserId = userId;
+    const user = registeredUsersData.find(record => record._id === userId);
+    document.getElementById('userPasswordModalUser').textContent = user ? `${user.name || 'User'} · ${user.email}` : 'Registered account';
+    document.getElementById('userPasswordResetForm').reset();
+    document.getElementById('userPasswordModal').style.display = 'flex';
+    document.getElementById('adminNewUserPassword').focus();
+}
+
+function closeUserPasswordModal() {
+    document.getElementById('userPasswordModal').style.display = 'none';
+    document.getElementById('userPasswordResetForm').reset();
+    passwordResetUserId = null;
+}
+
+async function resetRegisteredUserPassword(event) {
+    event.preventDefault();
+    const password = document.getElementById('adminNewUserPassword').value;
+    const confirmation = document.getElementById('adminConfirmUserPassword').value;
+    if (password.length < 8) return alert('Password must be at least 8 characters.');
+    if (password !== confirmation) return alert('Passwords do not match.');
+    if (!passwordResetUserId) return;
+
+    try {
+        const response = await CampusAuth.adminFetch(`/admin/users/${encodeURIComponent(passwordResetUserId)}/password`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password }),
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.message || 'Could not reset password.');
+        closeUserPasswordModal();
+        alert(data.message);
+    } catch (error) {
+        alert(error.message || 'Could not reset password.');
+    }
+}
+
+async function loadAuthorizedEmails() {
+
+    const container =
+        document.getElementById('authorizedEmailsContainer');
+
+    try {
+
+        const res =
+            await CampusAuth.adminFetch('/admin/authorized-emails');
+        if (!res.ok) throw new Error('Could not load authorized emails.');
+
+        const data =
+            await res.json();
+
+        usersData = data.data || [];
+        const summary = document.getElementById('usersSummary');
+        if (summary) {
+            const enabled = usersData.filter(record => record.isEnabled).length;
+            summary.textContent = `Total: ${usersData.length} · Enabled: ${enabled} · Disabled: ${usersData.length - enabled} · Registered: ${usersData.filter(record => record.isRegistered).length}`;
+        }
+        renderUsersTable();
+
+    } catch (err) {
+
+        console.error(err);
+
+        container.innerHTML =
+            '<p>Failed to load authorized emails.</p>';
+    }
+}
+
+function renderUsersTable() {
+    const container = document.getElementById('authorizedEmailsContainer');
+    if (!container) return;
+
+    if (!usersData.length) {
+        visibleAuthorizedEmailIds = [];
+        container.innerHTML = '<p>No authorized emails yet. Add one above or import an Excel/CSV file.</p>';
+        return;
+    }
+
+    const query = (document.getElementById('usersSearch')?.value || '').trim().toLocaleLowerCase();
+    let users = query
+        ? usersData.filter(user =>
+            [user.name, user.email, user.branch, user.semester]
+                .some(value => String(value || '').toLocaleLowerCase().includes(query))
+        )
+        : [...usersData];
+
+    const sortBy = document.getElementById('usersSortSelect')?.value || 'name_asc';
+    users.sort((a, b) => {
+        switch (sortBy) {
+            case 'name_desc': return (b.name || '').localeCompare(a.name || '');
+            case 'email_asc': return (a.email || '').localeCompare(b.email || '');
+            case 'email_desc': return (b.email || '').localeCompare(a.email || '');
+            case 'branch_asc': return (a.branch || '').localeCompare(b.branch || '');
+            case 'semester_asc': return (Number(a.semester) || 0) - (Number(b.semester) || 0);
+            case 'semester_desc': return (Number(b.semester) || 0) - (Number(a.semester) || 0);
+            case 'status_enabled': return Number(b.isEnabled === true) - Number(a.isEnabled === true);
+            case 'status_disabled': return Number(a.isEnabled === true) - Number(b.isEnabled === true);
+            case 'created_desc': return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+            case 'created_asc': return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+            default: return (a.name || '').localeCompare(b.name || '');
+        }
+    });
+
+    visibleAuthorizedEmailIds = users.map(user => user._id);
+
+    if (!users.length) {
+        container.innerHTML = '<p>No authorized emails match your search.</p>';
         return;
     }
 
     container.innerHTML = `
-
       <table class="faq-table">
-
-        <thead>
-
+        <thead><tr>
+          <th><input type="checkbox" aria-label="Select visible emails" onchange="toggleVisibleAuthorizedEmails(this.checked)" ${users.length && users.every(user => selectedAuthorizedEmailIds.has(user._id)) ? 'checked' : ''}></th>
+          <th>Name</th><th>Email</th><th>Branch</th><th>Semester</th><th>Registered</th><th>Access</th><th>Action</th>
+        </tr></thead>
+        <tbody>${users.map(user => `
           <tr>
-
-            <th>Name</th>
-
-            <th>Email</th>
-
-            <th>Department</th>
-
-            <th>Year</th>
-
-            <th>Status</th>
-
-            <th>Joined</th>
-
-            <th>Action</th>
-
-          </tr>
-
-        </thead>
-
-        <tbody>
-
-          ${users.map(user => `
-
-            <tr>
-
-              <td>${user.name}</td>
-
-              <td>${user.email}</td>
-
-              <td>${user.department || '—'}</td>
-
-              <td>${user.year || '—'}</td>
-
-              <td>
-                ${user.isActive
-                ? '🟢 Active'
-                : '🔴 Disabled'}
-              </td>
-
-              <td>
-                ${new Date(
-                    user.createdAt
-                ).toLocaleDateString()}
-              </td>
-
-              <td>
-
-
-  <button
-    class="btn-sm danger"
-    onclick="toggleUserStatus(
-      '${user._id}',
-      ${user.isActive}
-    )">
-
-    ${user.isActive
-                ? 'Disable'
-                : 'Enable'}
-
-  </button>
-
-  <button
-    class="btn-sm danger"
-    style="margin-left:6px"
-    onclick="deleteUser('${user._id}')">
-
-    Delete
-
-  </button>
-
-</td>
-
-              </td>
-
-            </tr>
-
-          `).join('')}
-
+            <td><input type="checkbox" aria-label="Select ${escapeAdminText(user.email)}" onchange="toggleAuthorizedEmailSelection('${user._id}', this.checked)" ${selectedAuthorizedEmailIds.has(user._id) ? 'checked' : ''}></td>
+            <td>${escapeAdminText(user.name || '—')}</td>
+            <td>${escapeAdminText(user.email)}</td>
+            <td>${escapeAdminText(user.branch || '—')}</td>
+            <td>${user.semester ? `Semester ${Number(user.semester)}` : '—'}</td>
+            <td>${user.isRegistered ? '🟢 Registered' : 'Not registered'}</td>
+            <td>${user.isEnabled ? '🟢 Enabled' : '🔴 Disabled'}</td>
+            <td style="white-space:nowrap">
+              <button class="btn-sm" onclick="editAuthorizedEmail('${user._id}')">Edit</button>
+              <button class="btn-sm" onclick="setAuthorizedEmailEnabled('${user._id}', ${!user.isEnabled})">${user.isEnabled ? 'Disable' : 'Enable'}</button>
+              <button class="btn-sm danger" onclick="deleteAuthorizedEmail('${user._id}')">Delete</button>
+            </td>
+          </tr>`).join('')}
         </tbody>
-
       </table>
-
+      <p style="font-size:.78rem;color:var(--text-muted);margin-top:10px">Showing ${users.length} of ${usersData.length} email entries.</p>
     `;
+}
+
+function escapeAdminText(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+}
+
+function toggleAuthorizedEmailSelection(id, checked) {
+    if (checked) selectedAuthorizedEmailIds.add(id);
+    else selectedAuthorizedEmailIds.delete(id);
+}
+
+function toggleVisibleAuthorizedEmails(checked) {
+    visibleAuthorizedEmailIds.forEach(id => checked ? selectedAuthorizedEmailIds.add(id) : selectedAuthorizedEmailIds.delete(id));
+    renderUsersTable();
+}
+
+async function saveAuthorizedEmail(event) {
+    event.preventDefault();
+    const payload = {
+        name: document.getElementById('accessName').value.trim(),
+        email: document.getElementById('accessEmail').value.trim(),
+        branch: document.getElementById('accessBranch').value.trim(),
+        semester: document.getElementById('accessSemester').value,
+    };
+    try {
+        const editingId = editingAuthorizedEmailId;
+        const response = await CampusAuth.adminFetch(
+            editingId ? `/admin/authorized-emails/${encodeURIComponent(editingId)}` : '/admin/authorized-emails',
+            { method: editingId ? 'PATCH' : 'POST', body: JSON.stringify(payload) }
+        );
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Could not save email access.');
+        resetAuthorizedEmailForm();
+        await loadAuthorizedEmails();
+        showAuthorizedEmailStatus(data.message || 'Email access saved.', true);
+    } catch (error) {
+        showAuthorizedEmailStatus(error.message, false);
+    }
+}
+
+function resetAuthorizedEmailForm() {
+    editingAuthorizedEmailId = null;
+    document.getElementById('authorizedEmailForm')?.reset();
+    const button = document.getElementById('accessSaveButton');
+    if (button) button.textContent = 'Add authorized email';
+    const cancel = document.getElementById('accessCancelEdit');
+    if (cancel) cancel.hidden = true;
+}
+
+function editAuthorizedEmail(id) {
+    const record = usersData.find(item => item._id === id);
+    if (!record) return;
+    editingAuthorizedEmailId = id;
+    document.getElementById('accessName').value = record.name || '';
+    document.getElementById('accessEmail').value = record.email || '';
+    document.getElementById('accessBranch').value = record.branch || '';
+    document.getElementById('accessSemester').value = record.semester || '';
+    document.getElementById('accessSaveButton').textContent = 'Save changes';
+    document.getElementById('accessCancelEdit').hidden = false;
+    document.getElementById('authorizedEmailForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document.getElementById('accessName').focus();
+}
+
+function showAuthorizedEmailStatus(message, success) {
+    const status = document.getElementById('authorizedImportStatus');
+    if (!status) return;
+    status.textContent = message;
+    status.style.color = success ? '#22c55e' : 'var(--danger)';
+}
+
+async function setAuthorizedEmailEnabled(id, isEnabled) {
+    try {
+        const response = await CampusAuth.adminFetch(`/admin/authorized-emails/${encodeURIComponent(id)}`, {
+            method: 'PATCH', body: JSON.stringify({ isEnabled }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Could not update email access.');
+        await loadAuthorizedEmails();
+    } catch (error) { showAuthorizedEmailStatus(error.message, false); }
+}
+
+async function deleteAuthorizedEmail(id) {
+    const record = usersData.find(item => item._id === id);
+    if (!confirm(`Remove ${record?.email || 'this email'} from registration access? Its existing account, if any, will be disabled but its data will remain.`)) return;
+    try {
+        const response = await CampusAuth.adminFetch(`/admin/authorized-emails/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Could not remove email access.');
+        selectedAuthorizedEmailIds.delete(id);
+        await loadAuthorizedEmails();
+    } catch (error) { showAuthorizedEmailStatus(error.message, false); }
+}
+
+async function bulkAuthorizedEmailAction(action, all = false) {
+    const ids = [...selectedAuthorizedEmailIds];
+    if (!all && !ids.length) return showAuthorizedEmailStatus('Select one or more email entries first.', false);
+    const count = all ? usersData.length : ids.length;
+    if (action === 'delete' && !confirm(`Remove ${count} email entry/entries from registration access? Any linked accounts will be disabled, but their data will remain.`)) return;
+    if (all && action === 'disable' && !confirm(`Disable registration access for all ${count} email entries?`)) return;
+    try {
+        const response = await CampusAuth.adminFetch('/admin/authorized-emails/bulk', {
+            method: 'PATCH', body: JSON.stringify({ action, ids: all ? [] : ids, all }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Bulk update failed.');
+        if (action === 'delete') selectedAuthorizedEmailIds.clear();
+        await loadAuthorizedEmails();
+        showAuthorizedEmailStatus(data.message, true);
+    } catch (error) { showAuthorizedEmailStatus(error.message, false); }
+}
+
+async function importAuthorizedEmails() {
+    const input = document.getElementById('authorizedEmailFile');
+    const files = [...(input?.files || [])];
+    if (!files.length) return;
+    if (files.length > 10) {
+        showAuthorizedEmailStatus('Upload a maximum of 10 files at a time.', false);
+        input.value = '';
+        return;
+    }
+    const formData = new FormData();
+    files.forEach(file => formData.append('files', file));
+    showAuthorizedEmailStatus(`Importing ${files.length} file(s)…`, true);
+    try {
+        const response = await CampusAuth.adminFetch('/admin/authorized-emails/import', { method: 'POST', body: formData });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Could not import file.');
+        await loadAuthorizedEmails();
+        const errors = data.invalidRows || [];
+        const details = errors.slice(0, 5).map(item => `${item.file || 'file'}${item.row ? ` row ${item.row}` : ''}: ${item.message}`).join(' · ');
+        showAuthorizedEmailStatus(`${data.message}${details ? ` ${details}${errors.length > 5 ? ` · and ${errors.length - 5} more` : ''}` : ''}`, errors.length === 0);
+    } catch (error) {
+        showAuthorizedEmailStatus(error.message, false);
+    } finally {
+        input.value = '';
+    }
+}
+
+function downloadAuthorizedEmailTemplate() {
+    const csv = 'Email,Name,Branch,Semester\nstudent@college.edu,Student Name,Computer Science,3\n';
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'authorized-student-emails-template.csv';
+    link.click();
+    URL.revokeObjectURL(url);
 }
 // =============================================
 // ENABLE / DISABLE USER

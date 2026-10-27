@@ -3,7 +3,6 @@
 // =================================================================
 //
 // ENDPOINTS:
-//   POST  /api/admin/auth/register   Create a new admin account
 //   POST  /api/admin/auth/login      Admin login → JWT
 //   GET   /api/admin/auth/me         Admin profile          [adminProtect]
 //   GET   /api/admin/users           List all users         [adminProtect]
@@ -17,70 +16,44 @@
 // =================================================================
 
 const express = require('express');
+const multer = require('multer');
 const router = express.Router();
 const Admin = require('../models/Admin');
 const User = require('../models/User');
+const AuthorizedEmail = require('../models/AuthorizedEmail');
 const Log = require('../models/Log');
 const Feedback = require('../models/Feedback');
 const FAQ = require('../models/FAQ');
+const { parseAuthorizedEmailFile } = require('../utils/authorizedEmailImport');
+const syncRegisteredUsersToAccess = require('../utils/syncRegisteredUsersToAccess');
 const { generateAdminToken } = require('../utils/jwt');
 const { adminProtect, requireSuperAdmin } = require('../middleware/adminAuth');
-const { validateLogin, validateAdminRegister } = require('../utils/validators');
+const { validateLogin } = require('../utils/validators');
 
-// =================================================================
-// POST /api/admin/auth/register
-// Body: { name, email, password, adminKey }
-// Creates a new admin — requires the secret ADMIN_REGISTRATION_KEY
-// =================================================================
-router.post('/auth/register', async (req, res) => {
-  try {
-    const { name, email, password, adminKey, role } = req.body;
-
-    // Validate inputs + secret key
-    const errors = validateAdminRegister({ name, email, password, adminKey });
-    if (errors.length > 0) {
-      return res.status(400).json({ success: false, message: errors[0], errors });
-    }
-
-    // Check duplicate
-    const existing = await Admin.findOne({ email: email.toLowerCase().trim() });
-    if (existing) {
-      return res.status(409).json({
-        success: false,
-        message: 'An admin account with this email already exists.',
-      });
-    }
-
-    // Only allow 'superadmin' role if a specific super-key is provided
-    const assignedRole = (role === 'superadmin' &&
-      req.body.superKey === process.env.SUPER_ADMIN_KEY)
-      ? 'superadmin'
-      : 'admin';
-
-    const admin = await Admin.create({
-      name: name.trim(),
-      email: email.toLowerCase().trim(),
-      password,
-      role: assignedRole,
-    });
-
-    const token = generateAdminToken(admin._id, admin.role);
-
-    res.status(201).json({
-      success: true,
-      message: `Admin account created! Welcome, ${admin.name} ⚙️`,
-      token,
-      admin: admin.toSafeObject(),
-    });
-
-  } catch (err) {
-    console.error('Admin register error:', err.message);
-    if (err.code === 11000) {
-      return res.status(409).json({ success: false, message: 'Email already registered.' });
-    }
-    res.status(500).json({ success: false, message: 'Server error.' });
-  }
+const accessListUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 8 * 1024 * 1024 },
+  fileFilter: (req, file, callback) => {
+    if (/\.(xlsx|csv|tsv|pdf)$/i.test(file.originalname || '')) return callback(null, true);
+    callback(new Error('Upload an .xlsx, .csv, .tsv, or PDF file.'));
+  },
 });
+
+async function includeExistingUsersInAccessList() {
+  await syncRegisteredUsersToAccess();
+}
+
+function normalizeAccessRecord(body = {}) {
+  const email = String(body.email || '').trim().toLowerCase();
+  const name = String(body.name || '').trim();
+  const branch = String(body.branch || body.department || '').trim();
+  const rawSemester = String(body.semester ?? '').trim();
+  const semester = rawSemester ? Number.parseInt(rawSemester, 10) : null;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Enter a valid email address.');
+  if (name.length > 100 || branch.length > 100) throw new Error('Name and branch must be 100 characters or fewer.');
+  if (rawSemester && (!Number.isInteger(semester) || semester < 1 || semester > 10)) throw new Error('Semester must be between 1 and 10.');
+  return { email, name, branch, semester };
+}
 
 // =================================================================
 // POST /api/admin/auth/login
@@ -154,6 +127,163 @@ router.get('/auth/me', adminProtect, (req, res) => {
 // GET /api/admin/users   [PROTECTED]
 // List all registered users (admin can monitor)
 // =================================================================
+router.get('/authorized-emails', adminProtect, async (req, res) => {
+  try {
+    await includeExistingUsersInAccessList();
+    const records = await AuthorizedEmail.find({ isDeleted: false }).sort({ createdAt: -1 }).lean();
+    const emails = records.map(record => record.email);
+    const registered = await User.find({ email: { $in: emails } }).select('email').lean();
+    const registeredEmails = new Set(registered.map(user => user.email));
+    res.json({
+      success: true,
+      data: records.map(record => ({ ...record, isRegistered: registeredEmails.has(record.email) })),
+    });
+  } catch (err) {
+    console.error('Authorized email list error:', err.message);
+    res.status(500).json({ success: false, message: 'Could not load authorized emails.' });
+  }
+});
+
+router.post('/authorized-emails', adminProtect, async (req, res) => {
+  try {
+    const record = normalizeAccessRecord(req.body);
+    const saved = await AuthorizedEmail.findOneAndUpdate(
+      { email: record.email },
+      { $set: { ...record, isEnabled: true, isDeleted: false, source: 'manual' }, $setOnInsert: { createdBy: req.admin._id } },
+      { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
+    );
+    await User.updateOne({ email: saved.email }, { $set: { isActive: true } });
+    res.status(200).json({ success: true, message: 'Email authorized.', record: saved });
+  } catch (err) {
+    res.status(err.code === 11000 ? 409 : 400).json({ success: false, message: err.message || 'Could not authorize email.' });
+  }
+});
+
+router.post('/authorized-emails/import', adminProtect, (req, res, next) => {
+  accessListUpload.array('files', 10)(req, res, err => {
+    if (err) return res.status(400).json({ success: false, message: err.message });
+    next();
+  });
+}, async (req, res) => {
+  try {
+    if (!req.files?.length) return res.status(400).json({ success: false, message: 'Select one or more .xlsx, .csv, .tsv, or PDF files.' });
+    const importedRows = [];
+    const errors = [];
+    for (const file of req.files) {
+      try {
+        const rows = await parseAuthorizedEmailFile(file);
+        rows.forEach(row => importedRows.push({ ...row, sourceFile: file.originalname }));
+      } catch (err) {
+        errors.push({ file: file.originalname, message: err.message });
+      }
+    }
+    const uniqueRecords = new Map();
+    importedRows.forEach((row, index) => {
+      try {
+        const record = normalizeAccessRecord(row);
+        uniqueRecords.set(record.email, { ...record, sourceFile: row.sourceFile, sourceRow: row.sourceRow || index + 2 });
+      } catch (err) {
+        errors.push({ file: row.sourceFile, row: row.sourceRow || index + 2, email: row.email || '', message: err.message });
+      }
+    });
+
+    const operations = [...uniqueRecords.values()].map(record => ({
+          updateOne: {
+            filter: { email: record.email },
+            update: {
+              $set: {
+                email: record.email,
+                name: record.name,
+                branch: record.branch,
+                semester: record.semester,
+                isEnabled: true,
+                isDeleted: false,
+                source: 'import',
+              },
+              $setOnInsert: { createdBy: req.admin._id },
+            },
+            upsert: true,
+          },
+        }));
+
+    const result = operations.length
+      ? await AuthorizedEmail.bulkWrite(operations, { ordered: false })
+      : { upsertedCount: 0, modifiedCount: 0 };
+    const importedEmails = operations.map(operation => operation.updateOne.filter.email);
+    if (importedEmails.length) await User.updateMany({ email: { $in: importedEmails } }, { $set: { isActive: true } });
+    res.json({
+      success: true,
+      message: `${operations.length} row(s) processed; ${errors.length} file/row error(s).`,
+      imported: result.upsertedCount + result.modifiedCount,
+      invalidRows: errors,
+    });
+  } catch (err) {
+    console.error('Authorized email import error:', err.message);
+    res.status(400).json({ success: false, message: err.message || 'Could not import file.' });
+  }
+});
+
+router.patch('/authorized-emails/bulk', adminProtect, async (req, res) => {
+  try {
+    const { action, ids = [], all = false } = req.body;
+    if (!['enable', 'disable', 'delete'].includes(action)) {
+      return res.status(400).json({ success: false, message: 'Choose enable, disable, or delete.' });
+    }
+    if (!all && (!Array.isArray(ids) || !ids.length)) {
+      return res.status(400).json({ success: false, message: 'Select at least one email.' });
+    }
+
+    const filter = { isDeleted: false, ...(!all ? { _id: { $in: ids } } : {}) };
+    const targets = await AuthorizedEmail.find(filter).select('email').lean();
+    const emails = targets.map(record => record.email);
+    if (action === 'delete') {
+      await AuthorizedEmail.updateMany(filter, { $set: { isDeleted: true, isEnabled: false } });
+      if (emails.length) await User.updateMany({ email: { $in: emails } }, { $set: { isActive: false } });
+    } else {
+      const isEnabled = action === 'enable';
+      await AuthorizedEmail.updateMany(filter, { $set: { isEnabled } });
+      if (emails.length) await User.updateMany({ email: { $in: emails } }, { $set: { isActive: isEnabled } });
+    }
+    res.json({ success: true, affected: targets.length, message: `${targets.length} email(s) ${action}d.` });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message || 'Bulk update failed.' });
+  }
+});
+
+router.patch('/authorized-emails/:id', adminProtect, async (req, res) => {
+  try {
+    const current = await AuthorizedEmail.findOne({ _id: req.params.id, isDeleted: false });
+    if (!current) return res.status(404).json({ success: false, message: 'Authorized email not found.' });
+
+    const updates = {};
+    if (req.body.isEnabled !== undefined) updates.isEnabled = Boolean(req.body.isEnabled);
+    if (['email', 'name', 'branch', 'department', 'semester'].some(key => req.body[key] !== undefined)) {
+      Object.assign(updates, normalizeAccessRecord({ ...current.toObject(), ...req.body }));
+    }
+    Object.assign(current, updates);
+    await current.save();
+    if (updates.isEnabled !== undefined) await User.updateOne({ email: current.email }, { $set: { isActive: current.isEnabled } });
+    res.json({ success: true, record: current });
+  } catch (err) {
+    res.status(err.code === 11000 ? 409 : 400).json({ success: false, message: err.message || 'Could not update email.' });
+  }
+});
+
+router.delete('/authorized-emails/:id', adminProtect, async (req, res) => {
+  try {
+    const record = await AuthorizedEmail.findOneAndUpdate(
+      { _id: req.params.id, isDeleted: false },
+      { $set: { isDeleted: true, isEnabled: false } },
+      { new: true }
+    );
+    if (!record) return res.status(404).json({ success: false, message: 'Authorized email not found.' });
+    await User.updateOne({ email: record.email }, { $set: { isActive: false } });
+    res.json({ success: true, message: 'Email removed from registration allowlist.' });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message || 'Could not remove email.' });
+  }
+});
+
 router.get('/users', adminProtect, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -188,6 +318,10 @@ router.put('/users/:id', adminProtect, async (req, res) => {
       { new: true }
     );
     if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+    await AuthorizedEmail.updateOne(
+      { email: user.email, isDeleted: false },
+      { $set: { isEnabled: Boolean(isActive) } }
+    );
 
     res.json({
       success: true,
@@ -196,6 +330,26 @@ router.put('/users/:id', adminProtect, async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Reset a registered user's password without exposing the existing password.
+router.put('/users/:id/password', adminProtect, async (req, res) => {
+  try {
+    const password = String(req.body.password || '');
+    if (password.length < 8) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 8 characters.' });
+    }
+
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+
+    user.password = password;
+    user.authVersion = (user.authVersion || 0) + 1;
+    await user.save();
+    res.json({ success: true, message: 'Password reset successfully. Existing sessions have been signed out.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message || 'Could not reset user password.' });
   }
 });
 // =================================================================
@@ -216,6 +370,11 @@ router.delete('/users/:id', adminProtect, async (req, res) => {
         message: 'User not found.'
       });
     }
+
+    await AuthorizedEmail.updateOne(
+      { email: user.email, isDeleted: false },
+      { $set: { isEnabled: false, isDeleted: true } }
+    );
 
     res.json({
       success: true,

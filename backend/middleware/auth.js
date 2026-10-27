@@ -103,6 +103,10 @@ const protect = async (req, res, next) => {
       });
     }
 
+    if ((decoded.ver || 0) !== (user.authVersion || 0)) {
+      return res.status(401).json({ success: false, message: 'Your session has ended. Please log in again.' });
+    }
+
     if (!user.isActive) {
       return res.status(403).json({
         success: false,

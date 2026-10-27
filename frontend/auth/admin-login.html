@@ -6,18 +6,19 @@
   <title>CampusBot – Admin Login</title>
   <link rel="stylesheet" href="auth.css"/>
 </head>
-<body>
+<body class="admin-auth-page">
 
-  <a href="../index.html" class="back-link">← Back to Chat</a>
+  <a href="../index.html" class="back-link">← Chat</a>
 
-  <div class="auth-card">
+  <main class="auth-card admin-auth-card">
 
-    <!-- Logo -->
-    <div class="auth-logo">
-      <div class="admin-badge">⚙️ Administrator</div>
-      <div class="logo-icon" style="border-color:var(--accent2);box-shadow:0 0 30px rgba(167,139,250,0.2)">⚙️</div>
-      <h1>Admin Portal</h1>
-      <p class="subtitle">CampusBot Control Panel</p>
+    <div class="admin-auth-brand">
+      <div class="logo-icon">⚙️</div>
+      <div>
+        <p class="admin-auth-eyebrow">CampusBot · Administration</p>
+        <h1>Admin sign in</h1>
+        <p class="subtitle">Manage users, FAQs and study content.</p>
+      </div>
     </div>
 
     <!-- Alert -->
@@ -31,8 +32,7 @@
         <div class="input-wrap">
           <span class="input-icon">✉️</span>
           <input type="email" id="adminEmail" class="form-input"
-                 placeholder="admin@college.edu" required autocomplete="email"
-                 value="admin@college.edu"/>
+                 placeholder="admin@college.edu" required autocomplete="username"/>
         </div>
       </div>
 
@@ -41,83 +41,22 @@
         <div class="input-wrap">
           <span class="input-icon">🔑</span>
           <input type="password" id="adminPassword" class="form-input"
-                 placeholder="Admin password" required autocomplete="current-password"
-                 value="Admin@1234"/>
+                 placeholder="Admin password" required autocomplete="current-password"/>
           <button type="button" class="pw-toggle" onclick="togglePw('adminPassword', this)">👁️</button>
         </div>
       </div>
 
-      <div class="alert info show" style="margin-top:-4px">
-        ℹ️ Default credentials are pre-filled. Change them in .env after first login.
-      </div>
-
-      <button type="submit" class="btn-submit" id="adminLoginBtn"
-              style="background:var(--accent2)">
-        <span class="btn-text">Login as Admin ⚙️</span>
+      <button type="submit" class="btn-submit" id="adminLoginBtn">
+        <span class="btn-text">Sign in to admin</span>
         <div class="spinner"></div>
       </button>
 
     </form>
 
-    <div class="divider">or</div>
-
-    <!-- Admin Register (for initial setup) -->
-    <details style="margin-top:4px">
-      <summary style="cursor:pointer;font-size:0.82rem;color:var(--muted);padding:8px 0;list-style:none;text-align:center">
-        ＋ Create New Admin Account
-      </summary>
-
-      <form class="auth-form" id="adminRegisterForm" onsubmit="handleAdminRegister(event)"
-            style="margin-top:16px">
-
-        <div class="form-group">
-          <label>Admin Name</label>
-          <div class="input-wrap">
-            <span class="input-icon">👤</span>
-            <input type="text" id="regAdminName" class="form-input" placeholder="Admin Name" required/>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label>Email</label>
-          <div class="input-wrap">
-            <span class="input-icon">✉️</span>
-            <input type="email" id="regAdminEmail" class="form-input" placeholder="admin@college.edu" required/>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label>Password (min 8 chars)</label>
-          <div class="input-wrap">
-            <span class="input-icon">🔒</span>
-            <input type="password" id="regAdminPassword" class="form-input"
-                   placeholder="Strong password" required minlength="8"/>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label>Admin Registration Key</label>
-          <div class="input-wrap">
-            <span class="input-icon">🗝️</span>
-            <input type="password" id="adminKey" class="form-input"
-                   placeholder="Secret key from .env"/>
-          </div>
-        </div>
-
-        <div class="alert" id="adminRegAlert"></div>
-
-        <button type="submit" class="btn-submit" id="adminRegBtn"
-                style="background:var(--accent2)">
-          <span class="btn-text">Create Admin Account</span>
-          <div class="spinner"></div>
-        </button>
-      </form>
-    </details>
-
-    <p class="auth-footer" style="margin-top:16px">
-      Regular user? <a href="login.html">Go to user login →</a>
+    <p class="auth-footer admin-auth-footer">
+      Signing in as a student? <a href="login.html">Go to student login</a>
     </p>
-  </div>
+  </main>
 
   <script src="auth.js"></script>
   <script>
@@ -168,43 +107,6 @@
       }
     }
 
-    // ================================================================
-    // CREATE ADMIN
-    // Requires ADMIN_REGISTRATION_KEY from .env
-    // ================================================================
-    async function handleAdminRegister(e) {
-      e.preventDefault();
-      CampusAuth.hideAlert('adminRegAlert');
-      CampusAuth.setLoading('adminRegBtn', true);
-
-      const payload = {
-        name:     document.getElementById('regAdminName').value.trim(),
-        email:    document.getElementById('regAdminEmail').value.trim(),
-        password: document.getElementById('regAdminPassword').value,
-        adminKey: document.getElementById('adminKey').value,
-      };
-
-      try {
-        const res  = await fetch(`${CampusAuth.API}/admin/auth/register`, {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify(payload),
-        });
-        const data = await res.json();
-
-        if (data.success) {
-          CampusAuth.saveAdminAuth(data.token, data.admin);
-          CampusAuth.showAlert('adminRegAlert', 'Admin account created! Redirecting…', 'success');
-          setTimeout(() => window.location.href = '../admin.html', 900);
-        } else {
-          CampusAuth.showAlert('adminRegAlert', data.message || 'Registration failed.', 'error');
-        }
-      } catch (err) {
-        CampusAuth.showAlert('adminRegAlert', 'Server error.', 'error');
-      } finally {
-        CampusAuth.setLoading('adminRegBtn', false);
-      }
-    }
   </script>
 </body>
 </html>

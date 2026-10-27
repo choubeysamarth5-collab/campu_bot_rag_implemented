@@ -367,12 +367,75 @@ body:has(.auth-card) {
 .auth-alternatives[hidden] { display: none; }
 .auth-alternatives p { line-height: 1.5; }
 .auth-alternatives a { font-weight: 500; }
+.auth-forgot-link { text-align: right; margin-top: -8px; font-size: .9rem; }
+.auth-forgot-link a { font-weight: 500; }
+.forgot-help { gap: 18px; line-height: 1.6; color: var(--muted); }
+.forgot-contact { display: block; text-align: center; }
 .guest-link {
   color: var(--muted);
   font-size: 0.8rem;
 }
 .guest-link:hover { color: var(--text); }
 .auth-tabs { display: none; }
+
+/* Focused admin sign-in layout */
+body.admin-auth-page {
+  min-height: 100svh;
+  padding: 84px 24px 32px;
+  justify-content: center;
+}
+.admin-auth-page .back-link { top: 24px; left: 28px; }
+.admin-auth-card {
+  max-width: 440px;
+  padding: 32px;
+  background: rgba(18, 21, 31, 0.94);
+  border-color: rgba(167, 139, 250, 0.2);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.38);
+}
+.admin-auth-brand {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.admin-auth-brand .logo-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  margin: 0;
+  border: 1.5px solid rgba(167, 139, 250, 0.6);
+  border-radius: 50%;
+  background: rgba(167, 139, 250, 0.1);
+  font-size: 23px;
+  line-height: 1;
+  flex: none;
+}
+.admin-auth-eyebrow {
+  margin-bottom: 4px;
+  color: var(--accent2);
+  font-size: .68rem;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.admin-auth-brand h1 {
+  font-family: var(--font-h);
+  font-size: 1.42rem;
+  line-height: 1.2;
+  letter-spacing: -.03em;
+}
+.admin-auth-brand .subtitle { margin-top: 5px; font-size: .82rem; }
+.admin-auth-card .auth-form { gap: 17px; }
+.admin-auth-card .btn-submit { background: var(--accent2); }
+.admin-auth-card .btn-submit:hover:not(:disabled) { background: #9878ed; }
+.admin-auth-footer {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
 
 /* ── Divider ────────────────────────────────────────────────────── */
 .divider {
@@ -390,4 +453,10 @@ body:has(.auth-card) {
   .auth-card { padding: 28px 20px; }
   .form-row  { grid-template-columns: 1fr; }
   .back-link { top: 12px; left: 12px; padding: 6px 12px; }
+  body.admin-auth-page { padding: 72px 14px 24px; }
+  .admin-auth-page .back-link { top: 16px; left: 16px; }
+  .admin-auth-card { padding: 25px 21px 22px; }
+  .admin-auth-brand { grid-template-columns: 48px minmax(0, 1fr); gap: 13px; margin-bottom: 23px; }
+  .admin-auth-brand .logo-icon { width: 48px; height: 48px; font-size: 21px; }
+  .admin-auth-brand h1 { font-size: 1.27rem; }
 }

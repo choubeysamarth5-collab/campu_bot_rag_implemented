@@ -305,38 +305,105 @@
       <!-- USERS -->
       <div id="section-users" class="admin-section">
 
-        <h2>Registered Users</h2>
+        <h2>Users</h2>
 
-        <div class="card">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px">
+          <button type="button" id="registeredUsersTab" class="btn-sm user-admin-tab active" onclick="showUsersPanel('registered')">Registered users</button>
+          <button type="button" id="authorizedUsersTab" class="btn-sm user-admin-tab" onclick="showUsersPanel('authorized')">Registration access</button>
+        </div>
 
-          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+        <div id="registeredUsersPanel">
+          <div class="card" style="margin-bottom:14px">
+            <div id="registeredUsersSummary" style="font-size:.85rem;color:var(--text-muted);margin-bottom:12px">Loading registered users…</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+              <form autocomplete="off" onsubmit="return false;" style="flex:1;min-width:200px">
+                <input type="search" id="registeredUsersSearch" autocomplete="off" class="form-control"
+                  placeholder="🔍 Search registered users by name, email, branch, or roll number..." style="width:100%"
+                  oninput="renderRegisteredUsersTable()" aria-label="Search registered users" />
+              </form>
+              <select id="registeredUsersSort" class="form-control" style="width:auto;min-width:175px" onchange="renderRegisteredUsersTable()" aria-label="Sort registered users">
+                <option value="name_asc">Name (A–Z)</option><option value="name_desc">Name (Z–A)</option>
+                <option value="email_asc">Email (A–Z)</option><option value="email_desc">Email (Z–A)</option>
+                <option value="department_asc">Department (A–Z)</option>
+                <option value="year_asc">Year (Low–High)</option><option value="year_desc">Year (High–Low)</option>
+                <option value="status_active">Status (Active first)</option><option value="status_disabled">Status (Disabled first)</option>
+                <option value="created_desc">Newest first</option><option value="created_asc">Oldest first</option>
+              </select>
+            </div>
+          </div>
+          <div class="card"><div id="registeredUsersContainer">Loading registered users…</div></div>
+        </div>
+
+        <div id="authorizedUsersPanel" style="display:none">
+        <h3 style="margin:4px 0 12px">Registration access</h3>
+        <p style="color:var(--text-muted);font-size:.82rem;margin:-4px 0 14px">Only enabled email addresses can create new accounts. Existing users remain listed in the Registered users tab.</p>
+
+        <div class="card" style="margin-bottom:14px">
+          <div id="usersSummary" style="font-size:.85rem;color:var(--text-muted);margin-bottom:12px">Loading…</div>
+          <form id="authorizedEmailForm" onsubmit="saveAuthorizedEmail(event)" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end;margin-bottom:14px">
+            <label style="font-size:.78rem;color:var(--text-muted)">Name (optional)
+              <input type="text" id="accessName" class="form-control" maxlength="100" placeholder="Student name" style="width:100%;margin-top:5px" />
+            </label>
+            <label style="font-size:.78rem;color:var(--text-muted)">Email address
+              <input type="email" id="accessEmail" class="form-control" required placeholder="student@college.edu" style="width:100%;margin-top:5px" />
+            </label>
+            <label style="font-size:.78rem;color:var(--text-muted)">Branch / Department (optional)
+              <input type="text" id="accessBranch" class="form-control" maxlength="100" placeholder="e.g. Computer Science" style="width:100%;margin-top:5px" />
+            </label>
+            <label style="font-size:.78rem;color:var(--text-muted)">Semester (optional)
+              <select id="accessSemester" class="form-control" style="width:100%;margin-top:5px">
+                <option value="">Not specified</option>
+                <option value="1">Semester 1</option><option value="2">Semester 2</option>
+                <option value="3">Semester 3</option><option value="4">Semester 4</option>
+                <option value="5">Semester 5</option><option value="6">Semester 6</option>
+                <option value="7">Semester 7</option><option value="8">Semester 8</option>
+                <option value="9">Semester 9</option><option value="10">Semester 10</option>
+              </select>
+            </label>
+            <button type="submit" class="btn-primary" id="accessSaveButton" style="width:auto;padding:10px 16px">Add authorized email</button>
+            <button type="button" id="accessCancelEdit" class="btn-sm" onclick="resetAuthorizedEmailForm()" hidden>Cancel edit</button>
+          </form>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--border);padding-top:12px">
+            <label class="btn-sm" for="authorizedEmailFile" style="cursor:pointer">📄 Import files</label>
+            <input type="file" id="authorizedEmailFile" accept=".xlsx,.csv,.tsv,.pdf" multiple style="display:none" onchange="importAuthorizedEmails()" />
+            <button type="button" class="btn-sm" onclick="downloadAuthorizedEmailTemplate()">Download template</button>
+            <span id="authorizedImportStatus" role="status" style="font-size:.8rem;color:var(--text-muted)">Up to 10 Excel, CSV, TSV, or text-based PDF files. Columns: Email (required), Name, Branch, Semester (optional).</span>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:14px">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
             <form autocomplete="off" onsubmit="return false;" style="flex:1;min-width:200px">
               <input type="search" id="usersSearch" name="q_users_search_field_no_autofill" autocomplete="off"
-                class="form-control" placeholder="🔍 Search users by name, email, or department..." style="width:100%"
-                oninput="renderUsersTable()" aria-label="Search registered users" />
+                class="form-control" placeholder="🔍 Search by name, email, branch, or semester..." style="width:100%"
+                oninput="renderUsersTable()" aria-label="Search authorized emails" />
             </form>
-            <select id="usersSortSelect" class="form-control" style="width:auto;min-width:170px"
-              onchange="renderUsersTable()" aria-label="Sort registered users">
-              <option value="name_asc">Name (A–Z)</option>
-              <option value="name_desc">Name (Z–A)</option>
-              <option value="email_asc">Email (A–Z)</option>
-              <option value="email_desc">Email (Z–A)</option>
-              <option value="department_asc">Department (A–Z)</option>
-              <option value="year_asc">Year (Low–High)</option>
-              <option value="year_desc">Year (High–Low)</option>
-              <option value="status_active">Status (Active first)</option>
-              <option value="status_disabled">Status (Disabled first)</option>
-              <option value="created_desc">Newest first</option>
-              <option value="created_asc">Oldest first</option>
+            <select id="usersSortSelect" class="form-control" style="width:auto;min-width:175px"
+              onchange="renderUsersTable()" aria-label="Sort authorized emails">
+              <option value="name_asc">Name (A–Z)</option><option value="name_desc">Name (Z–A)</option>
+              <option value="email_asc">Email (A–Z)</option><option value="email_desc">Email (Z–A)</option>
+              <option value="branch_asc">Branch (A–Z)</option>
+              <option value="semester_asc">Semester (Low–High)</option><option value="semester_desc">Semester (High–Low)</option>
+              <option value="status_enabled">Enabled first</option><option value="status_disabled">Disabled first</option>
+              <option value="created_desc">Newest first</option><option value="created_asc">Oldest first</option>
             </select>
           </div>
-
-          <div id="usersContainer">
-
-            Loading users...
-
+          <div class="authorized-bulk-toolbar">
+            <div class="authorized-bulk-group">
+              <button type="button" class="btn-sm" onclick="bulkAuthorizedEmailAction('enable')">Enable selected</button>
+              <button type="button" class="btn-sm" onclick="bulkAuthorizedEmailAction('disable')">Disable selected</button>
+              <button type="button" class="btn-sm danger" onclick="bulkAuthorizedEmailAction('delete')">Delete selected</button>
+            </div>
+            <div class="authorized-bulk-group authorized-bulk-global">
+              <button type="button" class="btn-sm" onclick="bulkAuthorizedEmailAction('enable', true)">Enable all</button>
+              <button type="button" class="btn-sm" onclick="bulkAuthorizedEmailAction('disable', true)">Disable all</button>
+            </div>
           </div>
+        </div>
 
+        <div class="card">
+          <div id="authorizedEmailsContainer">Loading authorized emails...</div>
+        </div>
         </div>
 
       </div>
@@ -572,6 +639,24 @@
       <div id="customModalActions" style="display:flex;justify-content:flex-end;gap:10px">
         <!-- Buttons injected by JS depending on confirm vs alert -->
       </div>
+    </div>
+  </div>
+
+  <div id="userPasswordModal" class="modal-overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="userPasswordModalTitle">
+    <div class="modal">
+      <h3 id="userPasswordModalTitle">Reset user password</h3>
+      <p id="userPasswordModalUser" style="color:var(--text-muted);margin:0 0 16px"></p>
+      <p style="color:var(--text-muted);font-size:.86rem;margin:0 0 14px">The current password cannot be viewed. Set a new password and share it with the user through a secure channel.</p>
+      <form id="userPasswordResetForm" onsubmit="resetRegisteredUserPassword(event)">
+        <label for="adminNewUserPassword">New password</label>
+        <input class="form-control" id="adminNewUserPassword" type="password" minlength="8" autocomplete="new-password" required>
+        <label for="adminConfirmUserPassword" style="display:block;margin-top:12px">Confirm password</label>
+        <input class="form-control" id="adminConfirmUserPassword" type="password" minlength="8" autocomplete="new-password" required>
+        <div class="modal-actions" style="margin-top:18px">
+          <button type="button" class="btn-sm" onclick="closeUserPasswordModal()">Cancel</button>
+          <button type="submit" class="btn-sm primary">Reset password</button>
+        </div>
+      </form>
     </div>
   </div>
 </body>

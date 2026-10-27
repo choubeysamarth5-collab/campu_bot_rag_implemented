@@ -94,6 +94,9 @@ const UserSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+
+    // Incremented when an administrator resets the password to revoke sessions.
+    authVersion: { type: Number, default: 0 },
   },
   {
     // Automatically adds createdAt and updatedAt fields

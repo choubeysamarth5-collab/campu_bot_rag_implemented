@@ -21,9 +21,14 @@
 const express  = require('express');
 const router   = express.Router();
 const User     = require('../models/User');
+const AuthorizedEmail = require('../models/AuthorizedEmail');
 const { generateUserToken }           = require('../utils/jwt');
 const { protect }                     = require('../middleware/auth');
 const { validateRegister, validateLogin } = require('../utils/validators');
+
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 // =================================================================
 // POST /api/auth/register
@@ -48,18 +53,40 @@ router.post('/register', async (req, res) => {
       });
     }
 
+    const normalizedRollNumber = String(rollNumber || '').trim();
+    if (normalizedRollNumber) {
+      const existingRollNumber = await User.findOne({
+        rollNumber: { $regex: `^${escapeRegex(normalizedRollNumber)}$`, $options: 'i' },
+      }).select('_id');
+      if (existingRollNumber) {
+        return res.status(409).json({ success: false, message: 'This roll number is already registered. Please check it and try again.' });
+      }
+    }
+
+    const authorizedEmail = await AuthorizedEmail.findOne({
+      email: email.toLowerCase().trim(),
+      isEnabled: true,
+      isDeleted: false,
+    });
+    if (!authorizedEmail) {
+      return res.status(403).json({
+        success: false,
+        message: 'This email is not authorized to register. Please contact your college administrator.',
+      });
+    }
+
     // ── 3. Create user (password auto-hashed by pre-save hook) ───
     const user = await User.create({
       name:       name.trim(),
       email:      email.toLowerCase().trim(),
       password,                   // plain text — hashed in model
-      rollNumber: rollNumber || '',
+      rollNumber: normalizedRollNumber,
       department: department || '',
       year:       year || 1,
     });
 
     // ── 4. Generate JWT token ─────────────────────────────────────
-    const token = generateUserToken(user._id);
+    const token = generateUserToken(user._id, user.authVersion || 0);
 
     // ── 5. Respond with token and safe user object ────────────────
     res.status(201).json({   // 201 = Created
@@ -131,7 +158,7 @@ router.post('/login', async (req, res) => {
     await user.save();
 
     // ── 6. Generate JWT ───────────────────────────────────────────
-    const token = generateUserToken(user._id);
+    const token = generateUserToken(user._id, user.authVersion || 0);
 
     // ── 7. Respond ────────────────────────────────────────────────
     res.json({
@@ -165,17 +192,25 @@ router.get('/me', protect, async (req, res) => {
 // =================================================================
 router.put('/profile', protect, async (req, res) => {
   try {
-    const { name, email, rollNumber, department, year, semester } = req.body;
+    const { name, rollNumber, department, year, semester } = req.body;
+
+    if (req.body.email !== undefined) {
+      return res.status(400).json({ success: false, message: 'Email addresses cannot be changed from profile. Contact your college administrator.' });
+    }
+
+    if (typeof rollNumber === 'string' && rollNumber.trim()) {
+      const normalizedRollNumber = rollNumber.trim();
+      const existingRollNumber = await User.findOne({
+        _id: { $ne: req.user._id },
+        rollNumber: { $regex: `^${escapeRegex(normalizedRollNumber)}$`, $options: 'i' },
+      }).select('_id');
+      if (existingRollNumber) {
+        return res.status(409).json({ success: false, message: 'This roll number is already used by another account.' });
+      }
+    }
 
     const updates = {};
     if (typeof name === 'string') updates.name = name.trim();
-    if (typeof email === 'string') {
-      const normalizedEmail = email.trim().toLowerCase();
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-        return res.status(400).json({ success: false, message: 'Enter a valid email address.' });
-      }
-      updates.email = normalizedEmail;
-    }
     if (typeof rollNumber === 'string') updates.rollNumber = rollNumber.trim();
     if (typeof department === 'string') updates.department = department.trim();
     if (year !== undefined && year !== '') updates.year = parseInt(year, 10);

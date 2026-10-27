@@ -50,12 +50,20 @@
         </div>
       </div>
 
+      <div class="auth-forgot-link"><a href="#forgot-password" onclick="showForgotPassword(); return false;">Forgot password?</a></div>
+
       <button type="submit" class="btn-submit" id="loginBtn">
         <span class="btn-text">Login to CampusBot</span>
         <div class="spinner"></div>
       </button>
 
     </form>
+
+    <section class="auth-form forgot-help" id="forgotPasswordPanel" style="display:none">
+      <p>For account security, password resets are handled by the college administrator. Contact the helpdesk and share your registered email address.</p>
+      <a class="btn-submit forgot-contact" href="mailto:helpdesk@college.edu">Contact college helpdesk</a>
+      <div class="auth-alternatives"><p><a href="#login" onclick="switchTab('login'); return false;">Back to sign in</a></p></div>
+    </section>
 
     <!-- ══════════════════════════════════════
          REGISTER FORM
@@ -153,6 +161,7 @@
     // ── Tab switching ─────────────────────────────────────────────
     function switchTab(tab) {
       const isLogin = tab === 'login';
+      document.getElementById('forgotPasswordPanel').style.display = 'none';
       document.getElementById('loginForm').style.display    = isLogin ? 'flex' : 'none';
       document.getElementById('registerForm').style.display = isLogin ? 'none' : 'flex';
       document.getElementById('authHeading').innerHTML = isLogin
@@ -160,6 +169,16 @@
         : '<h2>Create your account</h2><p>Use your college email to get started.</p>';
       document.getElementById('loginAlternatives').hidden = !isLogin;
       document.getElementById('registerAlternatives').hidden = isLogin;
+      CampusAuth.hideAlert('authAlert');
+    }
+
+    function showForgotPassword() {
+      document.getElementById('loginForm').style.display = 'none';
+      document.getElementById('registerForm').style.display = 'none';
+      document.getElementById('loginAlternatives').hidden = true;
+      document.getElementById('registerAlternatives').hidden = true;
+      document.getElementById('forgotPasswordPanel').style.display = 'flex';
+      document.getElementById('authHeading').innerHTML = '<h2>Forgot password?</h2><p>Get help restoring access to your account.</p>';
       CampusAuth.hideAlert('authAlert');
     }
 

@@ -1326,6 +1326,29 @@ select.form-control option {
   border-collapse: collapse;
 }
 
+/* Keep the registration-access table inside its rounded card when the
+   admin window narrows; the table itself can scroll horizontally. */
+#authorizedEmailsContainer {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+#authorizedEmailsContainer > .faq-table {
+  min-width: 880px;
+}
+#registeredUsersContainer {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+#registeredUsersContainer > .faq-table {
+  min-width: 820px;
+}
+
 .faq-table th {
   text-align: left;
   font-size: 0.75rem;
@@ -1380,6 +1403,38 @@ select.form-control option {
 .btn-sm:hover {
   border-color: var(--accent);
   color: var(--accent);
+}
+
+.user-admin-tab.active {
+  border-color: var(--accent);
+  background: var(--accent-glow);
+  color: var(--accent);
+}
+
+.authorized-bulk-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.authorized-bulk-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 600px) {
+  .authorized-bulk-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .authorized-bulk-group { width: 100%; }
+  .authorized-bulk-global { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .authorized-bulk-global .btn-sm { width: 100%; white-space: nowrap; }
 }
 
 .btn-sm.danger:hover {

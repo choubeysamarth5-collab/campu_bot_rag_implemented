@@ -48,6 +48,9 @@ const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/campusbot'
 mongoose.connect(MONGO_URI)
   .then(() => {
     console.log('✅ MongoDB connected!');
+    require('./utils/syncRegisteredUsersToAccess')()
+      .then(count => console.log(`✅ Existing registered users synced to access list (${count} added).`))
+      .catch(err => console.error('❌ Could not sync registered users to access list:', err.message));
     require('../database/seeds/seedData')
     require('../database/seeds/seedAdmin');
   })

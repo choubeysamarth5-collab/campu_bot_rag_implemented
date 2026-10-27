@@ -41,12 +41,13 @@ const ADMIN_EXPIRES = process.env.JWT_ADMIN_EXPIRES || '1d';   // 1 day (shorter
 // generateUserToken(userId)
 // Creates a JWT for a normal user
 // =================================================================
-const generateUserToken = (userId) => {
+const generateUserToken = (userId, authVersion = 0) => {
   return jwt.sign(
     // PAYLOAD — data embedded in the token (visible but not editable)
     {
       id:   userId.toString(),
       role: 'user',
+      ver: authVersion,
     },
     // SECRET KEY — used to sign and later verify the token
     USER_SECRET,

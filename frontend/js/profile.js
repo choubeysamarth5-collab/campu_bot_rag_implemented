@@ -1,6 +1,6 @@
 const PROFILE_FIELDS = [
   { key: 'name', label: 'Full name', type: 'text', required: true, autocomplete: 'name' },
-  { key: 'email', label: 'Email address', type: 'email', required: true, autocomplete: 'email' },
+  { key: 'email', label: 'Email address', editable: false },
   { key: 'rollNumber', label: 'Roll number', type: 'text' },
   { key: 'department', label: 'Branch / Department', type: 'text' },
   { key: 'year', label: 'Current year', type: 'number', min: 1, max: 5 },
@@ -43,14 +43,18 @@ function renderProfileFields() {
     value.textContent = fieldValue(field);
     content.append(label, value);
 
-    const action = document.createElement('button');
-    action.type = 'button';
-    action.className = 'profile-edit-button';
-    action.setAttribute('aria-label', `Edit ${field.label}`);
-    action.title = `Edit ${field.label}`;
-    action.textContent = '✎';
-    action.addEventListener('click', () => beginFieldEdit(field));
-    row.append(content, action);
+    if (field.editable !== false) {
+      const action = document.createElement('button');
+      action.type = 'button';
+      action.className = 'profile-edit-button';
+      action.setAttribute('aria-label', `Edit ${field.label}`);
+      action.title = `Edit ${field.label}`;
+      action.textContent = '✎';
+      action.addEventListener('click', () => beginFieldEdit(field));
+      row.append(content, action);
+    } else {
+      row.append(content);
+    }
     profileFields.append(row);
   }
 }
