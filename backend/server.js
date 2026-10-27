@@ -27,7 +27,7 @@ origin: [
 
   "https://campu-bot-rag-implemented-b0xtvg7pf-samarth-s-projects8.vercel.app"
 ],
-  methods: ["GET", "POST", "PUT", "DELETE"],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
 }));
