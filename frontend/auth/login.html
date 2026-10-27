@@ -3,15 +3,12 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>CampusBot – Login / Register</title>
+  <title>CampusBot – Sign in</title>
   <link rel="stylesheet" href="auth.css"/>
 </head>
 <body>
 
-  <!-- Back to home -->
-  <a href="../index.html" class="back-link">← Back to Chat</a>
-
-  <!-- ── Auth Card ── -->
+  <!-- ── Auth panel ── -->
   <div class="auth-card">
 
     <!-- Logo -->
@@ -21,10 +18,9 @@
       <p class="subtitle">Your 24/7 College Assistant</p>
     </div>
 
-    <!-- Tabs: Login | Register -->
-    <div class="auth-tabs">
-      <button class="tab-btn active" id="tabLogin"    onclick="switchTab('login')">Login</button>
-      <button class="tab-btn"        id="tabRegister" onclick="switchTab('register')">Register</button>
+    <div class="auth-heading" id="authHeading">
+      <h2>Welcome back</h2>
+      <p>Sign in to continue to your account.</p>
     </div>
 
     <!-- ── Alert Box (shared) ── -->
@@ -59,10 +55,6 @@
         <div class="spinner"></div>
       </button>
 
-      <p class="auth-footer">
-        Don't have an account?
-        <a href="#" onclick="switchTab('register')">Create one free →</a>
-      </p>
     </form>
 
     <!-- ══════════════════════════════════════
@@ -141,11 +133,15 @@
         <div class="spinner"></div>
       </button>
 
-      <p class="auth-footer">
-        Already have an account?
-        <a href="#" onclick="switchTab('login')">Login →</a>
-      </p>
     </form>
+
+    <div class="auth-alternatives" id="loginAlternatives">
+      <p>New to CampusBot? <a href="#register" onclick="switchTab('register'); return false;">Create an account</a></p>
+      <a class="guest-link" href="../index.html?guest=1">Continue without signing in</a>
+    </div>
+    <div class="auth-alternatives" id="registerAlternatives" hidden>
+      <p>Already have an account? <a href="#login" onclick="switchTab('login'); return false;">Sign in</a></p>
+    </div>
 
   </div><!-- end auth-card -->
 
@@ -159,8 +155,11 @@
       const isLogin = tab === 'login';
       document.getElementById('loginForm').style.display    = isLogin ? 'flex' : 'none';
       document.getElementById('registerForm').style.display = isLogin ? 'none' : 'flex';
-      document.getElementById('tabLogin').classList.toggle('active', isLogin);
-      document.getElementById('tabRegister').classList.toggle('active', !isLogin);
+      document.getElementById('authHeading').innerHTML = isLogin
+        ? '<h2>Welcome back</h2><p>Sign in to continue to your account.</p>'
+        : '<h2>Create your account</h2><p>Use your college email to get started.</p>';
+      document.getElementById('loginAlternatives').hidden = !isLogin;
+      document.getElementById('registerAlternatives').hidden = isLogin;
       CampusAuth.hideAlert('authAlert');
     }
 

@@ -13,7 +13,9 @@
   <script src="auth/auth.js"></script>
   <script>
     const storedUserToken = CampusAuth.getUserToken();
-    if (!storedUserToken || !localStorage.getItem('campusbot_user') || CampusAuth.isUserTokenExpired(storedUserToken)) {
+    const guestModeRequested = new URLSearchParams(window.location.search).get('guest') === '1';
+    if (guestModeRequested) CampusAuth.clearUserAuth();
+    if (!guestModeRequested && (!storedUserToken || !localStorage.getItem('campusbot_user') || CampusAuth.isUserTokenExpired(storedUserToken))) {
       CampusAuth.clearUserAuth();
       document.documentElement.style.visibility = 'hidden';
       window.location.replace('auth/login.html');
