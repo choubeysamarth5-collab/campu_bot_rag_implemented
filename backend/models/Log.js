@@ -21,6 +21,12 @@ conversationId: {
   required: true
 },
 
+  conversationTitle: {
+    type: String,
+    trim: true,
+    maxlength: 80,
+  },
+
   // What the user typed
   userMessage: {
     type: String,
@@ -54,6 +60,10 @@ conversationId: {
   },
 
 }, { timestamps: true });
+
+// Keep chat history for 15 days, then let MongoDB remove expired messages.
+LogSchema.index({ timestamp: 1 }, { expireAfterSeconds: 15 * 24 * 60 * 60 });
+LogSchema.index({ userId: 1, conversationId: 1, timestamp: 1 });
 
 module.exports = mongoose.model('Log', LogSchema);
 

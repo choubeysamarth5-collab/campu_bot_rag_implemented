@@ -69,6 +69,13 @@ const UserSchema = new mongoose.Schema(
       default: 1,
     },
 
+    semester: {
+      type: Number,
+      min: 1,
+      max: 10,
+      default: null,
+    },
+
     // ── Role (always 'user' for this model) ──────────────────────
     role: {
       type:    String,

@@ -55,6 +55,18 @@ function getUserToken() {
   return localStorage.getItem(TOKEN_KEY);
 }
 
+function isUserTokenExpired(token = getUserToken()) {
+  if (!token) return true;
+  try {
+    const part = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = part.padEnd(Math.ceil(part.length / 4) * 4, '=');
+    const payload = JSON.parse(atob(padded));
+    return !payload.exp || payload.exp * 1000 <= Date.now();
+  } catch (err) {
+    return true;
+  }
+}
+
 // Get stored admin token
 function getAdminToken() {
   return localStorage.getItem(ADMIN_TOKEN_KEY);
@@ -120,7 +132,13 @@ function requireAdminLogin(redirectTo = '/auth/admin-login.html') {
 
 // Call on login/register pages — redirect away if already logged in
 function redirectIfUserLoggedIn(destination = '/index.html') {
-  if (isUserLoggedIn()) window.location.href = destination;
+  const token = getUserToken();
+  if (!token) return;
+  if (isUserTokenExpired(token)) {
+    clearUserAuth();
+    return;
+  }
+  window.location.replace(destination);
 }
 
 function redirectIfAdminLoggedIn(destination = '/admin.html') {
@@ -147,10 +165,16 @@ async function userFetch(endpoint, options = {}) {
   // browser can set the correct multipart boundary itself.
   if (isFormData) delete headers['Content-Type'];
 
-  return fetch(`${API}${endpoint}`, {
+  const response = await fetch(`${API}${endpoint}`, {
     ...options,
     headers,
   });
+  if (response.status === 401 && token) {
+    clearUserAuth();
+    const isLoginPage = window.location.pathname.includes('/auth/login.html');
+    if (!isLoginPage) window.location.replace('auth/login.html');
+  }
+  return response;
 }
 
 // Fetch with admin token
@@ -251,6 +275,7 @@ function updateStrengthBar(password, fillId, labelId) {
 window.CampusAuth = {
   saveUserAuth, saveAdminAuth,
   getUserToken, getAdminToken,
+  isUserTokenExpired,
   getUser, getAdmin,
   clearUserAuth, clearAdminAuth,
   isUserLoggedIn, isAdminLoggedIn,

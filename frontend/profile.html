@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profile · CampusBot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="profile-page-body" data-theme="dark">
+  <header class="profile-header">
+    <div class="profile-header-left">
+      <a class="profile-nav-arrow" href="index.html#open-sidebar" aria-label="Back to chat and open sidebar">←</a>
+      <span class="profile-header-title">Profile</span>
+    </div>
+  </header>
+
+  <main class="profile-main">
+    <section class="profile-intro">
+      <div class="profile-avatar" id="profileAvatar">U</div>
+      <div>
+        <p class="profile-eyebrow">ACCOUNT</p>
+        <h1 id="profileHeading">Your profile</h1>
+        <p class="profile-subtitle">Manage your personal and college details.</p>
+      </div>
+    </section>
+
+    <div id="profileNotice" class="profile-notice" role="status" hidden></div>
+
+    <section class="profile-section" aria-labelledby="personalHeading">
+      <div class="profile-section-heading">
+        <h2 id="personalHeading">Personal details</h2>
+        <p>Choose edit beside a detail to update it.</p>
+      </div>
+      <div id="profileFields" class="profile-fields" aria-live="polite"></div>
+    </section>
+
+    <section class="profile-section security-section" aria-labelledby="securityHeading">
+      <div class="profile-section-heading security-heading">
+        <div>
+          <h2 id="securityHeading">Sign-in & security</h2>
+          <p>Keep your account credentials up to date.</p>
+        </div>
+        <button id="passwordToggle" class="profile-secondary-button" aria-expanded="false">Change password</button>
+      </div>
+      <form id="passwordForm" class="password-form" hidden>
+        <label>Current password<input id="currentPassword" type="password" autocomplete="current-password" required /></label>
+        <label>New password<input id="newPassword" type="password" minlength="6" autocomplete="new-password" required /></label>
+        <label>Confirm new password<input id="confirmPassword" type="password" minlength="6" autocomplete="new-password" required /></label>
+        <div class="profile-form-actions">
+          <button class="profile-primary-button" type="submit">Update password</button>
+          <button class="profile-secondary-button" id="passwordCancel" type="button">Cancel</button>
+        </div>
+      </form>
+
+      <div class="profile-footer">
+        <button id="logoutButton" class="profile-logout-button">Log out</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="auth/auth.js"></script>
+  <script src="js/profile.js"></script>
+</body>
+</html>

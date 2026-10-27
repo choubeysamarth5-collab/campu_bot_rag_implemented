@@ -206,10 +206,11 @@
         if (data.success) {
           // ✅ Login successful — save token + user
           CampusAuth.saveUserAuth(data.token, data.user);
+          localStorage.setItem('campusbot_start_new_chat', '1');
           CampusAuth.showAlert('authAlert', data.message, 'success');
 
           // Redirect to chatbot after short delay
-          setTimeout(() => window.location.href = '../index.html', 800);
+          setTimeout(() => window.location.href = '../index.html?newChat=1', 800);
         } else {
           // ❌ Login failed — show error from server
           CampusAuth.showAlert('authAlert', data.message || 'Login failed.');
@@ -260,8 +261,9 @@
 
         if (data.success) {
           CampusAuth.saveUserAuth(data.token, data.user);
+          localStorage.setItem('campusbot_start_new_chat', '1');
           CampusAuth.showAlert('authAlert', data.message, 'success');
-          setTimeout(() => window.location.href = '../index.html', 800);
+          setTimeout(() => window.location.href = '../index.html?newChat=1', 800);
         } else {
           CampusAuth.showAlert('authAlert', data.message || 'Registration failed.');
         }

@@ -10,6 +10,15 @@
     href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap"
     rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
+  <script src="auth/auth.js"></script>
+  <script>
+    const storedUserToken = CampusAuth.getUserToken();
+    if (!storedUserToken || !localStorage.getItem('campusbot_user') || CampusAuth.isUserTokenExpired(storedUserToken)) {
+      CampusAuth.clearUserAuth();
+      document.documentElement.style.visibility = 'hidden';
+      window.location.replace('auth/login.html');
+    }
+  </script>
 </head>
 
 <body data-theme="dark">
@@ -37,10 +46,8 @@
     </div>
 
     <div class="header-right">
-      <!-- Language Selector — the only control that stays in the
-           header on mobile. Theme/Profile/Admin move into the
-           sidebar drawer below var(1024px) so the header never
-           crowds or wraps. -->
+      <!-- Language stays in the header on mobile. Theme moves to the
+           drawer there; account actions live in the sidebar at every size. -->
       <div class="lang-dropdown">
 
         <button class="lang-current" id="langCurrentBtn">
@@ -79,15 +86,6 @@
         <span class="theme-icon">☀️</span>
       </button>
 
-      <button class="profile-btn header-only" onclick="openProfileModal()" title="My Profile">
-
-        👤
-
-      </button>
-      <a href="study.html" class="admin-link header-only" title="Study Material">📚</a>
-
-      <!-- Admin Link (shows logout for regular users) -->
-      <a href="admin.html" class="admin-link header-only" id="adminOrLogoutLink" title="Admin Panel">⚙️</a>
     </div>
 
   </header>
@@ -109,13 +107,27 @@
 
       <!-- Chat History -->
       <div class="sidebar-section">
-        <h3 class="sidebar-title">Recent Chats</h3>
+        <button id="historyToggle" class="sidebar-row sidebar-history-toggle" aria-expanded="false" aria-controls="historyPanel">
+          <span class="sidebar-row-icon">🕘</span> Chat History <span class="history-chevron">⌄</span>
+        </button>
+        <div id="historyPanel" class="history-panel" hidden>
+        <h3 class="sidebar-title">Recent Chats · 15 days</h3>
+        <div id="historyNotice" class="history-notice" role="status" hidden></div>
         <div id="historyList" class="sidebar-list history-list">
           <!-- Injected by JS -->
         </div>
         <button id="clearHistoryBtn" class="sidebar-row sidebar-row-muted">
           <span class="sidebar-row-icon">🗑</span> Clear History
         </button>
+        </div>
+      </div>
+
+      <!-- Learning destination stays easy to reach, visually separate from chat controls. -->
+      <div class="sidebar-section learning-section">
+        <h3 class="sidebar-title">Learning</h3>
+        <a href="study.html" class="sidebar-row sidebar-row-study">
+          <span class="sidebar-row-icon">📚</span> Study Material
+        </a>
       </div>
 
       <!-- Quick Topics -->
@@ -130,22 +142,19 @@
            pinned account/settings row -->
       <div class="sidebar-spacer"></div>
 
-      <!-- Bottom pinned controls — shown here only on mobile (header
-           already has these on desktop). Every row is the same flat,
-           systematic list style: icon + label, full width, one line. -->
+      <!-- Account and settings stay together on desktop and mobile. -->
       <div class="sidebar-bottom">
-        <button class="sidebar-row" onclick="openProfileModal()">
-          <span class="sidebar-row-icon">👤</span> My Profile
+        <button class="account-summary" id="accountSummary" aria-label="Open account profile">
+          <span class="account-avatar" id="accountAvatar">👤</span>
+          <span class="account-identity">
+            <strong id="accountName">Guest</strong>
+            <small id="accountHint">Sign in to sync your chats</small>
+          </span>
+          <span class="account-chevron">↗</span>
         </button>
-        <button class="sidebar-row" id="themeToggleMobile">
+        <button class="sidebar-row sidebar-theme-mobile" id="themeToggleMobile">
           <span class="sidebar-row-icon theme-icon">☀️</span> Toggle Theme
         </button>
-        <a href="study.html" class="sidebar-row">
-          <span class="sidebar-row-icon">📚</span> Study Material
-        </a>
-        <a href="admin.html" class="sidebar-row" id="adminOrLogoutLinkMobile">
-          <span class="sidebar-row-icon">⚙️</span> Admin Panel
-        </a>
       </div>
 
       <!-- Contact / help footer -->
@@ -204,7 +213,6 @@
     </div>
   </div>
 
-  <script src="auth/auth.js"></script>
   <script src="js/translations.js"></script>
   <script src="js/app.js"></script>
   <script>
@@ -223,7 +231,20 @@
         sidebarOverlayEl.classList.toggle('active', sidebarEl.classList.contains('active'));
       };
       new MutationObserver(syncOverlay).observe(sidebarEl, { attributes: true, attributeFilter: ['class'] });
+      const arrivalParams = new URLSearchParams(window.location.search);
+      const openSidebarOnArrival = arrivalParams.get('sidebar') === 'open' || window.location.hash === '#open-sidebar';
+      const openHistoryOnArrival = arrivalParams.get('history') === 'open';
+      if (openSidebarOnArrival) sidebarEl.classList.add('active');
+      if (openHistoryOnArrival) {
+        const historyToggleEl = document.getElementById('historyToggle');
+        const historyPanelEl = document.getElementById('historyPanel');
+        if (historyPanelEl) historyPanelEl.hidden = false;
+        historyToggleEl?.setAttribute('aria-expanded', 'true');
+      }
       syncOverlay();
+      if (openSidebarOnArrival || openHistoryOnArrival) {
+        try { history.replaceState({}, document.title, window.location.pathname); } catch (err) {}
+      }
 
       sidebarOverlayEl.addEventListener('click', () => {
         sidebarEl.classList.remove('active');
@@ -246,44 +267,28 @@
       if (statusEl) {
         statusEl.textContent = `👤 ${user.name} · Online`;
       }
-
-      // Convert settings icon into logout button (header + sidebar clone)
-      const logoutLink = document.getElementById('adminOrLogoutLink');
-      const logoutLinkMobile = document.getElementById('adminOrLogoutLinkMobile');
-
-      [logoutLink, logoutLinkMobile].forEach((el, i) => {
-        if (!el) return;
-
-        el.innerHTML = i === 0
-          ? (window.innerWidth <= 768 ? '🚪' : '🚪 Logout')
-          : '🚪 Logout';
-        el.href = '#';
-        el.title = 'Logout';
-
-        el.addEventListener('click', (e) => {
-          e.preventDefault();
-
-          // Clear login session
-          localStorage.clear();
-
-          // Redirect to login page
-          window.location.href = 'auth/login.html';
-        });
-      });
-
-    } else {
-
-      // If not logged in → show login button (header + sidebar clone)
-      const loginLink = document.getElementById('adminOrLogoutLink');
-      const loginLinkMobile = document.getElementById('adminOrLogoutLinkMobile');
-
-      [loginLink, loginLinkMobile].forEach(el => {
-        if (!el) return;
-        el.innerHTML = '🔑 Login';
-        el.href = 'auth/login.html';
-        el.title = 'Login';
-      });
     }
+
+    // One account surface handles both signed-out and signed-in states.
+    const accountName = document.getElementById('accountName');
+    const accountHint = document.getElementById('accountHint');
+    const accountAvatar = document.getElementById('accountAvatar');
+    const accountSummary = document.getElementById('accountSummary');
+    accountSummary.classList.toggle('guest', !user);
+    accountSummary.setAttribute('aria-label', user ? 'Open profile' : 'Go to sign in');
+    if (user) {
+      accountName.textContent = user.name || 'My account';
+      accountHint.textContent = user.email || 'Signed in';
+      accountAvatar.textContent = (user.name || user.email || 'U').trim().charAt(0).toUpperCase();
+    } else {
+      accountName.textContent = 'Guest mode';
+      accountHint.textContent = 'Sign in to sync your chats';
+      accountAvatar.textContent = '👤';
+    }
+
+    accountSummary.addEventListener('click', () => {
+      window.location.href = user ? 'profile.html' : 'auth/login.html';
+    });
 
     // ── Theme toggle (shared by header + sidebar drawer buttons) ───
     function applyTheme(theme) {
@@ -300,171 +305,7 @@
     document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
     document.getElementById('themeToggleMobile')?.addEventListener('click', toggleTheme);
 
-    // =============================================
-    // PROFILE MODAL
-    // =============================================
-
-
-    async function openProfileModal() {
-
-      document.getElementById(
-        'profileModal'
-      ).style.display = 'flex';
-
-      try {
-
-        const res =
-          await CampusAuth.userFetch(
-            '/auth/me'
-          );
-
-        const data =
-          await res.json();
-
-        const user =
-          data.user;
-
-        document.getElementById(
-          'profileName'
-        ).value =
-          user.name || '';
-
-        document.getElementById(
-          'profileEmail'
-        ).value =
-          user.email || '';
-
-        document.getElementById(
-          'profileRoll'
-        ).value =
-          user.rollNumber || '';
-
-        document.getElementById(
-          'profileDepartment'
-        ).value =
-          user.department || '';
-
-        document.getElementById(
-          'profileYear'
-        ).value =
-          user.year || '';
-
-      } catch (err) {
-
-        console.error(err);
-      }
-    }
-
-    function closeProfileModal() {
-
-      document.getElementById(
-        'profileModal'
-      ).style.display = 'none';
-    }
-
-    async function updateProfile() {
-
-      try {
-
-        const body = {
-
-          name:
-            document.getElementById(
-              'profileName'
-            ).value,
-
-          rollNumber:
-            document.getElementById(
-              'profileRoll'
-            ).value,
-
-          department:
-            document.getElementById(
-              'profileDepartment'
-            ).value,
-
-          year:
-            document.getElementById(
-              'profileYear'
-            ).value
-        };
-
-        const res =
-          await CampusAuth.userFetch(
-            '/auth/profile',
-            {
-
-              method: 'PUT',
-
-              headers: {
-                'Content-Type':
-                  'application/json'
-              },
-
-              body:
-                JSON.stringify(body)
-            }
-          );
-
-        const data =
-          await res.json();
-
-        alert(data.message);
-
-      } catch (err) {
-
-        console.error(err);
-
-        alert('Update failed');
-      }
-    }
   </script>
-
-  <!-- PROFILE MODAL -->
-  <div class="modal-overlay" id="profileModal" style="display:none">
-
-    <div class="modal">
-
-      <h3>My Profile</h3>
-
-      <input type="text" id="profileName" class="form-control" placeholder="Name">
-
-      <br>
-
-      <input type="email" id="profileEmail" class="form-control" placeholder="Email" readonly>
-
-      <br>
-
-      <input type="text" id="profileRoll" class="form-control" placeholder="Roll Number">
-
-      <br>
-
-      <input type="text" id="profileDepartment" class="form-control" placeholder="Department">
-
-      <br>
-
-      <input type="number" id="profileYear" class="form-control" placeholder="Year">
-
-      <br>
-
-      <div class="modal-actions">
-
-        <button class="btn-primary" onclick="updateProfile()">
-
-          Save
-
-        </button>
-
-        <button class="btn-ghost" onclick="closeProfileModal()">
-
-          Close
-
-        </button>
-
-      </div>
-
-    </div>
-  </div>
 </body>
 
 </html>

@@ -161,24 +161,27 @@ router.get('/me', protect, async (req, res) => {
 
 // =================================================================
 // PUT /api/auth/profile   [PROTECTED]
-// Update name, rollNumber, department, year
+// Update the student's profile details
 // =================================================================
 router.put('/profile', protect, async (req, res) => {
   try {
-    const { name, rollNumber, department, year } = req.body;
+    const { name, email, rollNumber, department, year, semester } = req.body;
 
-    // Only allow updating these fields (not email, password, role)
     const updates = {};
-    if (name)        updates.name       = name.trim();
-    if (rollNumber)  updates.rollNumber = rollNumber.trim();
-    if (department)  updates.department = department.trim();
-    if (year)        updates.year       = parseInt(year);
+    if (typeof name === 'string') updates.name = name.trim();
+    if (typeof email === 'string') {
+      const normalizedEmail = email.trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+        return res.status(400).json({ success: false, message: 'Enter a valid email address.' });
+      }
+      updates.email = normalizedEmail;
+    }
+    if (typeof rollNumber === 'string') updates.rollNumber = rollNumber.trim();
+    if (typeof department === 'string') updates.department = department.trim();
+    if (year !== undefined && year !== '') updates.year = parseInt(year, 10);
+    if (semester !== undefined) updates.semester = semester === '' || semester === null ? null : parseInt(semester, 10);
 
-    const updatedUser = await User.findByIdAndUpdate(
-      req.user._id,
-      { $set: updates },
-      { new: true, runValidators: true }  // return updated doc, run schema validators
-    );
+    const updatedUser = await User.findByIdAndUpdate(req.user._id, { $set: updates }, { new: true, runValidators: true });
 
     res.json({
       success: true,
@@ -187,6 +190,7 @@ router.put('/profile', protect, async (req, res) => {
     });
 
   } catch (err) {
+    if (err.code === 11000) return res.status(409).json({ success: false, message: 'That email is already in use.' });
     res.status(500).json({ success: false, message: err.message });
   }
 });

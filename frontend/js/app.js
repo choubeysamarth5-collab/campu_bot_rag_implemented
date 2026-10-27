@@ -14,6 +14,10 @@ const state = {
   pendingRating: null, // star rating
 };
 
+let sessionFreshChat = null;
+let userActivityKey = null;
+const IDLE_NEW_CHAT_MS = 30 * 60 * 1000;
+
 // ── Backend API URL (change if deploying) ──
 //const API_BASE = 'https://campus-bot-ml-2.onrender.com/api';
 // Automatically uses localhost while developing, and the deployed
@@ -34,6 +38,11 @@ const feedbackModal = $('feedbackModal');
 const themeToggle = $('themeToggle');
 const historyList = $('historyList');
 const clearHistoryBtn = $('clearHistoryBtn');
+const historyToggle = $('historyToggle');
+const historyPanel = $('historyPanel');
+const historyNotice = $('historyNotice');
+let openHistoryMenuId = null;
+let editingHistoryId = null;
 
 // ── Utility: Format time ──
 function getTime() {
@@ -239,6 +248,7 @@ window.createNewChat = function () {
 
     messages: []
   };
+  sessionFreshChat = newChat;
 
   // Add at top
   state.conversations.unshift(
@@ -588,18 +598,25 @@ function loadChatHistory() {
 
   if (!user) return;
 
+  userActivityKey = `campusbot_last_active_${user.email}`;
+  const lastActiveAt = Number(localStorage.getItem(userActivityKey));
+  const idleLongEnough = lastActiveAt > 0 && Date.now() - lastActiveAt >= IDLE_NEW_CHAT_MS;
+  const params = new URLSearchParams(window.location.search);
+  let shouldStartFresh = params.get('newChat') === '1' || idleLongEnough;
+  if (localStorage.getItem('campusbot_start_new_chat') === '1') shouldStartFresh = true;
+  localStorage.removeItem('campusbot_start_new_chat');
+  localStorage.setItem(userActivityKey, String(Date.now()));
+
   const savedHistory = localStorage.getItem(
     `chat_history_${user.email}`
   );
-
-  if (!savedHistory) return;
 
   try {
 
     // Parse saved conversations
 
-    const savedData =
-      JSON.parse(savedHistory);
+    if (!savedHistory) throw new Error('No local cache');
+    const savedData = JSON.parse(savedHistory);
 
     state.conversations =
       savedData.conversations || [];
@@ -613,9 +630,35 @@ function loadChatHistory() {
 
     renderCurrentChat();
 
-  } catch (err) {
-    console.log('Failed to load history');
+  } catch (err) { /* Continue with account history from the server. */ }
+
+  // Start fresh after login/register or a long inactive period, retaining history.
+  if (shouldStartFresh) {
+    try { history.replaceState({}, document.title, window.location.pathname); } catch (err) {}
+    window.createNewChat();
+    showWelcome();
+    sessionFreshChat = getCurrentChat();
   }
+
+  // The server is authoritative so the same account sees history on every device.
+  CampusAuth.userFetch('/chat/history').then(async response => {
+    if (!response.ok) return;
+    const data = await response.json();
+    const remoteChats = data.conversations || [];
+    state.conversations = remoteChats;
+    if (sessionFreshChat && !state.conversations.some(chat => chat.id === sessionFreshChat.id)) {
+      state.conversations.unshift(sessionFreshChat);
+    }
+    if (sessionFreshChat) state.currentChatId = sessionFreshChat.id;
+    else if (!state.conversations.some(chat => chat.id === state.currentChatId)) state.currentChatId = remoteChats[0]?.id || null;
+    renderConversationList();
+    renderCurrentChat();
+    if (remoteChats.length === 0 && !state.currentChatId) {
+      window.createNewChat();
+      showWelcome();
+    }
+    saveChatHistory();
+  }).catch(() => {});
 }
 
 function scrollToMessage(id) {
@@ -671,21 +714,83 @@ function renderConversationList() {
   }
 
   // Render all chats
-  historyList.innerHTML =
-
-    state.conversations.map(chat => `
-
-      <button
-        class="history-item"
-        onclick="openConversation('${chat.id}')"
-      >
-
-        ${chat.title}
-
-      </button>
-
-    `).join('');
+  historyList.innerHTML = state.conversations.map(chat => `
+    <div class="history-entry ${chat.id === state.currentChatId ? 'active' : ''}">
+      ${editingHistoryId === chat.id ? `
+        <input id="rename-input-${chat.id}" class="history-rename-input" maxlength="80" value="${escapeHtml(chat.title || '')}" aria-label="Conversation name" onkeydown="if(event.key==='Enter')saveConversationName('${chat.id}');if(event.key==='Escape')cancelRenameConversation()">
+        <button class="history-menu-action history-save-name" onclick="saveConversationName('${chat.id}')">Save</button>
+        <button class="history-menu-action" onclick="cancelRenameConversation()" aria-label="Cancel rename">×</button>
+      ` : `
+        <button class="history-item" onclick="openConversation('${chat.id}')">${escapeHtml(chat.title || 'Chat')}</button>
+        <div class="history-actions">
+          <button class="history-more" onclick="toggleHistoryMenu('${chat.id}')" aria-label="Conversation options" aria-expanded="${openHistoryMenuId === chat.id}">⋯</button>
+          ${openHistoryMenuId === chat.id ? `
+            <div class="history-menu">
+              <button class="history-menu-action" onclick="beginRenameConversation('${chat.id}')">Rename</button>
+              <button class="history-menu-action danger" onclick="deleteConversation('${chat.id}')">Delete conversation</button>
+            </div>
+          ` : ''}
+        </div>
+      `}
+    </div>
+  `).join('');
 }
+
+function escapeHtml(value) {
+  return String(value || '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+}
+
+function showHistoryNotice(message) {
+  if (!historyNotice) return;
+  historyNotice.textContent = message;
+  historyNotice.hidden = false;
+  clearTimeout(showHistoryNotice.timer);
+  showHistoryNotice.timer = setTimeout(() => { historyNotice.hidden = true; }, 4500);
+}
+
+window.toggleHistoryMenu = function (id) {
+  openHistoryMenuId = openHistoryMenuId === id ? null : id;
+  editingHistoryId = null;
+  renderConversationList();
+};
+
+window.beginRenameConversation = function (id) {
+  editingHistoryId = id;
+  openHistoryMenuId = null;
+  renderConversationList();
+  const input = document.getElementById(`rename-input-${id}`);
+  input?.focus();
+  input?.select();
+};
+
+window.cancelRenameConversation = function () {
+  editingHistoryId = null;
+  renderConversationList();
+};
+
+window.saveConversationName = async function (id) {
+  const input = document.getElementById(`rename-input-${id}`);
+  const title = input?.value.trim();
+  if (!title) {
+    showHistoryNotice('Conversation name cannot be empty.');
+    input?.focus();
+    return;
+  }
+  try {
+    const response = await CampusAuth.userFetch(`/chat/history/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      body: JSON.stringify({ title }),
+    });
+    if (!response.ok) throw new Error('Rename failed');
+    const chat = state.conversations.find(item => item.id === id);
+    if (chat) chat.title = title;
+    editingHistoryId = null;
+    saveChatHistory();
+    renderConversationList();
+  } catch (e) {
+    showHistoryNotice('Could not rename this conversation. Please try again.');
+  }
+};
 
 // ──────────────────────────────────────────
 // OPEN CONVERSATION
@@ -696,6 +801,8 @@ window.openConversation = function (id) {
 
   // Change current active chat
   state.currentChatId = id;
+  sessionFreshChat = null;
+  openHistoryMenuId = null;
 
   // Render that chat's messages
   renderCurrentChat();
@@ -703,12 +810,35 @@ window.openConversation = function (id) {
   // Re-render sidebar
   // (for active highlight later)
   renderConversationList();
+  if (window.innerWidth <= 1023) document.querySelector('.sidebar')?.classList.remove('active');
+}
+
+window.deleteConversation = async function (id) {
+  try {
+    const response = await CampusAuth.userFetch(`/chat/history/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    if (!response.ok) throw new Error('Delete failed');
+  } catch (e) {
+    showHistoryNotice('Could not delete this conversation. Check the connection and try again.');
+    return;
+  }
+  openHistoryMenuId = null;
+  state.conversations = state.conversations.filter(chat => chat.id !== id);
+  if (state.currentChatId === id) {
+    state.currentChatId = state.conversations[0]?.id || null;
+    renderCurrentChat();
+    if (!state.currentChatId) {
+      window.createNewChat();
+      showWelcome();
+    }
+  }
+  saveChatHistory();
+  renderConversationList();
 }
 
 // Clear history
 if (clearHistoryBtn) {
 
-  clearHistoryBtn.addEventListener('click', () => {
+  clearHistoryBtn.addEventListener('click', async () => {
 
     const user = (typeof CampusAuth !== 'undefined')
       ? CampusAuth.getUser()
@@ -716,19 +846,37 @@ if (clearHistoryBtn) {
 
     if (!user) return;
 
-    localStorage.removeItem(
-      `chat_history_${user.email}`
-    );
+    try {
+      const response = await CampusAuth.userFetch('/chat/history', { method: 'DELETE' });
+      if (!response.ok) throw new Error('Clear failed');
+    } catch (e) {
+      showHistoryNotice('Could not clear chat history. Check the connection and try again.');
+      return;
+    }
+    localStorage.removeItem(`chat_history_${user.email}`);
 
     state.conversations = [];
+    state.currentChatId = null;
 
     chatMessages.innerHTML = '';
-
     renderConversationList();
-
+    window.createNewChat();
     showWelcome();
   });
 }
+
+historyToggle?.addEventListener('click', () => {
+  const isOpening = historyPanel.hidden;
+  historyPanel.hidden = !isOpening;
+  historyToggle.setAttribute('aria-expanded', String(isOpening));
+});
+
+document.addEventListener('click', (event) => {
+  if (openHistoryMenuId && !event.target.closest('.history-actions')) {
+    openHistoryMenuId = null;
+    renderConversationList();
+  }
+});
 
 async function logConversation(userMsg, botReply) {
 
@@ -758,6 +906,9 @@ async function logConversation(userMsg, botReply) {
         // NEW
         conversationId:
           state.currentChatId,
+
+        conversationTitle:
+          getCurrentChat()?.title || 'New Chat',
 
         userMessage:
           userMsg,
@@ -811,6 +962,26 @@ function init() {
 
 // Start the app!
 init();
+
+function refreshUserActivity() {
+  if (!userActivityKey) return;
+  const now = Date.now();
+  const lastActiveAt = Number(localStorage.getItem(userActivityKey));
+  if (lastActiveAt > 0 && now - lastActiveAt >= IDLE_NEW_CHAT_MS) {
+    window.createNewChat();
+    showWelcome();
+  }
+  localStorage.setItem(userActivityKey, String(now));
+}
+
+['pointerdown', 'keydown', 'touchstart'].forEach(eventName => {
+  document.addEventListener(eventName, refreshUserActivity, { passive: true });
+});
+window.addEventListener('focus', refreshUserActivity);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') refreshUserActivity();
+});
+
 // ================================
 // MOBILE SIDEBAR TOGGLE
 // ================================

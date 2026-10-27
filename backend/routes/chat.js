@@ -228,6 +228,8 @@ router.post(
         // NEW
         conversationId,
 
+        conversationTitle,
+
         userMessage,
 
         botReply,
@@ -247,8 +249,12 @@ router.post(
 
         const log = new Log({
 
+          userId: req.user._id,
+
           // NEW
           conversationId,
+
+          conversationTitle,
 
           userMessage:
             userMessage.trim(),
@@ -272,5 +278,60 @@ router.post(
       res.json({ success: false });
     }
   });
+
+// Return the signed-in user's conversations, newest activity first.
+router.get('/history', async (req, res) => {
+  try {
+    if (!Log) return res.json({ conversations: [] });
+    const logs = await Log.find({ userId: req.user._id, timestamp: { $gte: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000) } })
+      .sort({ timestamp: 1 }).lean();
+    const byConversation = new Map();
+    for (const log of logs) {
+      if (!log.conversationId) continue;
+      if (!byConversation.has(log.conversationId)) byConversation.set(log.conversationId, { id: log.conversationId, title: log.conversationTitle || log.userMessage.slice(0, 30) || 'Chat', messages: [], updatedAt: log.timestamp });
+      const chat = byConversation.get(log.conversationId);
+      if (log.conversationTitle) chat.title = log.conversationTitle;
+      chat.messages.push({ role: 'user', text: log.userMessage, id: `u-${log._id}`, time: log.timestamp.getTime() });
+      chat.messages.push({ role: 'bot', text: log.botReply, id: `b-${log._id}`, time: log.timestamp.getTime() });
+      chat.updatedAt = log.timestamp;
+    }
+    res.json({ conversations: [...byConversation.values()].sort((a, b) => b.updatedAt - a.updatedAt) });
+  } catch (error) {
+    console.error('History fetch error:', error.message);
+    res.status(500).json({ error: 'Could not load chat history' });
+  }
+});
+
+router.put('/history/:conversationId', async (req, res) => {
+  try {
+    const title = String(req.body?.title || '').trim().slice(0, 80);
+    if (!title) return res.status(400).json({ error: 'Conversation name cannot be empty' });
+    if (Log) await Log.updateMany(
+      { userId: req.user._id, conversationId: req.params.conversationId },
+      { $set: { conversationTitle: title } }
+    );
+    res.json({ success: true, title });
+  } catch (error) {
+    res.status(500).json({ error: 'Could not rename conversation' });
+  }
+});
+
+router.delete('/history/:conversationId', async (req, res) => {
+  try {
+    if (Log) await Log.deleteMany({ userId: req.user._id, conversationId: req.params.conversationId });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Could not delete conversation' });
+  }
+});
+
+router.delete('/history', async (req, res) => {
+  try {
+    if (Log) await Log.deleteMany({ userId: req.user._id });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Could not clear chat history' });
+  }
+});
 
 module.exports = router;
