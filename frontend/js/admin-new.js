@@ -7,6 +7,8 @@ const API_BASE =
         ? "http://localhost:5000/api"
         : "https://campu-bot-rag-implemented.onrender.com/api";
 
+let usersData = [];
+
 // =============================================
 // SECTION SWITCHING
 // =============================================
@@ -783,18 +785,58 @@ async function loadUsers() {
         const data =
             await res.json();
 
-        const users =
-            data.data || [];
+        usersData = data.data || [];
+        renderUsersTable();
 
-        if (!users.length) {
+    } catch (err) {
 
-            container.innerHTML =
-                '<p>No users registered yet.</p>';
+        console.error(err);
 
-            return;
+        container.innerHTML =
+            '<p>Failed to load users.</p>';
+    }
+}
+
+function renderUsersTable() {
+    const container = document.getElementById('usersContainer');
+    if (!container) return;
+
+    if (!usersData.length) {
+        container.innerHTML = '<p>No users registered yet.</p>';
+        return;
+    }
+
+    const query = (document.getElementById('usersSearch')?.value || '').trim().toLocaleLowerCase();
+    let users = query
+        ? usersData.filter(user =>
+            [user.name, user.email, user.department, user.rollNumber]
+                .some(value => String(value || '').toLocaleLowerCase().includes(query))
+        )
+        : [...usersData];
+
+    const sortBy = document.getElementById('usersSortSelect')?.value || 'name_asc';
+    users.sort((a, b) => {
+        switch (sortBy) {
+            case 'name_desc': return (b.name || '').localeCompare(a.name || '');
+            case 'email_asc': return (a.email || '').localeCompare(b.email || '');
+            case 'email_desc': return (b.email || '').localeCompare(a.email || '');
+            case 'department_asc': return (a.department || '').localeCompare(b.department || '');
+            case 'year_asc': return (Number(a.year) || 0) - (Number(b.year) || 0);
+            case 'year_desc': return (Number(b.year) || 0) - (Number(a.year) || 0);
+            case 'status_active': return Number(b.isActive === true) - Number(a.isActive === true);
+            case 'status_disabled': return Number(a.isActive === true) - Number(b.isActive === true);
+            case 'created_desc': return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+            case 'created_asc': return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+            default: return (a.name || '').localeCompare(b.name || '');
         }
+    });
 
-        container.innerHTML = `
+    if (!users.length) {
+        container.innerHTML = '<p>No users match your search.</p>';
+        return;
+    }
+
+    container.innerHTML = `
 
       <table class="faq-table">
 
@@ -884,14 +926,6 @@ async function loadUsers() {
       </table>
 
     `;
-
-    } catch (err) {
-
-        console.error(err);
-
-        container.innerHTML =
-            '<p>Failed to load users.</p>';
-    }
 }
 // =============================================
 // ENABLE / DISABLE USER

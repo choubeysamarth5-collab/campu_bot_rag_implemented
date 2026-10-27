@@ -683,18 +683,25 @@ img {
 }
 
 .msg-row {
-  width: 100%;
+  width: fit-content;
+  max-width: 70%;
   display: flex;
   align-items: flex-end;
-  gap: 0;
+  gap: 10px;
 }
 
 .msg-row.user {
-  justify-content: flex-end;
+  align-self: flex-end;
+  flex-direction: row-reverse;
 }
 
 .msg-row.bot {
-  justify-content: flex-start;
+  align-self: flex-start;
+}
+
+.msg-row > div:last-child {
+  min-width: 0;
+  max-width: calc(100% - 40px);
 }
 
 @keyframes msgIn {
@@ -706,37 +713,51 @@ img {
   animation: msgIn 0.25s ease;
 }
 
-/* No per-message avatars, ChatGPT-style — they only ate up side
-   space without adding value once the header already shows the bot
-   identity. */
 .msg-avatar {
-  display: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  flex: 0 0 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
 }
 
-/* Bubbles: capped with a max-width in *characters* (ch) on large
-   screens so long messages don't stretch edge-to-edge, but on
-   mobile they use a percentage of the viewport instead — this is
-   what fixes text looking too small/cramped or overflowing on
-   phones. */
+.msg-row.user .msg-avatar {
+  background: var(--accent);
+}
+
+.msg-row.bot .msg-avatar {
+  background: var(--bot-bubble);
+  border: 1px solid var(--border);
+}
+
 .bubble {
-  max-width: min(60ch, 88%);
+  min-width: 0;
+  max-width: 100%;
   padding: 12px 16px;
   border-radius: 18px;
   font-size: 0.95rem;
   line-height: 1.6;
+  overflow-wrap: anywhere;
 }
 
-/* Bot replies: plain text, no card/border/shadow — just like
-   ChatGPT, so the chat reads as flowing text rather than stacked
-   boxes with wasted space on either side. */
 .msg-row.bot .bubble {
   background: transparent;
-  border: none;
+  border: 0;
   border-radius: 0;
   box-shadow: none;
   color: var(--text);
   padding: 4px 2px;
-  max-width: min(68ch, 92%);
+}
+
+.msg-row.bot .msg-avatar {
+  display: none;
+}
+
+.msg-row.bot > div:last-child {
+  max-width: 100%;
 }
 
 .msg-row.user .bubble {
@@ -758,6 +779,10 @@ img {
 .msg-row.user .bubble-meta {
   justify-content: flex-end;
   color: rgba(255, 255, 255, 0.55);
+}
+
+.msg-row.bot .bubble-meta {
+  justify-content: flex-start;
 }
 
 .feedback-btn {
@@ -1463,9 +1488,10 @@ select.form-control option {
   }
 
   .bubble {
-    max-width: 82%;
     font-size: 0.88rem;
   }
+
+  .msg-row { max-width: 92%; }
 
   .stat-grid {
     grid-template-columns: 1fr 1fr;
@@ -1597,7 +1623,7 @@ select.form-control option {
   }
 
   .bubble {
-    max-width: min(60ch, 520px);
+    max-width: 100%;
   }
 }
 

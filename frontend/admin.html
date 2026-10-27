@@ -309,6 +309,28 @@
 
         <div class="card">
 
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+            <form autocomplete="off" onsubmit="return false;" style="flex:1;min-width:200px">
+              <input type="search" id="usersSearch" name="q_users_search_field_no_autofill" autocomplete="off"
+                class="form-control" placeholder="🔍 Search users by name, email, or department..." style="width:100%"
+                oninput="renderUsersTable()" aria-label="Search registered users" />
+            </form>
+            <select id="usersSortSelect" class="form-control" style="width:auto;min-width:170px"
+              onchange="renderUsersTable()" aria-label="Sort registered users">
+              <option value="name_asc">Name (A–Z)</option>
+              <option value="name_desc">Name (Z–A)</option>
+              <option value="email_asc">Email (A–Z)</option>
+              <option value="email_desc">Email (Z–A)</option>
+              <option value="department_asc">Department (A–Z)</option>
+              <option value="year_asc">Year (Low–High)</option>
+              <option value="year_desc">Year (High–Low)</option>
+              <option value="status_active">Status (Active first)</option>
+              <option value="status_disabled">Status (Disabled first)</option>
+              <option value="created_desc">Newest first</option>
+              <option value="created_asc">Oldest first</option>
+            </select>
+          </div>
+
           <div id="usersContainer">
 
             Loading users...
