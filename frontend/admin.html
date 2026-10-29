@@ -337,7 +337,21 @@
 
         <div id="authorizedUsersPanel" style="display:none">
         <h3 style="margin:4px 0 12px">Registration access</h3>
-        <p style="color:var(--text-muted);font-size:.82rem;margin:-4px 0 14px">Only enabled email addresses can create new accounts. Existing users remain listed in the Registered users tab.</p>
+        <p id="registrationAccessHelp" style="color:var(--text-muted);font-size:.82rem;margin:-4px 0 14px">Only enabled email addresses can create new accounts. Existing users remain listed in the Registered users tab.</p>
+
+        <div class="card" id="registrationModeCard" style="display:none;margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
+            <div style="min-width:220px;flex:1">
+              <h4 style="margin:0 0 6px">Who can register?</h4>
+              <p id="registrationModeDescription" style="color:var(--text-muted);font-size:.82rem;margin:0">Loading registration policy…</p>
+            </div>
+            <div role="group" aria-label="Registration policy" style="display:flex;gap:8px;flex-wrap:wrap">
+              <button type="button" id="registrationModeAuthorized" class="btn-sm" aria-pressed="true" onclick="saveRegistrationMode('authorized')">Authorized emails only</button>
+              <button type="button" id="registrationModeOpen" class="btn-sm" aria-pressed="false" onclick="saveRegistrationMode('open')">Open registration</button>
+            </div>
+          </div>
+          <p id="registrationModeStatus" role="status" style="font-size:.8rem;color:var(--text-muted);margin:10px 0 0"></p>
+        </div>
 
         <div class="card" style="margin-bottom:14px">
           <div id="usersSummary" style="font-size:.85rem;color:var(--text-muted);margin-bottom:12px">Loading…</div>

@@ -22,6 +22,7 @@ const express  = require('express');
 const router   = express.Router();
 const User     = require('../models/User');
 const AuthorizedEmail = require('../models/AuthorizedEmail');
+const SystemSetting = require('../models/SystemSetting');
 const { generateUserToken }           = require('../utils/jwt');
 const { protect }                     = require('../middleware/auth');
 const { validateRegister, validateLogin } = require('../utils/validators');
@@ -29,6 +30,15 @@ const { validateRegister, validateLogin } = require('../utils/validators');
 function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
+
+router.get('/registration-mode', async (req, res) => {
+  try {
+    const setting = await SystemSetting.findOne({ key: 'registrationMode' }).lean();
+    res.json({ success: true, mode: setting?.value === 'open' ? 'open' : 'authorized' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Could not load registration settings.' });
+  }
+});
 
 // =================================================================
 // POST /api/auth/register
@@ -63,16 +73,19 @@ router.post('/register', async (req, res) => {
       }
     }
 
-    const authorizedEmail = await AuthorizedEmail.findOne({
-      email: email.toLowerCase().trim(),
-      isEnabled: true,
-      isDeleted: false,
-    });
-    if (!authorizedEmail) {
-      return res.status(403).json({
-        success: false,
-        message: 'This email is not authorized to register. Please contact your college administrator.',
+    const registrationSetting = await SystemSetting.findOne({ key: 'registrationMode' }).lean();
+    if (registrationSetting?.value !== 'open') {
+      const authorizedEmail = await AuthorizedEmail.findOne({
+        email: email.toLowerCase().trim(),
+        isEnabled: true,
+        isDeleted: false,
       });
+      if (!authorizedEmail) {
+        return res.status(403).json({
+          success: false,
+          message: 'This email is not authorized to register. Please contact your college administrator.',
+        });
+      }
     }
 
     // ── 3. Create user (password auto-hashed by pre-save hook) ───

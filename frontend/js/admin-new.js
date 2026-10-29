@@ -813,8 +813,69 @@ async function loadFeedback() {
 // LOAD USERS
 // =============================================
 async function loadUsers() {
+    const currentAdmin = CampusAuth.getAdmin();
+    const modeCard = document.getElementById('registrationModeCard');
+    if (modeCard) modeCard.style.display = currentAdmin?.role === 'superadmin' ? '' : 'none';
+    await Promise.all([
+        loadRegisteredUsers(),
+        loadAuthorizedEmails(),
+        currentAdmin?.role === 'superadmin' ? loadRegistrationMode() : Promise.resolve(),
+    ]);
+}
 
-    await Promise.all([loadRegisteredUsers(), loadAuthorizedEmails()]);
+async function loadRegistrationMode() {
+    const status = document.getElementById('registrationModeStatus');
+    try {
+        const response = await CampusAuth.adminFetch('/admin/registration-mode');
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.message || 'Could not load registration policy.');
+        renderRegistrationMode(data.mode);
+    } catch (error) {
+        if (status) status.textContent = error.message;
+    }
+}
+
+function renderRegistrationMode(mode) {
+    const isOpen = mode === 'open';
+    const authorizedButton = document.getElementById('registrationModeAuthorized');
+    const openButton = document.getElementById('registrationModeOpen');
+    const description = document.getElementById('registrationModeDescription');
+    const help = document.getElementById('registrationAccessHelp');
+    if (authorizedButton) {
+        authorizedButton.setAttribute('aria-pressed', String(!isOpen));
+        authorizedButton.classList.toggle('active', !isOpen);
+    }
+    if (openButton) {
+        openButton.setAttribute('aria-pressed', String(isOpen));
+        openButton.classList.toggle('active', isOpen);
+    }
+    if (description) description.textContent = isOpen
+        ? 'Anyone with the public link can create a new account and try CampusBot. Existing accounts are unchanged.'
+        : 'Only emails enabled in Registration access can create new accounts. Existing accounts are unchanged.';
+    if (help) help.textContent = isOpen
+        ? 'New accounts are open to anyone. Use the list below to manage authorized-email records; existing users remain in the Registered users tab.'
+        : 'Only enabled email addresses can create new accounts. Existing users remain listed in the Registered users tab.';
+}
+
+async function saveRegistrationMode(mode) {
+    const status = document.getElementById('registrationModeStatus');
+    const buttons = [document.getElementById('registrationModeAuthorized'), document.getElementById('registrationModeOpen')];
+    buttons.forEach(button => { if (button) button.disabled = true; });
+    if (status) status.textContent = 'Saving…';
+    try {
+        const response = await CampusAuth.adminFetch('/admin/registration-mode', {
+            method: 'PUT',
+            body: JSON.stringify({ mode }),
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.message || 'Could not update registration policy.');
+        renderRegistrationMode(data.mode);
+        if (status) status.textContent = data.message;
+    } catch (error) {
+        if (status) status.textContent = error.message;
+    } finally {
+        buttons.forEach(button => { if (button) button.disabled = false; });
+    }
 }
 
 async function loadRegisteredUsers() {

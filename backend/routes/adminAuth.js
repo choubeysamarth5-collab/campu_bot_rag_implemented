@@ -21,6 +21,7 @@ const router = express.Router();
 const Admin = require('../models/Admin');
 const User = require('../models/User');
 const AuthorizedEmail = require('../models/AuthorizedEmail');
+const SystemSetting = require('../models/SystemSetting');
 const Log = require('../models/Log');
 const Feedback = require('../models/Feedback');
 const FAQ = require('../models/FAQ');
@@ -49,6 +50,38 @@ function normalizeAccessRecord(body = {}) {
   if (rawSemester && (!Number.isInteger(semester) || semester < 1 || semester > 10)) throw new Error('Semester must be between 1 and 10.');
   return { email, name, branch, semester };
 }
+
+router.get('/registration-mode', adminProtect, async (req, res) => {
+  try {
+    const setting = await SystemSetting.findOne({ key: 'registrationMode' }).lean();
+    res.json({ success: true, mode: setting?.value === 'open' ? 'open' : 'authorized' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Could not load registration settings.' });
+  }
+});
+
+router.put('/registration-mode', adminProtect, requireSuperAdmin, async (req, res) => {
+  try {
+    const mode = req.body.mode;
+    if (!['authorized', 'open'].includes(mode)) {
+      return res.status(400).json({ success: false, message: 'Choose authorized-only or open registration.' });
+    }
+    await SystemSetting.findOneAndUpdate(
+      { key: 'registrationMode' },
+      { $set: { value: mode, updatedBy: req.admin._id } },
+      { upsert: true, new: true, setDefaultsOnInsert: true, runValidators: true }
+    );
+    res.json({
+      success: true,
+      mode,
+      message: mode === 'open'
+        ? 'Open registration is enabled. Anyone can create a new account.'
+        : 'Registration is restricted to enabled authorized emails.',
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Could not update registration settings.' });
+  }
+});
 
 // =================================================================
 // POST /api/admin/auth/login
