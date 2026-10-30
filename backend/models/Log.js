@@ -53,6 +53,12 @@ conversationId: {
     required: true,
   },
 
+  // Quizzes generated from a Study conversation (stored on its latest turn).
+  studyQuizzes: {
+    type: [mongoose.Schema.Types.Mixed],
+    default: undefined,
+  },
+
   // Which language was used (en/hi/mr/ta/te)
   lang: {
     type: String,

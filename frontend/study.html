@@ -1622,7 +1622,9 @@ id="quizBtn"
       if (!conversation) return;
       currentStudyChatId = conversation.id;
       currentStudyChatTitle = conversation.title || 'Study Chat';
-      conversationHistory = (conversation.messages || []).map(item => ({ role: item.role, text: item.text }));
+      conversationHistory = (conversation.messages || [])
+        .filter(item => item.role === 'user' || item.role === 'bot')
+        .map(item => ({ role: item.role, text: item.text }));
       studyQuizSets = [];
       const subjectOption = [...document.querySelectorAll('.subject-option')]
         .find(option => option.dataset.subject === (conversation.subject || ''));
@@ -1632,11 +1634,15 @@ id="quizBtn"
         document.querySelectorAll('.subject-option').forEach(option => option.classList.toggle('selected', option === subjectOption));
       }
       chatMessages.replaceChildren();
-      for (const message of conversationHistory) {
+      for (const message of (conversation.messages || [])) {
         if (message.role === 'user') appendUserMessage(message.text);
-        else {
+        else if (message.role === 'bot') {
           const row = appendBotTyping();
           renderBotReply(row, { reply: message.text, matched: true });
+        } else if (message.role === 'quiz' && Array.isArray(message.questions)) {
+          studyQuizSets.push(message.questions);
+          const row = appendBotMessageRow();
+          renderQuiz(row, message.questions);
         }
       }
       exportPdfBtn.disabled = conversationHistory.length === 0;
@@ -4894,11 +4900,29 @@ exportDropdownMenu
           await res.json();
 
         if (Array.isArray(data.questions) && data.questions.length) {
-          studyQuizSets.push(data.questions.map((question) => ({
+          const savedQuestions = data.questions.map((question) => ({
             question: String(question.question || ""),
             options: Array.isArray(question.options) ? question.options.map(String) : [],
-            answer: Number(question.answer)
-          })));
+            answer: Number(question.answer),
+            explanation: String(question.explanation || "")
+          }));
+          studyQuizSets.push(savedQuestions);
+
+          if (currentStudyChatId) {
+            try {
+              const saveResponse = await CampusAuth.userFetch('/study/history/quiz', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ conversationId: currentStudyChatId, questions: savedQuestions }),
+              });
+              if (!saveResponse.ok) throw new Error('Quiz could not be saved.');
+              const chat = studyConversations.find(item => item.id === currentStudyChatId);
+              if (chat) chat.messages.push({ role: 'quiz', questions: savedQuestions, time: Date.now() });
+            } catch (saveError) {
+              console.error('Study quiz history save failed:', saveError);
+              showStudyHistoryStatus('Quiz could not be saved to history.');
+            }
+          }
         }
 
         renderQuiz(

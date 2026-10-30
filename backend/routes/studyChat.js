@@ -41,6 +41,38 @@ router.post('/history/message', async (req, res) => {
     }
 });
 
+router.post('/history/quiz', async (req, res) => {
+    try {
+        const conversationId = String(req.body?.conversationId || '').slice(0, 100);
+        const questions = Array.isArray(req.body?.questions) ? req.body.questions.slice(0, 20) : [];
+        if (!conversationId || !questions.length) {
+            return res.status(400).json({ success: false, message: 'Conversation and quiz questions are required.' });
+        }
+
+        const cleanQuestions = questions.map(question => ({
+            question: String(question?.question || '').slice(0, 2000),
+            options: Array.isArray(question?.options) ? question.options.slice(0, 6).map(option => String(option).slice(0, 1000)) : [],
+            answer: Number.isInteger(Number(question?.answer)) ? Number(question.answer) : -1,
+            explanation: String(question?.explanation || '').slice(0, 2000),
+        })).filter(question => question.question && question.options.length);
+
+        if (!cleanQuestions.length) {
+            return res.status(400).json({ success: false, message: 'No valid quiz questions were provided.' });
+        }
+
+        const log = await Log.findOneAndUpdate(
+            { userId: req.user._id, conversationId, chatType: 'study' },
+            { $push: { studyQuizzes: cleanQuestions } },
+            { sort: { timestamp: -1 }, new: true }
+        );
+        if (!log) return res.status(404).json({ success: false, message: 'Study conversation not found.' });
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Study quiz history save error:', error.message);
+        res.status(500).json({ success: false, message: 'Could not save quiz to Study history.' });
+    }
+});
+
 router.get('/history', async (req, res) => {
     try {
         const since = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000);
@@ -63,6 +95,9 @@ router.get('/history', async (req, res) => {
             if (log.studySubject) chat.subject = log.studySubject;
             chat.messages.push({ role: 'user', text: log.userMessage, id: `u-${log._id}`, time: log.timestamp.getTime() });
             chat.messages.push({ role: 'bot', text: log.botReply, id: `b-${log._id}`, time: log.timestamp.getTime() });
+            (log.studyQuizzes || []).forEach((questions, index) => {
+                chat.messages.push({ role: 'quiz', questions, id: `q-${log._id}-${index}`, time: log.timestamp.getTime() });
+            });
             chat.updatedAt = log.timestamp;
         }
         res.json({ conversations: [...conversations.values()].sort((a, b) => b.updatedAt - a.updatedAt) });
