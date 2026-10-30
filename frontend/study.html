@@ -1378,6 +1378,7 @@ id="quizBtn"
       - current-session history preservation
     */
     let conversationHistory = [];
+    let studyQuizSets = [];
     let currentStudyChatId = null;
     let currentStudyChatTitle = 'Study Chat';
     let studyConversations = [];
@@ -1487,6 +1488,7 @@ id="quizBtn"
       currentStudyChatId = null;
       currentStudyChatTitle = selectedSubject || 'Study Chat';
       conversationHistory = [];
+      studyQuizSets = [];
       chatMessages.replaceChildren(emptyState);
       exportPdfBtn.disabled = true;
       quizBtn.disabled = true;
@@ -1621,6 +1623,7 @@ id="quizBtn"
       currentStudyChatId = conversation.id;
       currentStudyChatTitle = conversation.title || 'Study Chat';
       conversationHistory = (conversation.messages || []).map(item => ({ role: item.role, text: item.text }));
+      studyQuizSets = [];
       const subjectOption = [...document.querySelectorAll('.subject-option')]
         .find(option => option.dataset.subject === (conversation.subject || ''));
       selectedSubject = conversation.subject || '';
@@ -3417,6 +3420,17 @@ exportDropdownMenu
             margin: 0 0 18px;
           }
 
+          .pdf-quiz-question {
+            margin: 0 0 14px;
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+
+          .pdf-quiz-question p { margin: 0 0 5px; }
+          .pdf-quiz-options { margin: 0; padding-left: 24px; }
+          .pdf-quiz-options li { margin: 0 0 3px; }
+          .pdf-quiz-answer-key { margin-top: 22px; page-break-inside: avoid; break-inside: avoid; }
+
           .pdf-message {
     margin-bottom: 22px;
     page-break-inside: avoid;
@@ -3773,7 +3787,8 @@ exportDropdownMenu
       subjectSnapshot,
       exportDate,
       summary,
-      visualizations
+      visualizations,
+      quizSets
     ) {
 
       const container =
@@ -3937,6 +3952,54 @@ exportDropdownMenu
           container.appendChild(vizPage);
         }
 
+      }
+
+
+      /* PRACTICE QUIZ — append generated questions at the end of the complete PDF. */
+      if (quizSets && quizSets.length) {
+        const quizPage = document.createElement("div");
+        quizPage.className = "pdf-summary-page";
+        quizPage.appendChild(createPdfElement("div", "pdf-summary-title", "Practice Quiz"));
+
+        quizSets.forEach((questions, setIndex) => {
+          if (quizSets.length > 1) {
+            quizPage.appendChild(createPdfElement("div", "pdf-section-title", `Quiz ${setIndex + 1}`));
+          }
+
+          const answerKey = [];
+          questions.forEach((question, questionIndex) => {
+            const item = document.createElement("div");
+            item.className = "pdf-quiz-question";
+            item.appendChild(createPdfElement("p", "", `${questionIndex + 1}. ${question.question || ""}`));
+
+            const options = document.createElement("ol");
+            options.className = "pdf-quiz-options";
+            options.type = "A";
+            (question.options || []).forEach((option) => {
+              options.appendChild(createPdfElement("li", "", option));
+            });
+            item.appendChild(options);
+            quizPage.appendChild(item);
+
+            const answerIndex = Number(question.answer);
+            const answerText = Number.isInteger(answerIndex) ? question.options?.[answerIndex] : "";
+            if (answerText) answerKey.push(`${questionIndex + 1}. ${String.fromCharCode(65 + answerIndex)} — ${answerText}`);
+          });
+
+          if (answerKey.length) {
+            const key = document.createElement("div");
+            key.className = "pdf-quiz-answer-key";
+            key.appendChild(createPdfElement("div", "pdf-section-title", "Answer Key"));
+            const list = document.createElement("ol");
+            list.className = "pdf-quiz-options";
+            list.type = "A";
+            answerKey.forEach((answer) => list.appendChild(createPdfElement("li", "", answer)));
+            key.appendChild(list);
+            quizPage.appendChild(key);
+          }
+        });
+
+        container.appendChild(quizPage);
       }
 
 
@@ -4408,7 +4471,12 @@ exportDropdownMenu
               subjectSnapshot,
               exportDate,
               summary,
-              visualizations
+              visualizations,
+              studyQuizSets.map((questions) => questions.map((question) => ({
+                question: question.question,
+                options: [...(question.options || [])],
+                answer: question.answer
+              })))
             );
 
           const completeFilename =
@@ -4824,6 +4892,14 @@ exportDropdownMenu
 
         const data =
           await res.json();
+
+        if (Array.isArray(data.questions) && data.questions.length) {
+          studyQuizSets.push(data.questions.map((question) => ({
+            question: String(question.question || ""),
+            options: Array.isArray(question.options) ? question.options.map(String) : [],
+            answer: Number(question.answer)
+          })));
+        }
 
         renderQuiz(
           row,
