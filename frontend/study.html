@@ -295,6 +295,13 @@
     .study-history-header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-bottom:14px; border-bottom:1px solid var(--border); }
     .study-history-header h2 { margin:0; font:700 1.05rem var(--font-display); }
     .study-history-close { width:36px; height:36px; border:1px solid var(--border); border-radius:10px; background:var(--bg); color:var(--text); cursor:pointer; }
+    .study-history-new { width:100%; min-height:44px; margin:8px 0 4px; padding:9px 10px; border:0; border-radius:9px; background:transparent; color:var(--accent); text-align:left; font-size:.92rem; font-weight:700; }
+    .study-history-toggle { display:flex; align-items:center; gap:10px; width:100%; min-height:44px; padding:9px 10px; border:0; border-radius:9px; background:transparent; color:var(--text-muted); text-align:left; cursor:pointer; font:500 .92rem var(--font-body); }
+    .study-history-toggle:hover,.study-history-toggle[aria-expanded="true"] { background:var(--accent-soft); color:var(--text); }
+    .study-history-toggle .study-history-chevron { margin-left:auto; transition:transform .15s ease; }
+    .study-history-toggle[aria-expanded="true"] .study-history-chevron { transform:rotate(180deg); }
+    .study-history-accordion { display:flex; flex:1; flex-direction:column; min-height:0; }
+    .study-history-accordion[hidden] { display:none; }
     .study-history-caption { margin:2px 0 10px; color:var(--text-muted); font-size:.72rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; }
     .study-history-list { display:flex; flex-direction:column; gap:5px; min-height:0; overflow:auto; flex:1; }
     .study-history-empty { padding:14px 10px; color:var(--text-muted); font-size:.84rem; }
@@ -1046,6 +1053,10 @@
   ======================================================== -->
   <header class="study-header">
 
+    <button type="button" class="study-menu-toggle" id="studyMenuToggle" aria-label="Open Study sidebar" aria-expanded="false" aria-controls="studyHistoryPanel">
+      <span></span><span></span><span></span>
+    </button>
+
     <div class="study-avatar">📚</div>
 
     <div class="study-title">
@@ -1151,12 +1162,6 @@ id="quizBtn"
         </div>
       </div>
 
-      <button type="button" class="study-menu-toggle" id="studyMenuToggle" aria-label="Open Study chat history" aria-expanded="false" aria-controls="studyHistoryPanel">
-        <span></span><span></span><span></span>
-      </button>
-      <button type="button" class="study-new-chat-btn" id="studyNewChat" aria-label="Start a new Study chat">New chat</button>
-
-
       <!-- =================================================
            BACK TO CHAT
       ================================================== -->
@@ -1172,16 +1177,22 @@ id="quizBtn"
   </header>
 
   <div class="study-history-backdrop" id="studyHistoryBackdrop" hidden></div>
-  <aside class="study-history-panel" id="studyHistoryPanel" aria-label="Study chat history" aria-hidden="true">
+  <aside class="study-history-panel" id="studyHistoryPanel" aria-label="Study sidebar" aria-hidden="true">
     <div class="study-history-header">
-      <h2>Study chat history</h2>
-      <button type="button" class="study-history-close" id="studyHistoryClose" aria-label="Close history">×</button>
+      <h2>Study Assistant</h2>
+      <button type="button" class="study-history-close" id="studyHistoryClose" aria-label="Close sidebar">×</button>
     </div>
-    <p class="study-history-caption">Recent Study chats · 15 days</p>
-    <div class="study-history-list" id="studyHistoryList"><div class="study-history-empty">Loading history…</div></div>
-    <div class="study-history-footer">
-      <button type="button" class="study-history-clear" id="studyHistoryClear">Clear all Study history</button>
-      <p id="studyHistoryStatus" role="status" aria-live="polite"></p>
+    <button type="button" class="study-new-chat-btn study-history-new" id="studyNewChat">＋ New Chat</button>
+    <button type="button" class="study-history-toggle" id="studyHistoryToggle" aria-expanded="false" aria-controls="studyHistoryAccordion">
+      <span aria-hidden="true">🕘</span> Chat History <span class="study-history-chevron" aria-hidden="true">⌄</span>
+    </button>
+    <div class="study-history-accordion" id="studyHistoryAccordion" hidden>
+      <p class="study-history-caption">Recent chats · 15 days</p>
+      <div class="study-history-list" id="studyHistoryList"><div class="study-history-empty">Loading history…</div></div>
+      <div class="study-history-footer">
+        <button type="button" class="study-history-clear" id="studyHistoryClear">🗑 Clear History</button>
+        <p id="studyHistoryStatus" role="status" aria-live="polite"></p>
+      </div>
     </div>
   </aside>
 
@@ -1340,6 +1351,8 @@ id="quizBtn"
     const studyHistoryBackdrop = document.getElementById('studyHistoryBackdrop');
     const studyHistoryList = document.getElementById('studyHistoryList');
     const studyHistoryStatus = document.getElementById('studyHistoryStatus');
+    const studyHistoryToggle = document.getElementById('studyHistoryToggle');
+    const studyHistoryAccordion = document.getElementById('studyHistoryAccordion');
     const studyMenuToggle = document.getElementById('studyMenuToggle');
 
 
@@ -1366,6 +1379,7 @@ id="quizBtn"
     let studyConversations = [];
     let editingStudyConversationId = null;
     let openStudyHistoryMenuId = null;
+    let studyHistoryExpanded = false;
     let studyHistoryStatusTimer = null;
 
     let isExportingPdf = false;
@@ -1582,6 +1596,13 @@ id="quizBtn"
       document.getElementById('studyHistoryClose').focus();
     }
 
+    function toggleStudyHistory() {
+      studyHistoryExpanded = !studyHistoryExpanded;
+      studyHistoryAccordion.hidden = !studyHistoryExpanded;
+      studyHistoryToggle.setAttribute('aria-expanded', String(studyHistoryExpanded));
+      if (studyHistoryExpanded) renderStudyHistoryList();
+    }
+
     function closeStudyHistory() {
       studyHistoryPanel.classList.remove('open');
       studyHistoryPanel.setAttribute('aria-hidden', 'true');
@@ -1688,6 +1709,7 @@ id="quizBtn"
     }
 
     studyMenuToggle.addEventListener('click', openStudyHistory);
+    studyHistoryToggle.addEventListener('click', toggleStudyHistory);
     document.getElementById('studyHistoryClose').addEventListener('click', closeStudyHistory);
     studyHistoryBackdrop.addEventListener('click', closeStudyHistory);
     document.getElementById('studyNewChat').addEventListener('click', () => startNewStudyChat());
