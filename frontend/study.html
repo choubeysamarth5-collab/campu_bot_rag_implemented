@@ -300,10 +300,10 @@
     .study-history-toggle:hover,.study-history-toggle[aria-expanded="true"] { background:var(--accent-soft); color:var(--text); }
     .study-history-toggle .study-history-chevron { margin-left:auto; transition:transform .15s ease; }
     .study-history-toggle[aria-expanded="true"] .study-history-chevron { transform:rotate(180deg); }
-    .study-history-accordion { display:flex; flex:1; flex-direction:column; min-height:0; }
+    .study-history-accordion { display:block; flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; }
     .study-history-accordion[hidden] { display:none; }
     .study-history-caption { margin:2px 0 10px; color:var(--text-muted); font-size:.72rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; }
-    .study-history-list { display:flex; flex-direction:column; gap:5px; min-height:0; overflow:auto; flex:1; }
+    .study-history-list { display:flex; flex-direction:column; gap:5px; min-height:0; overflow:visible; }
     .study-history-empty { padding:14px 10px; color:var(--text-muted); font-size:.84rem; }
     .study-history-entry { position:relative; display:flex; align-items:center; gap:4px; min-width:0; padding:3px; border-radius:10px; }
     .study-history-entry.active { background:var(--accent-soft); }
@@ -318,9 +318,9 @@
     .study-history-menu button.danger { color:#fb7185; }
     .study-history-rename { display:flex; flex:1; gap:5px; min-width:0; }
     .study-history-rename input { min-width:0; flex:1; padding:8px; border:1px solid var(--border); border-radius:8px; background:var(--bg); color:var(--text); }
-    .study-history-footer { padding-top:12px; border-top:1px solid var(--border); }
-    .study-history-clear { width:100%; color:#fb7185; }
-    #studyHistoryStatus { min-height:1.2em; margin:8px 0 0; color:var(--text-muted); font-size:.75rem; }
+    .study-history-clear { display:flex; align-items:center; gap:10px; width:100%; min-height:42px; margin-top:6px; padding:9px 10px; border:0; border-radius:9px; background:transparent; color:var(--text-muted); text-align:left; font:500 .9rem var(--font-body); cursor:pointer; }
+    .study-history-clear:hover { background:rgba(255,255,255,.06); color:var(--text); }
+    #studyHistoryStatus { min-height:1.2em; margin:4px 10px 8px; color:var(--text-muted); font-size:.75rem; }
 
     /* =========================================================
        PDF PROGRESS
@@ -535,6 +535,7 @@
 
     .msg-row.bot {
       align-self: flex-start;
+      max-width: 100%;
     }
 
     .msg-avatar {
@@ -555,6 +556,7 @@
     .msg-row.bot .msg-avatar {
       background: var(--bot-bubble);
       border: 1px solid var(--border);
+      display: none;
     }
 
     .bubble {
@@ -573,9 +575,13 @@
     }
 
     .msg-row.bot .bubble {
-      background: var(--bot-bubble);
-      border: 1px solid var(--border);
-      border-bottom-left-radius: 4px;
+      max-width: 100%;
+      padding: 4px 2px;
+      background: transparent;
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      color: var(--text);
     }
 
     .msg-row.bot .bubble.no-match {
@@ -1189,10 +1195,8 @@ id="quizBtn"
     <div class="study-history-accordion" id="studyHistoryAccordion" hidden>
       <p class="study-history-caption">Recent chats · 15 days</p>
       <div class="study-history-list" id="studyHistoryList"><div class="study-history-empty">Loading history…</div></div>
-      <div class="study-history-footer">
-        <button type="button" class="study-history-clear" id="studyHistoryClear">🗑 Clear History</button>
-        <p id="studyHistoryStatus" role="status" aria-live="polite"></p>
-      </div>
+      <button type="button" class="study-history-clear" id="studyHistoryClear">🗑 Clear History</button>
+      <p id="studyHistoryStatus" role="status" aria-live="polite"></p>
     </div>
   </aside>
 
