@@ -295,17 +295,6 @@
     .study-history-header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-bottom:14px; border-bottom:1px solid var(--border); }
     .study-history-header h2 { margin:0; font:700 1.05rem var(--font-display); }
     .study-history-close { width:36px; height:36px; border:1px solid var(--border); border-radius:10px; background:var(--bg); color:var(--text); cursor:pointer; }
-    .study-history-new { width:100%; margin:14px 0 12px; text-align:left; }
-    .study-menu-actions { display:grid; gap:8px; padding:14px 0 12px; border-bottom:1px solid var(--border); }
-    .study-menu-actions .study-history-btn,
-    .study-menu-actions .study-new-chat-btn,
-    .study-menu-actions .back-link { width:100%; min-height:42px; height:auto; justify-content:flex-start; padding:10px 12px; border-radius:9px; font-size:.87rem; }
-    .study-menu-actions .export-dropdown { width:100%; }
-    .study-menu-actions .export-pdf-btn { width:100%; height:42px; justify-content:flex-start; }
-    .study-menu-actions .export-text { display:inline; }
-    .study-menu-actions .export-chevron { display:inline; margin-left:auto; }
-    .study-menu-actions .export-dropdown-menu { top:auto; bottom:calc(100% + 8px); right:0; }
-    .study-menu-actions .back-link::before { content:none; }
     .study-history-caption { margin:2px 0 10px; color:var(--text-muted); font-size:.72rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; }
     .study-history-list { display:flex; flex-direction:column; gap:5px; min-height:0; overflow:auto; flex:1; }
     .study-history-empty { padding:14px 10px; color:var(--text-muted); font-size:.84rem; }
@@ -941,7 +930,7 @@
         padding: 10px 14px;
         gap: 9px;
       }
-      .study-menu-toggle { width:36px; height:36px; }
+      .study-menu-toggle { width:32px; height:32px; }
 
       .study-avatar {
         width: 34px;
@@ -960,8 +949,6 @@
       .header-actions {
         gap: 6px;
       }
-
-      .study-menu-actions .export-dropdown-menu { position:fixed; top:auto; bottom:0; left:0; right:0; width:100%; max-width:100%; border-radius:18px 18px 0 0; padding:10px 10px calc(10px + env(safe-area-inset-bottom, 0px)); box-shadow:0 -8px 24px rgba(0,0,0,.5); }
 
       .export-pdf-btn,
       .quiz-btn {
@@ -1058,10 +1045,6 @@
        HEADER
   ======================================================== -->
   <header class="study-header">
-
-    <button type="button" class="study-menu-toggle" id="studyMenuToggle" aria-label="Open Study menu" aria-expanded="false" aria-controls="studyHistoryPanel">
-      <span></span><span></span><span></span>
-    </button>
 
     <div class="study-avatar">📚</div>
 
@@ -1168,7 +1151,9 @@ id="quizBtn"
         </div>
       </div>
 
-      <button type="button" class="study-history-btn" id="studyHistoryOpen" aria-label="Open Study chat history">History</button>
+      <button type="button" class="study-menu-toggle" id="studyMenuToggle" aria-label="Open Study chat history" aria-expanded="false" aria-controls="studyHistoryPanel">
+        <span></span><span></span><span></span>
+      </button>
       <button type="button" class="study-new-chat-btn" id="studyNewChat" aria-label="Start a new Study chat">New chat</button>
 
 
@@ -1187,12 +1172,11 @@ id="quizBtn"
   </header>
 
   <div class="study-history-backdrop" id="studyHistoryBackdrop" hidden></div>
-  <aside class="study-history-panel" id="studyHistoryPanel" aria-label="Study menu" aria-hidden="true">
+  <aside class="study-history-panel" id="studyHistoryPanel" aria-label="Study chat history" aria-hidden="true">
     <div class="study-history-header">
-      <h2>Study menu</h2>
-      <button type="button" class="study-history-close" id="studyHistoryClose" aria-label="Close menu">×</button>
+      <h2>Study chat history</h2>
+      <button type="button" class="study-history-close" id="studyHistoryClose" aria-label="Close history">×</button>
     </div>
-    <div class="study-menu-actions" id="studyMenuActions"></div>
     <p class="study-history-caption">Recent Study chats · 15 days</p>
     <div class="study-history-list" id="studyHistoryList"><div class="study-history-empty">Loading history…</div></div>
     <div class="study-history-footer">
@@ -1357,14 +1341,6 @@ id="quizBtn"
     const studyHistoryList = document.getElementById('studyHistoryList');
     const studyHistoryStatus = document.getElementById('studyHistoryStatus');
     const studyMenuToggle = document.getElementById('studyMenuToggle');
-    const studyMenuActions = document.getElementById('studyMenuActions');
-    [
-      document.getElementById('studyHistoryOpen'),
-      document.getElementById('studyNewChat'),
-      exportDropdown,
-      document.querySelector('.back-link'),
-    ].filter(Boolean).forEach(control => studyMenuActions.appendChild(control));
-    document.querySelector('.header-actions')?.remove();
 
 
     /* =========================================================
@@ -1711,7 +1687,6 @@ id="quizBtn"
       } catch (error) { showStudyHistoryStatus(error.message); }
     }
 
-    document.getElementById('studyHistoryOpen').addEventListener('click', openStudyHistory);
     studyMenuToggle.addEventListener('click', openStudyHistory);
     document.getElementById('studyHistoryClose').addEventListener('click', closeStudyHistory);
     studyHistoryBackdrop.addEventListener('click', closeStudyHistory);
