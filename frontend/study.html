@@ -260,6 +260,55 @@
       background: var(--accent-soft);
     }
 
+    .study-history-btn,
+    .study-new-chat-btn {
+      min-height: 34px;
+      padding: 0 12px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--bg);
+      color: var(--text);
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: .82rem;
+    }
+    .study-history-btn:hover,
+    .study-new-chat-btn:hover { border-color: var(--accent); background: var(--accent-soft); }
+
+    .study-history-backdrop { position:fixed; inset:0; z-index:1000; background:rgba(4,6,12,.58); }
+    .study-history-backdrop[hidden] { display:none; }
+    .study-history-panel {
+      position:fixed; z-index:1001; inset:0 auto 0 0; display:flex; flex-direction:column;
+      width:min(380px, 90vw); padding:18px; border-right:1px solid var(--border);
+      background:var(--bg-elevated); color:var(--text); box-shadow:16px 0 50px rgba(0,0,0,.35);
+      transform:translateX(-102%); transition:transform .2s ease;
+    }
+    .study-history-panel:not(.open) { visibility:hidden; }
+    .study-history-panel.open { transform:translateX(0); }
+    .study-history-header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-bottom:14px; border-bottom:1px solid var(--border); }
+    .study-history-header h2 { margin:0; font:700 1.05rem var(--font-display); }
+    .study-history-close { width:36px; height:36px; border:1px solid var(--border); border-radius:10px; background:var(--bg); color:var(--text); cursor:pointer; }
+    .study-history-new { width:100%; margin:14px 0 12px; text-align:left; }
+    .study-history-caption { margin:2px 0 10px; color:var(--text-muted); font-size:.72rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; }
+    .study-history-list { display:flex; flex-direction:column; gap:5px; min-height:0; overflow:auto; flex:1; }
+    .study-history-empty { padding:14px 10px; color:var(--text-muted); font-size:.84rem; }
+    .study-history-entry { position:relative; display:flex; align-items:center; gap:4px; min-width:0; padding:3px; border-radius:10px; }
+    .study-history-entry.active { background:var(--accent-soft); }
+    .study-history-open { min-width:0; flex:1; padding:9px 10px; overflow:hidden; border:0; background:transparent; color:var(--text); text-align:left; text-overflow:ellipsis; white-space:nowrap; cursor:pointer; }
+    .study-history-subject { display:block; overflow:hidden; color:var(--text-muted); font-size:.72rem; text-overflow:ellipsis; }
+    .study-history-more { flex:none; width:34px; height:34px; border:0; border-radius:8px; background:transparent; color:var(--text-muted); font-size:1.2rem; cursor:pointer; }
+    .study-history-more:hover { background:rgba(255,255,255,.07); color:var(--text); }
+    .study-history-menu { position:absolute; z-index:3; top:calc(100% - 2px); right:4px; display:grid; min-width:160px; padding:5px; border:1px solid var(--border); border-radius:10px; background:var(--bg); box-shadow:0 12px 28px rgba(0,0,0,.35); }
+    .study-history-menu[hidden] { display:none; }
+    .study-history-menu button { padding:9px 10px; border:0; border-radius:7px; background:transparent; color:var(--text); text-align:left; cursor:pointer; }
+    .study-history-menu button:hover { background:var(--accent-soft); }
+    .study-history-menu button.danger { color:#fb7185; }
+    .study-history-rename { display:flex; flex:1; gap:5px; min-width:0; }
+    .study-history-rename input { min-width:0; flex:1; padding:8px; border:1px solid var(--border); border-radius:8px; background:var(--bg); color:var(--text); }
+    .study-history-footer { padding-top:12px; border-top:1px solid var(--border); }
+    .study-history-clear { width:100%; color:#fb7185; }
+    #studyHistoryStatus { min-height:1.2em; margin:8px 0 0; color:var(--text-muted); font-size:.75rem; }
+
     /* =========================================================
        PDF PROGRESS
     ========================================================= */
@@ -894,6 +943,11 @@
         gap: 6px;
       }
 
+      .header-actions .study-history-btn,
+      .header-actions .study-new-chat-btn { width:34px; height:34px; min-height:34px; padding:0; font-size:0; }
+      .header-actions .study-history-btn::before { content:"◷"; font-size:1rem; }
+      .header-actions .study-new-chat-btn::before { content:"＋"; font-size:1rem; }
+
       .export-pdf-btn,
       .quiz-btn {
         width: 32px;
@@ -982,8 +1036,6 @@
 </head>
 
 <body>
-
-  <div class="study-app">
 
   <div class="study-app">
 
@@ -1097,6 +1149,9 @@ id="quizBtn"
         </div>
       </div>
 
+      <button type="button" class="study-history-btn" id="studyHistoryOpen" aria-label="Open Study chat history">History</button>
+      <button type="button" class="study-new-chat-btn" id="studyNewChat" aria-label="Start a new Study chat">New chat</button>
+
 
       <!-- =================================================
            BACK TO CHAT
@@ -1111,6 +1166,21 @@ id="quizBtn"
     </div>
 
   </header>
+
+  <div class="study-history-backdrop" id="studyHistoryBackdrop" hidden></div>
+  <aside class="study-history-panel" id="studyHistoryPanel" aria-label="Study chat history" aria-hidden="true">
+    <div class="study-history-header">
+      <h2>Study chat history</h2>
+      <button type="button" class="study-history-close" id="studyHistoryClose" aria-label="Close history">×</button>
+    </div>
+    <button type="button" class="study-new-chat-btn study-history-new" id="studyHistoryNewChat">＋ New Study chat</button>
+    <p class="study-history-caption">Recent chats · 15 days</p>
+    <div class="study-history-list" id="studyHistoryList"><div class="study-history-empty">Loading history…</div></div>
+    <div class="study-history-footer">
+      <button type="button" class="study-history-clear" id="studyHistoryClear">Clear all Study history</button>
+      <p id="studyHistoryStatus" role="status" aria-live="polite"></p>
+    </div>
+  </aside>
 
     <!-- =======================================================
          PDF PROGRESS
@@ -1263,6 +1333,11 @@ id="quizBtn"
     const subjectDropdownMenu =
       document.getElementById("subjectDropdownMenu");
 
+    const studyHistoryPanel = document.getElementById('studyHistoryPanel');
+    const studyHistoryBackdrop = document.getElementById('studyHistoryBackdrop');
+    const studyHistoryList = document.getElementById('studyHistoryList');
+    const studyHistoryStatus = document.getElementById('studyHistoryStatus');
+
 
     /* =========================================================
        STATE
@@ -1282,6 +1357,12 @@ id="quizBtn"
       - current-session history preservation
     */
     let conversationHistory = [];
+    let currentStudyChatId = null;
+    let currentStudyChatTitle = 'Study Chat';
+    let studyConversations = [];
+    let editingStudyConversationId = null;
+    let openStudyHistoryMenuId = null;
+    let studyHistoryStatusTimer = null;
 
     let isExportingPdf = false;
 
@@ -1356,7 +1437,7 @@ id="quizBtn"
       /*
         Changing subject starts a fresh Study conversation.
       */
-      conversationHistory = [];
+      startNewStudyChat(false);
 
       subjectDropdownLabel.textContent =
         optEl.querySelector("span").textContent;
@@ -1379,6 +1460,234 @@ id="quizBtn"
       closeDropdown();
 
     }
+
+    function startNewStudyChat(focusInput = true, closeHistory = true) {
+      currentStudyChatId = null;
+      currentStudyChatTitle = selectedSubject || 'Study Chat';
+      conversationHistory = [];
+      chatMessages.replaceChildren(emptyState);
+      exportPdfBtn.disabled = true;
+      quizBtn.disabled = true;
+      if (closeHistory && studyHistoryPanel.classList.contains('open')) closeStudyHistory();
+      if (focusInput) chatInput.focus();
+    }
+
+    function showStudyHistoryStatus(message) {
+      if (!studyHistoryStatus) return;
+      studyHistoryStatus.textContent = message;
+      clearTimeout(studyHistoryStatusTimer);
+      studyHistoryStatusTimer = setTimeout(() => { studyHistoryStatus.textContent = ''; }, 4500);
+    }
+
+    async function loadStudyHistory() {
+      try {
+        const response = await CampusAuth.userFetch('/study/history');
+        if (!response.ok) throw new Error('Could not load Study chat history.');
+        const data = await response.json();
+        studyConversations = data.conversations || [];
+        renderStudyHistoryList();
+      } catch (error) {
+        studyHistoryList.innerHTML = '<div class="study-history-empty">History could not be loaded. Try again.</div>';
+        console.error('Study history load failed:', error);
+      }
+    }
+
+    function renderStudyHistoryList() {
+      if (!studyConversations.length) {
+        studyHistoryList.innerHTML = '<div class="study-history-empty">Your Study chats from the last 15 days will appear here.</div>';
+        return;
+      }
+      studyHistoryList.replaceChildren();
+      studyConversations.forEach(chat => {
+        const entry = document.createElement('div');
+        entry.className = `study-history-entry${chat.id === currentStudyChatId ? ' active' : ''}`;
+        if (editingStudyConversationId === chat.id) {
+          const form = document.createElement('form');
+          form.className = 'study-history-rename';
+          const input = document.createElement('input');
+          input.maxLength = 80;
+          input.value = chat.title || '';
+          input.setAttribute('aria-label', 'Study conversation name');
+          const save = document.createElement('button');
+          save.type = 'submit';
+          save.className = 'study-history-more';
+          save.textContent = '✓';
+          save.setAttribute('aria-label', 'Save name');
+          const cancel = document.createElement('button');
+          cancel.type = 'button';
+          cancel.className = 'study-history-more';
+          cancel.textContent = '×';
+          cancel.setAttribute('aria-label', 'Cancel rename');
+          form.append(input, save, cancel);
+          form.addEventListener('submit', event => { event.preventDefault(); renameStudyConversation(chat.id, input.value); });
+          cancel.addEventListener('click', () => { editingStudyConversationId = null; renderStudyHistoryList(); });
+          entry.appendChild(form);
+          studyHistoryList.appendChild(entry);
+          requestAnimationFrame(() => { input.focus(); input.select(); });
+          return;
+        }
+
+        const open = document.createElement('button');
+        open.type = 'button';
+        open.className = 'study-history-open';
+        open.textContent = chat.title || 'Study Chat';
+        open.addEventListener('click', () => openStudyConversation(chat.id));
+        if (chat.subject) {
+          const subject = document.createElement('span');
+          subject.className = 'study-history-subject';
+          subject.textContent = chat.subject;
+          open.appendChild(subject);
+        }
+        const more = document.createElement('button');
+        more.type = 'button';
+        more.className = 'study-history-more';
+        more.textContent = '⋯';
+        more.setAttribute('aria-label', `Options for ${chat.title || 'Study chat'}`);
+        more.setAttribute('aria-expanded', String(openStudyHistoryMenuId === chat.id));
+        more.addEventListener('click', () => {
+          openStudyHistoryMenuId = openStudyHistoryMenuId === chat.id ? null : chat.id;
+          renderStudyHistoryList();
+        });
+        entry.append(open, more);
+
+        if (openStudyHistoryMenuId === chat.id) {
+          const menu = document.createElement('div');
+          menu.className = 'study-history-menu';
+          const rename = document.createElement('button');
+          rename.type = 'button';
+          rename.textContent = 'Rename';
+          rename.addEventListener('click', () => { editingStudyConversationId = chat.id; openStudyHistoryMenuId = null; renderStudyHistoryList(); });
+          const remove = document.createElement('button');
+          remove.type = 'button';
+          remove.className = 'danger';
+          remove.textContent = 'Delete conversation';
+          remove.addEventListener('click', () => deleteStudyConversation(chat.id));
+          menu.append(rename, remove);
+          entry.appendChild(menu);
+        }
+        studyHistoryList.appendChild(entry);
+      });
+    }
+
+    function openStudyHistory() {
+      studyHistoryBackdrop.hidden = false;
+      studyHistoryPanel.classList.add('open');
+      studyHistoryPanel.setAttribute('aria-hidden', 'false');
+      renderStudyHistoryList();
+      document.getElementById('studyHistoryClose').focus();
+    }
+
+    function closeStudyHistory() {
+      studyHistoryPanel.classList.remove('open');
+      studyHistoryPanel.setAttribute('aria-hidden', 'true');
+      studyHistoryBackdrop.hidden = true;
+      openStudyHistoryMenuId = null;
+    }
+
+    async function openStudyConversation(id) {
+      const conversation = studyConversations.find(item => item.id === id);
+      if (!conversation) return;
+      currentStudyChatId = conversation.id;
+      currentStudyChatTitle = conversation.title || 'Study Chat';
+      conversationHistory = (conversation.messages || []).map(item => ({ role: item.role, text: item.text }));
+      const subjectOption = [...document.querySelectorAll('.subject-option')]
+        .find(option => option.dataset.subject === (conversation.subject || ''));
+      selectedSubject = conversation.subject || '';
+      if (subjectOption) {
+        subjectDropdownLabel.textContent = subjectOption.querySelector('span').textContent;
+        document.querySelectorAll('.subject-option').forEach(option => option.classList.toggle('selected', option === subjectOption));
+      }
+      chatMessages.replaceChildren();
+      for (const message of conversationHistory) {
+        if (message.role === 'user') appendUserMessage(message.text);
+        else {
+          const row = appendBotTyping();
+          renderBotReply(row, { reply: message.text, matched: true });
+        }
+      }
+      exportPdfBtn.disabled = conversationHistory.length === 0;
+      quizBtn.disabled = conversationHistory.length === 0;
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+      closeStudyHistory();
+      chatInput.focus();
+    }
+
+    async function persistStudyTurn(userMessage, botReply) {
+      try {
+        const response = await CampusAuth.userFetch('/study/history/message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            conversationId: currentStudyChatId,
+            conversationTitle: currentStudyChatTitle,
+            subject: selectedSubject,
+            userMessage,
+            botReply,
+            timestamp: new Date().toISOString(),
+          }),
+        });
+        if (!response.ok) throw new Error('Could not save this Study conversation.');
+        let chat = studyConversations.find(item => item.id === currentStudyChatId);
+        if (!chat) {
+          chat = { id: currentStudyChatId, title: currentStudyChatTitle, subject: selectedSubject, messages: [], updatedAt: new Date().toISOString() };
+          studyConversations.unshift(chat);
+        }
+        chat.messages.push({ role: 'user', text: userMessage }, { role: 'bot', text: botReply });
+        chat.updatedAt = new Date().toISOString();
+        renderStudyHistoryList();
+      } catch (error) {
+        console.error('Study history save failed:', error);
+        showStudyHistoryStatus('This answer could not be saved to history. Check your connection.');
+      }
+    }
+
+    async function renameStudyConversation(id, title) {
+      const cleanTitle = String(title || '').trim();
+      if (!cleanTitle) { showStudyHistoryStatus('Enter a conversation name.'); return; }
+      try {
+        const response = await CampusAuth.userFetch(`/study/history/${encodeURIComponent(id)}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: cleanTitle }),
+        });
+        if (!response.ok) throw new Error('Could not rename this conversation.');
+        const chat = studyConversations.find(item => item.id === id);
+        if (chat) chat.title = cleanTitle.slice(0, 80);
+        if (currentStudyChatId === id) currentStudyChatTitle = cleanTitle.slice(0, 80);
+        editingStudyConversationId = null;
+        renderStudyHistoryList();
+      } catch (error) { showStudyHistoryStatus(error.message); }
+    }
+
+    async function deleteStudyConversation(id) {
+      if (!(await confirm('Delete this Study conversation?'))) return;
+      try {
+        const response = await CampusAuth.userFetch(`/study/history/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        if (!response.ok) throw new Error('Could not delete this conversation.');
+        studyConversations = studyConversations.filter(chat => chat.id !== id);
+        if (currentStudyChatId === id) startNewStudyChat(false, false);
+        renderStudyHistoryList();
+      } catch (error) { showStudyHistoryStatus(error.message); }
+    }
+
+    async function clearStudyHistory() {
+      if (!studyConversations.length) return;
+      if (!(await confirm('Clear all Study chat history from the last 15 days?'))) return;
+      try {
+        const response = await CampusAuth.userFetch('/study/history', { method: 'DELETE' });
+        if (!response.ok) throw new Error('Could not clear Study history.');
+        studyConversations = [];
+        startNewStudyChat(false, false);
+        renderStudyHistoryList();
+        showStudyHistoryStatus('Study history cleared.');
+      } catch (error) { showStudyHistoryStatus(error.message); }
+    }
+
+    document.getElementById('studyHistoryOpen').addEventListener('click', openStudyHistory);
+    document.getElementById('studyHistoryClose').addEventListener('click', closeStudyHistory);
+    studyHistoryBackdrop.addEventListener('click', closeStudyHistory);
+    document.getElementById('studyNewChat').addEventListener('click', () => startNewStudyChat());
+    document.getElementById('studyHistoryNewChat').addEventListener('click', () => startNewStudyChat());
+    document.getElementById('studyHistoryClear').addEventListener('click', clearStudyHistory);
+    document.addEventListener('keydown', event => { if (event.key === 'Escape' && studyHistoryPanel.classList.contains('open')) closeStudyHistory(); });
 
 
     document
@@ -2138,6 +2447,11 @@ exportDropdownMenu
         return;
       }
 
+      if (!currentStudyChatId) {
+        currentStudyChatId = `study-${window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`}`;
+        currentStudyChatTitle = selectedSubject || message.slice(0, 40) || 'Study Chat';
+      }
+
       chatInput.value = "";
 
       sendBtn.disabled = true;
@@ -2278,6 +2592,8 @@ exportDropdownMenu
           role: "bot",
           text: finalReply
         });
+
+        await persistStudyTurn(message, finalReply);
 
 
         /*
@@ -4529,7 +4845,7 @@ exportDropdownMenu
        INITIAL LOAD
     ========================================================= */
 
-    loadSubjects();
+    loadSubjects().then(loadStudyHistory);
 
   </script>
 

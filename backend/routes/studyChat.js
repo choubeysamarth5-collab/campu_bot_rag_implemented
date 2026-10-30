@@ -8,6 +8,7 @@
 
 const express = require("express");
 const router = express.Router();
+const Log = require('../models/Log');
 const { askStudyRAG } = require("../rag/services/studyRagService");
 const { askGemini } = require("../rag/services/geminiService");
 const { askGroq } = require("../rag/services/groqService");
@@ -15,6 +16,94 @@ const { generateStudyVisualizations } =
     require("../rag/services/studyVisualizationService");
 const { generateStudyQuiz } =
     require("../rag/services/studyQuizService");
+
+router.post('/history/message', async (req, res) => {
+    try {
+        const { conversationId, conversationTitle, subject, userMessage, botReply, timestamp } = req.body;
+        if (!conversationId || !String(userMessage || '').trim() || typeof botReply !== 'string' || !botReply.trim()) {
+            return res.status(400).json({ success: false, message: 'Conversation, question, and answer are required.' });
+        }
+        const log = await Log.create({
+            userId: req.user._id,
+            conversationId: String(conversationId).slice(0, 100),
+            conversationTitle: String(conversationTitle || 'Study Chat').trim().slice(0, 80),
+            chatType: 'study',
+            studySubject: String(subject || '').trim().slice(0, 100),
+            userMessage: String(userMessage).trim().slice(0, 5000),
+            botReply: String(botReply).slice(0, 30000),
+            lang: 'en',
+            timestamp: timestamp ? new Date(timestamp) : new Date(),
+        });
+        res.status(201).json({ success: true, id: log._id });
+    } catch (error) {
+        console.error('Study history save error:', error.message);
+        res.status(500).json({ success: false, message: 'Could not save Study chat history.' });
+    }
+});
+
+router.get('/history', async (req, res) => {
+    try {
+        const since = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000);
+        const logs = await Log.find({ userId: req.user._id, chatType: 'study', timestamp: { $gte: since } })
+            .sort({ timestamp: 1 }).lean();
+        const conversations = new Map();
+        for (const log of logs) {
+            if (!log.conversationId) continue;
+            if (!conversations.has(log.conversationId)) {
+                conversations.set(log.conversationId, {
+                    id: log.conversationId,
+                    title: log.conversationTitle || log.userMessage.slice(0, 40) || 'Study Chat',
+                    subject: log.studySubject || '',
+                    messages: [],
+                    updatedAt: log.timestamp,
+                });
+            }
+            const chat = conversations.get(log.conversationId);
+            if (log.conversationTitle) chat.title = log.conversationTitle;
+            if (log.studySubject) chat.subject = log.studySubject;
+            chat.messages.push({ role: 'user', text: log.userMessage, id: `u-${log._id}`, time: log.timestamp.getTime() });
+            chat.messages.push({ role: 'bot', text: log.botReply, id: `b-${log._id}`, time: log.timestamp.getTime() });
+            chat.updatedAt = log.timestamp;
+        }
+        res.json({ conversations: [...conversations.values()].sort((a, b) => b.updatedAt - a.updatedAt) });
+    } catch (error) {
+        console.error('Study history fetch error:', error.message);
+        res.status(500).json({ error: 'Could not load Study chat history.' });
+    }
+});
+
+router.put('/history/:conversationId', async (req, res) => {
+    try {
+        const title = String(req.body?.title || '').trim().slice(0, 80);
+        if (!title) return res.status(400).json({ error: 'Conversation name cannot be empty.' });
+        const result = await Log.updateMany(
+            { userId: req.user._id, conversationId: req.params.conversationId, chatType: 'study' },
+            { $set: { conversationTitle: title } }
+        );
+        if (!result.matchedCount) return res.status(404).json({ error: 'Study conversation not found.' });
+        res.json({ success: true, title });
+    } catch (error) {
+        res.status(500).json({ error: 'Could not rename Study conversation.' });
+    }
+});
+
+router.delete('/history/:conversationId', async (req, res) => {
+    try {
+        await Log.deleteMany({ userId: req.user._id, conversationId: req.params.conversationId, chatType: 'study' });
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: 'Could not delete Study conversation.' });
+    }
+});
+
+router.delete('/history', async (req, res) => {
+    try {
+        await Log.deleteMany({ userId: req.user._id, chatType: 'study' });
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: 'Could not clear Study chat history.' });
+    }
+});
 
 // ── POST /api/study/chat ──
 router.post("/chat", async (req, res) => {

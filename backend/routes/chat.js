@@ -256,6 +256,8 @@ router.post(
 
           conversationTitle,
 
+          chatType: 'faq',
+
           userMessage:
             userMessage.trim(),
 
@@ -283,7 +285,7 @@ router.post(
 router.get('/history', async (req, res) => {
   try {
     if (!Log) return res.json({ conversations: [] });
-    const logs = await Log.find({ userId: req.user._id, timestamp: { $gte: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000) } })
+    const logs = await Log.find({ userId: req.user._id, chatType: { $ne: 'study' }, timestamp: { $gte: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000) } })
       .sort({ timestamp: 1 }).lean();
     const byConversation = new Map();
     for (const log of logs) {
@@ -307,7 +309,7 @@ router.put('/history/:conversationId', async (req, res) => {
     const title = String(req.body?.title || '').trim().slice(0, 80);
     if (!title) return res.status(400).json({ error: 'Conversation name cannot be empty' });
     if (Log) await Log.updateMany(
-      { userId: req.user._id, conversationId: req.params.conversationId },
+      { userId: req.user._id, conversationId: req.params.conversationId, chatType: { $ne: 'study' } },
       { $set: { conversationTitle: title } }
     );
     res.json({ success: true, title });
@@ -318,7 +320,7 @@ router.put('/history/:conversationId', async (req, res) => {
 
 router.delete('/history/:conversationId', async (req, res) => {
   try {
-    if (Log) await Log.deleteMany({ userId: req.user._id, conversationId: req.params.conversationId });
+    if (Log) await Log.deleteMany({ userId: req.user._id, conversationId: req.params.conversationId, chatType: { $ne: 'study' } });
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Could not delete conversation' });
@@ -327,7 +329,7 @@ router.delete('/history/:conversationId', async (req, res) => {
 
 router.delete('/history', async (req, res) => {
   try {
-    if (Log) await Log.deleteMany({ userId: req.user._id });
+    if (Log) await Log.deleteMany({ userId: req.user._id, chatType: { $ne: 'study' } });
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Could not clear chat history' });

@@ -27,6 +27,19 @@ conversationId: {
     maxlength: 80,
   },
 
+  chatType: {
+    type: String,
+    enum: ['faq', 'study'],
+    default: 'faq',
+    index: true,
+  },
+
+  studySubject: {
+    type: String,
+    trim: true,
+    maxlength: 100,
+  },
+
   // What the user typed
   userMessage: {
     type: String,
