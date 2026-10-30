@@ -7,7 +7,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 // Priority order: pehla model pehle try hoga
 const MODEL_NAMES = (
   process.env.GEMINI_MODELS ||
-  "gemini-3.8-flash,gemini-3.7-flash,gemini-3.5-flash-lite,gemini-3.1-flash-lite"
+  "gemini-3.1-flash-lite,gemini-3.8-flash,gemini-3.7-flash,gemini-3.5-flash-lite"
 )
   .split(",")
   .map((s) => s.trim())
