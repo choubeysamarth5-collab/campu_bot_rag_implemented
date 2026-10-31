@@ -4,6 +4,8 @@ const { retrieveDocuments } = require("./retriever");
 const { askGroq } = require("./groqService");
 const { askGemini } = require("./geminiService");
 const { getProviderMode } = require("../../utils/aiProviderConfig");
+const { embedQuery, findCachedAnswer, storeAnswer } = require("./semanticCache");
+const { rewriteFollowUpQuery, buildGroundedContext } = require("./retrievalEnhancements");
 
 // Maps the short language codes used by the frontend's language
 // switcher to a full name Gemini can understand in plain English
@@ -42,10 +44,21 @@ function formatHistory(history = []) {
 }
 
 async function askRAG(question, lang = "en", history = []) {
+    lang = LANGUAGE_NAMES[lang] ? lang : "en";
+    const rewrite = rewriteFollowUpQuery(question, history);
+    console.log("[RAG]", JSON.stringify({ stage: "query_rewrite", status: rewrite.rewritten ? "REWRITTEN" : "UNCHANGED", followUp: rewrite.rewritten }));
+    const queryVector = await embedQuery(rewrite.query);
+    const cacheScope = `faq:${lang}`;
+    if (Array.isArray(history) && history.length) {
+        console.log("[RAG]", JSON.stringify({ stage: "semantic_cache", status: "BYPASS", reason: "conversation_context" }));
+    } else {
+        const cachedAnswer = findCachedAnswer(cacheScope, queryVector);
+        if (cachedAnswer) return cachedAnswer;
+    }
 
-    const docs = await retrieveDocuments(question);
-
-    const context = docs.map(doc => doc.pageContent).join("\n\n");
+    const docs = await retrieveDocuments(rewrite.query, queryVector, 5);
+    const context = buildGroundedContext(docs);
+    console.log("[RAG]", JSON.stringify({ stage: "context_assembly", status: context ? "READY" : "EMPTY", chunks: docs.length, characters: context.length }));
 
     const languageName = LANGUAGE_NAMES[lang] || "English";
     const historyBlock = formatHistory(history);
@@ -88,14 +101,20 @@ Answer:
     // down and they don't want to wait for the automatic fallback on
     // every single request).
     const mode = getProviderMode();
+    const rememberAnswer = answer => {
+        if (!(Array.isArray(history) && history.length) && docs.length) storeAnswer(cacheScope, queryVector, answer);
+        return answer;
+    };
 
     if (mode === "gemini_only") {
         try {
             console.log("🤖 Using Gemini (manually forced)...");
             const answer = await askGemini(prompt);
             console.log("✅ Gemini Success");
-            return answer;
+            console.log("[RAG]", JSON.stringify({ stage: "answer_generation", provider: "gemini", status: "ok", forced: true }));
+            return rememberAnswer(answer);
         } catch (err) {
+            console.error("[RAG]", JSON.stringify({ stage: "answer_generation", provider: "gemini", status: "error", forced: true, message: err.message }));
             console.log("❌ Gemini Failed (forced mode) — falling back to FAQ:", err.message);
             // Throwing here lets chat.js's existing try/catch around
             // askRAG() catch this and fall through to FAQ matching,
@@ -109,8 +128,10 @@ Answer:
             console.log("🚀 Using Groq (manually forced)...");
             const answer = await askGroq(prompt);
             console.log("✅ Groq Success");
-            return answer;
+            console.log("[RAG]", JSON.stringify({ stage: "answer_generation", provider: "groq", status: "ok", forced: true }));
+            return rememberAnswer(answer);
         } catch (err) {
+            console.error("[RAG]", JSON.stringify({ stage: "answer_generation", provider: "groq", status: "error", forced: true, message: err.message }));
             console.log("❌ Groq Failed (forced mode) — falling back to FAQ:", err.message);
             throw new Error("AI_PROVIDER_UNAVAILABLE");
         }
@@ -127,14 +148,16 @@ Answer:
         const answer = await askGemini(prompt);
 
         console.log("✅ Gemini Success");
+        console.log("[RAG]", JSON.stringify({ stage: "answer_generation", provider: "gemini", status: "ok" }));
 
-        return answer;
+        return rememberAnswer(answer);
 
     } catch (err) {
 
         console.log("❌ Gemini Failed");
 
         console.log(err.message);
+        console.error("[RAG]", JSON.stringify({ stage: "answer_generation", provider: "gemini", status: "error", message: err.message }));
 
     }
 
@@ -149,14 +172,16 @@ Answer:
         const answer = await askGroq(prompt);
 
         console.log("✅ Groq Success");
+        console.log("[RAG]", JSON.stringify({ stage: "answer_generation", provider: "groq", status: "ok", fallback: true }));
 
-        return answer;
+        return rememberAnswer(answer);
 
     } catch (err) {
 
         console.log("❌ Groq Failed");
 
         console.log(err.message);
+        console.error("[RAG]", JSON.stringify({ stage: "answer_generation", provider: "groq", status: "error", fallback: true, message: err.message }));
 
     }
 

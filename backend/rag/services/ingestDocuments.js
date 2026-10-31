@@ -11,6 +11,7 @@ const {
     getVectorStore,
     getVectorCollection,
 } = require("../config/mongoVectorStore");
+const { clearSemanticCache } = require("./semanticCache");
 
 async function ingestDocuments(filePath = null) {
 
@@ -66,6 +67,8 @@ async function ingestDocuments(filePath = null) {
     }
 
     await vectorStore.addDocuments(chunks);
+    clearSemanticCache();
+    console.log("[RAG]", JSON.stringify({ stage: "semantic_cache", status: "CLEARED", reason: "faq_documents_changed" }));
 
     return vectorStore;
 }

@@ -1,16 +1,19 @@
 require("dotenv").config();
 
 const { getVectorStore } = require("../config/mongoVectorStore");
+const { rerankDocuments } = require("./retrievalEnhancements");
 
-async function retrieveDocuments(query) {
+async function retrieveDocuments(query, vector, limit = 5) {
 
     const vectorStore = getVectorStore();
+    const started = Date.now();
 
-    // k=5 — a little more context helps the LLM piece together an
-    // answer when OCR text is split awkwardly across chunks.
-    const docs = await vectorStore.similaritySearch(query, 5);
+    // Fetch a wider semantic set, then rerank with query-term coverage.
+    const candidates = await vectorStore.similaritySearchVectorWithScore(vector, 12);
+    const reranked = rerankDocuments(query, candidates, limit);
+    console.log("[RAG]", JSON.stringify({ stage: "retrieval_rerank", status: "ok", candidates: reranked.candidates, selected: reranked.selected, durationMs: Date.now() - started }));
 
-    return docs;
+    return reranked.documents;
 }
 
 module.exports = {

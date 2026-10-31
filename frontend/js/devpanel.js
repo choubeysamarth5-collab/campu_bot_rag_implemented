@@ -476,12 +476,18 @@ async function loadCacheStatus() {
         const res = await CampusAuth.adminFetch("/dev/cache");
         const data = await res.json();
         const c = data.faqCache;
+        const s = data.semanticCache;
 
         body.innerHTML = `
             <tr><td>FAQ Cache Status</td><td>${c.cached ? "✅ Cached" : "❌ Empty"}</td></tr>
             <tr><td>Cached Entries</td><td>${c.entryCount}</td></tr>
             <tr><td>Cache Age</td><td>${c.ageSeconds !== null ? `${c.ageSeconds}s` : "—"}</td></tr>
             <tr><td>Cache TTL</td><td>${c.ttlSeconds}s</td></tr>
+            <tr><td>Semantic Cache</td><td>${s.enabled ? "✅ Enabled" : "❌ Disabled"}</td></tr>
+            <tr><td>Semantic Entries</td><td>${s.entries}</td></tr>
+            <tr><td>Semantic Cache Hits / Misses</td><td>${s.hits} / ${s.misses}</td></tr>
+            <tr><td>Semantic Similarity Threshold</td><td>${s.similarityThreshold}</td></tr>
+            <tr><td>Semantic Cache Storage</td><td>${s.storage}</td></tr>
         `;
     } catch (err) {
         console.error(err);

@@ -19,6 +19,7 @@ const router = express.Router();
 const { adminProtect, requireSuperAdmin } = require("../middleware/adminAuth");
 const logger = require("../utils/logger");
 const faqCache = require("../utils/faqCache");
+const semanticCache = require("../rag/services/semanticCache");
 const { getProviderMode, setProviderMode, VALID_MODES } = require("../utils/aiProviderConfig");
 const { getGroqUsage, getGeminiUsage } = require("../utils/apiUsageTracker");
 const geminiModel = require("../rag/config/gemini");
@@ -598,6 +599,7 @@ router.get("/cache", adminProtect, requireSuperAdmin, async (req, res) => {
     res.json({
         success: true,
         faqCache: faqCache.getCacheStatus(),
+        semanticCache: semanticCache.getSemanticCacheStatus(),
     });
 
 });
@@ -605,9 +607,10 @@ router.get("/cache", adminProtect, requireSuperAdmin, async (req, res) => {
 router.delete("/cache", adminProtect, requireSuperAdmin, async (req, res) => {
 
     faqCache.clearFaqCache();
-    logger.info("FAQ cache cleared manually via Developer Panel.");
+    semanticCache.clearSemanticCache();
+    logger.info("FAQ and semantic caches cleared manually via Developer Panel.");
 
-    res.json({ success: true, message: "FAQ cache cleared." });
+    res.json({ success: true, message: "FAQ and semantic caches cleared." });
 
 });
 

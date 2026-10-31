@@ -24,6 +24,7 @@ const { PDFLoader } = require("@langchain/community/document_loaders/fs/pdf");
 const { adminProtect, requirePermission } = require("../../middleware/adminAuth");
 const { getStudyBucket } = require("../config/studyGridfs");
 const { getStudyVectorStore, deleteByFileId } = require("../config/studyVectorStore");
+const { clearSemanticCache } = require("../services/semanticCache");
 const StudyNote = require("../../models/StudyNote");
 
 const router = express.Router();
@@ -89,6 +90,8 @@ router.post(
 
             const vectorStore = getStudyVectorStore();
             await vectorStore.addDocuments(docs);
+            clearSemanticCache();
+            console.log("[RAG]", JSON.stringify({ stage: "semantic_cache", status: "CLEARED", reason: "study_notes_changed" }));
 
             // 5. Save metadata row for the admin panel list view.
             const note = await StudyNote.create({
@@ -128,6 +131,8 @@ router.delete("/notes/:id", adminProtect, requirePermission("studyNotes"), async
         }
 
         await deleteByFileId(note.fileId);
+        clearSemanticCache();
+        console.log("[RAG]", JSON.stringify({ stage: "semantic_cache", status: "CLEARED", reason: "study_note_deleted" }));
 
         const bucket = getStudyBucket();
         await bucket.delete(note.fileId).catch(() => {}); // ignore if already gone

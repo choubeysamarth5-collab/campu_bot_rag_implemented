@@ -14,6 +14,7 @@ const mongoose = require("mongoose");
 const { adminProtect } = require("../../middleware/adminAuth");
 const { getVectorCollection } = require("../config/mongoVectorStore");
 const { getBucket } = require("../config/gridfs");
+const { clearSemanticCache } = require("../services/semanticCache");
 
 // Reuse Mongoose's own bundled ObjectId (mongoose.mongo.ObjectId)
 // instead of importing a separate top-level `mongodb` package —
@@ -137,6 +138,8 @@ router.delete("/:fileId", adminProtect, async (req, res) => {
                 console.log("   ⚠️  Vector store cleanup failed:", err.message);
             }
         }
+        clearSemanticCache();
+        console.log("[RAG]", JSON.stringify({ stage: "semantic_cache", status: "CLEARED", reason: "faq_document_deleted" }));
 
         res.json({
             success: true,
