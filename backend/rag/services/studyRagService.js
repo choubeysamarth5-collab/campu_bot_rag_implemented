@@ -48,8 +48,8 @@ async function askStudyRAG(message, subject, history = []) {
     console.log("[Study RAG]", JSON.stringify({ stage: "query_rewrite", status: rewrite.rewritten ? "REWRITTEN" : "UNCHANGED", followUp: rewrite.rewritten, subject: subject || "all" }));
     const queryVector = await embedQuery(rewrite.query);
     const cacheScope = `study:${subject || "all"}`;
-    if (Array.isArray(history) && history.length) {
-        console.log("[Study RAG]", JSON.stringify({ stage: "semantic_cache", status: "BYPASS", reason: "conversation_context" }));
+    if (rewrite.rewritten) {
+        console.log("[Study RAG]", JSON.stringify({ stage: "semantic_cache", status: "BYPASS", reason: "contextual_follow_up" }));
     } else {
         const cached = findCachedAnswer(cacheScope, queryVector, rewrite.query);
         if (cached) return cached;
@@ -115,7 +115,7 @@ Answer:`;
     }));
 
     const result = { reply, matched: true, sources };
-    if (!(Array.isArray(history) && history.length)) storeAnswer(cacheScope, queryVector, result, rewrite.query);
+    if (!rewrite.rewritten) storeAnswer(cacheScope, queryVector, result, rewrite.query);
     return result;
 }
 
