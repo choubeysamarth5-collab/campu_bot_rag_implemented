@@ -52,7 +52,7 @@ async function askRAG(question, lang = "en", history = []) {
     if (Array.isArray(history) && history.length) {
         console.log("[RAG]", JSON.stringify({ stage: "semantic_cache", status: "BYPASS", reason: "conversation_context" }));
     } else {
-        const cachedAnswer = findCachedAnswer(cacheScope, queryVector);
+        const cachedAnswer = findCachedAnswer(cacheScope, queryVector, rewrite.query);
         if (cachedAnswer) return cachedAnswer;
     }
 
@@ -102,7 +102,7 @@ Answer:
     // every single request).
     const mode = getProviderMode();
     const rememberAnswer = answer => {
-        if (!(Array.isArray(history) && history.length) && docs.length) storeAnswer(cacheScope, queryVector, answer);
+        if (!(Array.isArray(history) && history.length) && docs.length) storeAnswer(cacheScope, queryVector, answer, rewrite.query);
         return answer;
     };
 

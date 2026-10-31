@@ -51,7 +51,7 @@ async function askStudyRAG(message, subject, history = []) {
     if (Array.isArray(history) && history.length) {
         console.log("[Study RAG]", JSON.stringify({ stage: "semantic_cache", status: "BYPASS", reason: "conversation_context" }));
     } else {
-        const cached = findCachedAnswer(cacheScope, queryVector);
+        const cached = findCachedAnswer(cacheScope, queryVector, rewrite.query);
         if (cached) return cached;
     }
 
@@ -115,7 +115,7 @@ Answer:`;
     }));
 
     const result = { reply, matched: true, sources };
-    if (!(Array.isArray(history) && history.length)) storeAnswer(cacheScope, queryVector, result);
+    if (!(Array.isArray(history) && history.length)) storeAnswer(cacheScope, queryVector, result, rewrite.query);
     return result;
 }
 

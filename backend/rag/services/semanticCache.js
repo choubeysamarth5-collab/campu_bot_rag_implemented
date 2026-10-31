@@ -20,6 +20,10 @@ function cosineSimilarity(a, b) {
     return normA && normB ? dot / (Math.sqrt(normA) * Math.sqrt(normB)) : -1;
 }
 
+function normalizeQuery(query) {
+    return String(query || "").normalize("NFKC").toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+}
+
 async function embedQuery(query) {
     const started = Date.now();
     try {
@@ -32,32 +36,39 @@ async function embedQuery(query) {
     }
 }
 
-function findCachedAnswer(scope, vector) {
+function findCachedAnswer(scope, vector, query = "") {
     const now = Date.now();
     for (let i = entries.length - 1; i >= 0; i--) {
         if (now - entries[i].createdAt > CACHE_TTL_MS) entries.splice(i, 1);
     }
+    const normalizedQuery = normalizeQuery(query);
     let best = null;
+    let closestSimilarity = -1;
     for (const entry of entries) {
         if (entry.scope !== scope) continue;
+        if (normalizedQuery && entry.normalizedQuery === normalizedQuery) {
+            best = { ...entry, similarity: 1, matchType: "exact" };
+            break;
+        }
         const similarity = cosineSimilarity(vector, entry.vector);
+        closestSimilarity = Math.max(closestSimilarity, similarity);
         if (similarity >= SIMILARITY_THRESHOLD && (!best || similarity > best.similarity)) {
-            best = { ...entry, similarity };
+            best = { ...entry, similarity, matchType: "semantic" };
         }
     }
     if (best) {
         hits++;
-        console.log("[RAG]", JSON.stringify({ stage: "semantic_cache", status: "HIT", scope, similarity: Number(best.similarity.toFixed(4)), ageSeconds: Math.round((now - best.createdAt) / 1000) }));
+        console.log("[RAG]", JSON.stringify({ stage: "semantic_cache", status: "HIT", scope, matchType: best.matchType, similarity: Number(best.similarity.toFixed(4)), ageSeconds: Math.round((now - best.createdAt) / 1000) }));
         return best.answer;
     }
     misses++;
-    console.log("[RAG]", JSON.stringify({ stage: "semantic_cache", status: "MISS", scope, entries: entries.filter(entry => entry.scope === scope).length }));
+    console.log("[RAG]", JSON.stringify({ stage: "semantic_cache", status: "MISS", scope, entries: entries.filter(entry => entry.scope === scope).length, closestSimilarity: closestSimilarity >= 0 ? Number(closestSimilarity.toFixed(4)) : null, threshold: SIMILARITY_THRESHOLD }));
     return null;
 }
 
-function storeAnswer(scope, vector, answer) {
+function storeAnswer(scope, vector, answer, query = "") {
     if (!scope || !Array.isArray(vector) || !answer) return;
-    entries.push({ scope, vector, answer, createdAt: Date.now() });
+    entries.push({ scope, vector, answer, normalizedQuery: normalizeQuery(query), createdAt: Date.now() });
     if (entries.length > MAX_ENTRIES) entries.splice(0, entries.length - MAX_ENTRIES);
     console.log("[RAG]", JSON.stringify({ stage: "semantic_cache", status: "STORED", scope, entries: entries.filter(entry => entry.scope === scope).length }));
 }
