@@ -2,7 +2,7 @@ const embeddings = require("../embeddings/geminiEmbeddings");
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const MAX_ENTRIES = 300;
-const SIMILARITY_THRESHOLD = 0.94;
+const SIMILARITY_THRESHOLD = 0.92;
 const entries = [];
 let hits = 0;
 let misses = 0;
