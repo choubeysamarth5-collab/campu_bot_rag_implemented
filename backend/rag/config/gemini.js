@@ -15,18 +15,16 @@ const MODEL_NAMES = (
 
 const models = MODEL_NAMES.map((name) => ({
   name,
-  instance: genAI.getGenerativeModel({ model: name }),
+  instance: genAI.getGenerativeModel(
+    { model: name },
+    { timeout: Number(process.env.GEMINI_REQUEST_TIMEOUT_MS) || 12_000 }
+  ),
 }));
 
 // Inhi errors pe agle model pe jaana hai (busy / quota / model band)
 const RETRYABLE_STATUS = [404, 429, 500, 503, 504];
-const TRANSIENT_STATUS = [500, 503, 504];
 const CIRCUIT_COOLDOWN_MS = 30 * 1000;
 let circuitOpenUntil = 0;
-
-function wait(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 async function generateContent(...args) {
   if (Date.now() < circuitOpenUntil) {
@@ -40,15 +38,24 @@ async function generateContent(...args) {
   let lastErr;
 
   for (const { name, instance } of models) {
+    const attemptStartedAt = Date.now();
     try {
       const result = await instance.generateContent(...args);
       circuitOpenUntil = 0;
-      console.log(`✅ Gemini model used: ${name}`);
+      console.log(`✅ Gemini model used: ${name} (${Date.now() - attemptStartedAt}ms)`);
       return result;
     } catch (err) {
       lastErr = err;
       const status = err.status;
-      console.log(`⚠️ ${name} failed (${status || err.message}), trying next...`);
+      console.log(`⚠️ ${name} failed after ${Date.now() - attemptStartedAt}ms (${status || err.message}), trying next...`);
+
+      // A provider-wide overload/timeout will not improve by trying more
+      // Gemini model IDs. Hand off immediately to the independent provider.
+      if (status === 500 || status === 503 || status === 504 || err.name === "AbortError") {
+        circuitOpenUntil = Date.now() + CIRCUIT_COOLDOWN_MS;
+        console.error("[LLM] Gemini is overloaded/timed out; skipping remaining Gemini models and handing request to Groq.");
+        throw err;
+      }
 
       // 403/400 jaise errors mein agla model bhi fail hoga, to turant roko
       if (status && !RETRYABLE_STATUS.includes(status)) {
@@ -58,21 +65,6 @@ async function generateContent(...args) {
         }
         throw err;
       }
-    }
-  }
-
-  // One short provider-level retry for temporary capacity errors, then
-  // open a brief circuit so subsequent requests go straight to Groq.
-  if (lastErr && TRANSIENT_STATUS.includes(lastErr.status)) {
-    await wait(700);
-    try {
-      const { name, instance } = models[0];
-      const result = await instance.generateContent(...args);
-      circuitOpenUntil = 0;
-      console.log(`[LLM] Gemini recovered on provider retry with ${name}.`);
-      return result;
-    } catch (retryErr) {
-      lastErr = retryErr;
     }
   }
 
