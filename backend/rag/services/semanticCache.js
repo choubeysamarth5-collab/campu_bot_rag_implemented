@@ -24,6 +24,19 @@ function normalizeQuery(query) {
     return String(query || "").normalize("NFKC").toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 }
 
+function findExactCachedAnswer(scope, query) {
+    const now = Date.now();
+    for (let i = entries.length - 1; i >= 0; i--) {
+        if (now - entries[i].createdAt > CACHE_TTL_MS) entries.splice(i, 1);
+    }
+    const normalizedQuery = normalizeQuery(query);
+    const best = entries.find(entry => entry.scope === scope && entry.normalizedQuery === normalizedQuery);
+    if (!best || !normalizedQuery) return null;
+    hits++;
+    console.log("[RAG]", JSON.stringify({ stage: "semantic_cache", status: "HIT", scope, matchType: "exact", similarity: 1, ageSeconds: Math.round((now - best.createdAt) / 1000), embeddingSkipped: true }));
+    return best.answer;
+}
+
 async function embedQuery(query) {
     const started = Date.now();
     try {
@@ -93,4 +106,4 @@ function getSemanticCacheStatus() {
     };
 }
 
-module.exports = { embedQuery, findCachedAnswer, storeAnswer, clearSemanticCache, getSemanticCacheStatus };
+module.exports = { embedQuery, findExactCachedAnswer, findCachedAnswer, storeAnswer, clearSemanticCache, getSemanticCacheStatus };

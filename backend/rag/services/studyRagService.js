@@ -10,7 +10,7 @@
 const { askGemini } = require("./geminiService");
 const { askGroq } = require("./groqService");
 const { getStudyVectorStore } = require("../config/studyVectorStore");
-const { embedQuery, findCachedAnswer, storeAnswer } = require("./semanticCache");
+const { embedQuery, findExactCachedAnswer, findCachedAnswer, storeAnswer } = require("./semanticCache");
 const { rewriteFollowUpQuery, rerankDocuments, buildGroundedContext } = require("./retrievalEnhancements");
 
 const NO_MATCH_MESSAGE =
@@ -46,11 +46,15 @@ async function askStudyRAG(message, subject, history = []) {
     const filter = subject ? { subject } : undefined;
     const rewrite = rewriteFollowUpQuery(message, history);
     console.log("[Study RAG]", JSON.stringify({ stage: "query_rewrite", status: rewrite.rewritten ? "REWRITTEN" : "UNCHANGED", followUp: rewrite.rewritten, subject: subject || "all" }));
-    const queryVector = await embedQuery(rewrite.query);
     const cacheScope = `study:${subject || "all"}`;
     if (rewrite.rewritten) {
         console.log("[Study RAG]", JSON.stringify({ stage: "semantic_cache", status: "BYPASS", reason: "contextual_follow_up" }));
     } else {
+        const exactCached = findExactCachedAnswer(cacheScope, rewrite.query);
+        if (exactCached) return exactCached;
+    }
+    const queryVector = await embedQuery(rewrite.query);
+    if (!rewrite.rewritten) {
         const cached = findCachedAnswer(cacheScope, queryVector, rewrite.query);
         if (cached) return cached;
     }
@@ -88,6 +92,7 @@ Question: ${message}
 Answer:`;
 
     let reply;
+    let degraded = false;
 
     try {
         console.log("🤖 Study RAG: Using Gemini...");
@@ -104,8 +109,15 @@ Answer:`;
             console.log("[Study RAG]", JSON.stringify({ stage: "answer_generation", provider: "groq", status: "ok", fallback: true }));
         } catch (groqErr) {
             console.log("❌ Study RAG: Groq Failed —", groqErr.message);
-            console.error("[Study RAG]", JSON.stringify({ stage: "answer_generation", status: "error", providers: ["gemini", "groq"] }));
-            throw new Error("AI_PROVIDER_UNAVAILABLE");
+            console.error("[Study RAG]", JSON.stringify({ stage: "answer_generation", status: "degraded", providers: ["gemini", "groq"] }));
+            degraded = true;
+            const excerpts = results.slice(0, 3).map((doc, index) => {
+                const title = doc.metadata?.title || "Uploaded notes";
+                const excerpt = String(doc.pageContent || "").trim().slice(0, 1200);
+                return `**Source ${index + 1}: ${title}**\n${excerpt}`;
+            }).join("\n\n");
+            reply = `AI providers are temporarily unavailable. Here are the most relevant excerpts from your uploaded notes:\n\n${excerpts}`;
+            console.log("[Study RAG]", JSON.stringify({ stage: "answer_generation", provider: "retrieved_notes", status: "fallback", excerpts: Math.min(results.length, 3) }));
         }
     }
 
@@ -114,8 +126,8 @@ Answer:`;
         subject: doc.metadata?.subject,
     }));
 
-    const result = { reply, matched: true, sources };
-    if (!rewrite.rewritten) storeAnswer(cacheScope, queryVector, result, rewrite.query);
+    const result = { reply, matched: true, sources, degraded };
+    if (!rewrite.rewritten && !degraded) storeAnswer(cacheScope, queryVector, result, rewrite.query);
     return result;
 }
 

@@ -152,12 +152,13 @@ router.post("/chat", async (req, res) => {
         console.log("========== STUDY RAG ==========");
         console.log("Question:", message, "| Subject filter:", subject || "(none)");
 
-        const { reply, matched, sources } = await askStudyRAG(message, subject, history);
+        const { reply, matched, sources, degraded } = await askStudyRAG(message, subject, history);
 
         res.json({
             reply,
             matched,
             sources,
+            degraded: Boolean(degraded),
             subject: subject || null,
             timestamp: new Date().toISOString(),
         });

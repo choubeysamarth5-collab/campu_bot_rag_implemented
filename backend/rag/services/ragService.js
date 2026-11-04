@@ -4,7 +4,7 @@ const { retrieveDocuments } = require("./retriever");
 const { askGroq } = require("./groqService");
 const { askGemini } = require("./geminiService");
 const { getProviderMode } = require("../../utils/aiProviderConfig");
-const { embedQuery, findCachedAnswer, storeAnswer } = require("./semanticCache");
+const { embedQuery, findExactCachedAnswer, findCachedAnswer, storeAnswer } = require("./semanticCache");
 const { rewriteFollowUpQuery, buildGroundedContext } = require("./retrievalEnhancements");
 
 // Maps the short language codes used by the frontend's language
@@ -47,11 +47,15 @@ async function askRAG(question, lang = "en", history = []) {
     lang = LANGUAGE_NAMES[lang] ? lang : "en";
     const rewrite = rewriteFollowUpQuery(question, history);
     console.log("[RAG]", JSON.stringify({ stage: "query_rewrite", status: rewrite.rewritten ? "REWRITTEN" : "UNCHANGED", followUp: rewrite.rewritten }));
-    const queryVector = await embedQuery(rewrite.query);
     const cacheScope = `faq:${lang}`;
     if (Array.isArray(history) && history.length) {
         console.log("[RAG]", JSON.stringify({ stage: "semantic_cache", status: "BYPASS", reason: "conversation_context" }));
     } else {
+        const exactCachedAnswer = findExactCachedAnswer(cacheScope, rewrite.query);
+        if (exactCachedAnswer) return exactCachedAnswer;
+    }
+    const queryVector = await embedQuery(rewrite.query);
+    if (!(Array.isArray(history) && history.length)) {
         const cachedAnswer = findCachedAnswer(cacheScope, queryVector, rewrite.query);
         if (cachedAnswer) return cachedAnswer;
     }
